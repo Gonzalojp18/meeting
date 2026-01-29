@@ -1,8 +1,11 @@
 'use client';
-import React, { useState, useEffect } from 'react';
+import { useSession } from 'next-auth/react';
 import { MdSecurity, MdVisibility, MdVisibilityOff, MdCheckCircle, MdError, MdOpenInNew, MdDelete, MdInfoOutline } from 'react-icons/md';
 
 const MercadoPagoSettings = () => {
+  const { data: session } = useSession();
+  const token = session?.user?.token;
+
   const [publicKey, setPublicKey] = useState('');
   const [accessToken, setAccessToken] = useState('');
   const [showAccessToken, setShowAccessToken] = useState(false);
@@ -14,15 +17,15 @@ const MercadoPagoSettings = () => {
   const [isEditing, setIsEditing] = useState(false);
 
   const getAuthHeaders = () => {
-    const auth = localStorage.getItem('auth');
-    if (!auth) return {};
-    const parsed = JSON.parse(auth);
-    return { Authorization: `Bearer ${parsed.token}` };
+    if (!token) return {};
+    return { Authorization: `Bearer ${token}` };
   };
 
   useEffect(() => {
-    fetchStatus();
-  }, []);
+    if (token) {
+      fetchStatus();
+    }
+  }, [token]);
 
   const fetchStatus = async () => {
     try {
@@ -120,9 +123,8 @@ const MercadoPagoSettings = () => {
             <div className="flex items-center gap-2">
               <MdCheckCircle className="h-5 w-5 text-green-500" />
               <span className="font-medium text-gray-900">Configurado</span>
-              <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${
-                status.mode === 'test' ? 'bg-yellow-100 text-yellow-800' : 'bg-green-100 text-green-800'
-              }`}>
+              <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${status.mode === 'test' ? 'bg-yellow-100 text-yellow-800' : 'bg-green-100 text-green-800'
+                }`}>
                 {status.mode === 'test' ? 'Modo Test' : 'Producción'}
               </span>
             </div>
@@ -238,9 +240,8 @@ const MercadoPagoSettings = () => {
 
           {/* Mensaje */}
           {message && (
-            <div className={`flex items-center gap-2 p-3 rounded-lg text-sm ${
-              message.type === 'success' ? 'bg-green-50 text-green-700' : 'bg-red-50 text-red-700'
-            }`}>
+            <div className={`flex items-center gap-2 p-3 rounded-lg text-sm ${message.type === 'success' ? 'bg-green-50 text-green-700' : 'bg-red-50 text-red-700'
+              }`}>
               {message.type === 'success' ? (
                 <MdCheckCircle className="h-4 w-4 flex-shrink-0" />
               ) : (
