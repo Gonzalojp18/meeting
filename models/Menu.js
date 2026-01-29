@@ -110,6 +110,11 @@ const categorySchema = new mongoose.Schema({
   isActive: {
     type: Boolean,
     default: true
+  },
+  // Sedes donde aplica esta categoría (vacío = todas las sedes)
+  locations: {
+    type: [String],
+    default: []
   }
 });
 

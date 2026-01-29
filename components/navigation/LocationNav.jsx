@@ -1,11 +1,14 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 
-const LocationNav = ({ adminView = false, locations }) => {
+const LocationNav = ({ adminView = false, locations = [] }) => {
   const router = useRouter()
   const [location, setLocation] = useState(null);
   const [isOpen, setIsOpen] = useState(false);
   const dropdownRef = useRef(null);
+
+  // Defensa: asegurar que locations sea un array
+  const safeLocations = Array.isArray(locations) ? locations : [];
 
   useEffect(() => {
     const handleClickOutside = (event) => {
@@ -26,7 +29,7 @@ const LocationNav = ({ adminView = false, locations }) => {
     router.push(`/menu/${locationId}`);
   };
 
-  const selectedLocation = locations?.find((loc) => loc.nameId === location)?.name
+  const selectedLocation = safeLocations.find((loc) => loc.nameId === location)?.name
 
   return (
     <div className="relative" ref={dropdownRef}>
@@ -51,7 +54,7 @@ const LocationNav = ({ adminView = false, locations }) => {
             <div className="px-4 py-2 text-sm text-gray-500 border-b border-gray-100">
               {adminView ? 'Select active menu to display' : 'Select your location'}
             </div>
-            {locations.map((location) => (
+            {safeLocations.map((location) => (
               <button
                 key={location._id}
                 onClick={() => handleLocationSelect(location.nameId)}

@@ -59,7 +59,7 @@ const Category = ({ category, locationId, isTakeaway = false }) => {
             {renderImage('top')}
             {renderTitle()}
             <div className={style.grid}>
-                {category.items.map((item) => {
+                {(category.items || []).map((item) => {
                     const quantity = getItemQuantity(item._id);
                     return (
                         <div key={item._id} className={`${style.item} relative group`}>

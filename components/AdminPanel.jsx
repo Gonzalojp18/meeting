@@ -1,13 +1,13 @@
 'use client'
 import React, { useState, useEffect } from 'react';
 import CategoryItems from './admin/CategoryItems';
+import CategoryManager from './admin/CategoryManager';
 import PromotionManager from './PromotionManager';
 import UserManagement from './admin/UserManagement';
 import { LocationNav } from './navigation';
 import { useFetch } from '../hooks/useFetch';
 import axios from 'axios';
 import { handleAxiosError } from '../utils/handleAxiosError';
-import Link from 'next/link';
 import API_URI from '../utils/getApiUri'
 import { useRouter } from 'next/navigation';
 import { useSession, signOut } from 'next-auth/react';
@@ -21,7 +21,8 @@ const AdminPanel = () => {
   const [searchTerm, setSearchTerm] = useState('');
 
   const token = session?.user?.token;
-  const { data, loading, error, refetch } = useFetch(`${API_URI}/api/menu`, token)
+  // Solo hacer fetch cuando el token está disponible (evita 401 mientras carga la sesión)
+  const { data, loading, error, refetch } = useFetch(token ? `${API_URI}/api/menu` : null, token)
 
   useEffect(() => {
     if (status === 'unauthenticated' || error) {
@@ -39,10 +40,15 @@ const AdminPanel = () => {
 
   const authHeaders = { headers: { Authorization: `Bearer ${token}` } };
 
+  // Normalizar datos para evitar undefined
+  const categories = data?.categories || [];
+  const locations = data?.locations || [];
+
   const handleLogout = () => {
     signOut({ callbackUrl: '/login' });
   };
 
+  // ========== HANDLERS DE ITEMS ==========
   const handleAddItem = async (categoryId, itemData) => {
     try {
       await axios.post(`${API_URI}/api/menu/category/${categoryId}/item`, itemData, authHeaders)
@@ -70,15 +76,44 @@ const AdminPanel = () => {
     }
   };
 
+  // ========== HANDLERS DE CATEGORÍAS ==========
+  const handleAddCategory = async (categoryData) => {
+    try {
+      await axios.post(`${API_URI}/api/menu/category`, categoryData, authHeaders);
+      refetch();
+    } catch (error) {
+      handleAxiosError(error);
+    }
+  };
+
+  const handleUpdateCategory = async (categoryId, categoryData) => {
+    try {
+      await axios.put(`${API_URI}/api/menu/category/${categoryId}`, categoryData, authHeaders);
+      refetch();
+    } catch (error) {
+      handleAxiosError(error);
+    }
+  };
+
+  const handleDeleteCategory = async (categoryId) => {
+    try {
+      await axios.delete(`${API_URI}/api/menu/category/${categoryId}`, authHeaders);
+      refetch();
+    } catch (error) {
+      handleAxiosError(error);
+    }
+  };
+
   const filteredCategories = searchTerm === ''
-    ? data.categories
-    : data.categories.map(category => {
-      const filteredItems = category.items.filter(item =>
-        item.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        item.description.toLowerCase().includes(searchTerm.toLowerCase())
+    ? categories
+    : categories.map(category => {
+      const categoryItems = category.items || [];
+      const filteredItems = categoryItems.filter(item =>
+        (item.name || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+        (item.description || '').toLowerCase().includes(searchTerm.toLowerCase())
       );
       return { ...category, items: filteredItems };
-    }).filter(category => category.items.length > 0);
+    }).filter(category => (category.items || []).length > 0);
 
   return (
     <div className="max-w-7xl mx-auto px-4 py-8 bg-gray-200 min-h-screen">
@@ -105,7 +140,7 @@ const AdminPanel = () => {
       <div className="mb-8 bg-white p-6 shadow sm:rounded-lg">
         <div className="flex items-center justify-between">
           <h2 className="text-lg font-medium text-gray-900">Configuración de Ubicación</h2>
-          <LocationNav adminView={true} locations={data.locations} />
+          <LocationNav adminView={true} locations={locations} />
         </div>
         <p className="mt-2 text-sm text-gray-500">
           Seleccione la ubicación para administrar los menús y precios específicos.
@@ -115,6 +150,15 @@ const AdminPanel = () => {
       <div className="mb-6">
         <div className="border-b border-gray-200 flex flex-col md:flex-row md:items-center justify-between gap-4">
           <nav className="-mb-px flex space-x-8">
+            <button
+              onClick={() => setActiveTab('categories')}
+              className={`py-4 px-1 border-b-2 font-medium text-sm transition-all duration-200 ${activeTab === 'categories'
+                ? 'border-orange-500 text-orange-600'
+                : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                }`}
+            >
+              Categorías
+            </button>
             <button
               onClick={() => setActiveTab('products')}
               className={`py-4 px-1 border-b-2 font-medium text-sm transition-all duration-200 ${activeTab === 'products'
@@ -169,14 +213,25 @@ const AdminPanel = () => {
         </div>
       </div>
 
-      {activeTab === 'products' ? (
+      {/* CONTENIDO DE TABS */}
+      {activeTab === 'categories' ? (
+        <div className="bg-white shadow sm:rounded-lg p-6">
+          <CategoryManager
+            categories={categories}
+            locations={locations}
+            onAddCategory={handleAddCategory}
+            onUpdateCategory={handleUpdateCategory}
+            onDeleteCategory={handleDeleteCategory}
+          />
+        </div>
+      ) : activeTab === 'products' ? (
         <div className="space-y-8">
           {filteredCategories.length > 0 ? (
             filteredCategories.map(category => (
               <div key={category._id} className="bg-white shadow sm:rounded-lg p-6">
                 <CategoryItems
                   category={category}
-                  locations={data.locations}
+                  locations={locations}
                   onAddItem={handleAddItem}
                   onUpdateItem={handleUpdateItem}
                   onDeleteItem={handleDeleteItem}
@@ -203,7 +258,7 @@ const AdminPanel = () => {
         </div>
       ) : activeTab === 'promotions' ? (
         <div className="space-y-8">
-          {data.categories.map(category => (
+          {categories.map(category => (
             <div key={category._id} className="bg-white shadow sm:rounded-lg p-6">
               <h3 className="text-2xl font-medium leading-6 text-gray-900 mb-4">{category.name}</h3>
               <PromotionManager category={category} />
@@ -211,7 +266,7 @@ const AdminPanel = () => {
           ))}
         </div>
       ) : (
-        <UserManagement locations={data.locations} />
+        <UserManagement locations={locations} />
       )}
     </div>
   );

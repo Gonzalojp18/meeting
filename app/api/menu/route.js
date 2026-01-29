@@ -21,13 +21,26 @@ export async function GET(req) {
     }
 
     await dbConnect();
-    const menu = await Menu.findOne().select('-_id -createdAt -updatedAt -__v');
+    const menu = await Menu.findOne().select('-_id -createdAt -updatedAt -__v').lean();
 
     if (!menu) {
       return NextResponse.json({ error: 'Menu not found' }, { status: 404 });
     }
 
-    return NextResponse.json(menu);
+    // Normalizar datos para evitar undefined en campos nuevos
+    const normalizedMenu = {
+      ...menu,
+      categories: (menu.categories || []).map(category => ({
+        ...category,
+        locations: category.locations || [],
+        isActive: category.isActive !== false,
+        style: category.style || 'default',
+        image: category.image || {},
+        items: category.items || []
+      }))
+    };
+
+    return NextResponse.json(normalizedMenu);
   } catch (error) {
     console.error('GET /api/menu error:', error);
     return NextResponse.json({ error: 'Server error' }, { status: 500 });

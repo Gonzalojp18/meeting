@@ -47,6 +47,19 @@ const MenuDisplay = ({ locationId }) => {
 
   if (error) return <FullScreenError message='404' buttonText='Regresar al inicio' onButtonClick={() => router.push('/')} />;
 
+  // Defensa: verificar que data y categories existan
+  const categories = data?.categories || [];
+
+  // Filtrar categorías activas y que apliquen a esta sede
+  const activeCategories = categories.filter(category => {
+    // Debe estar activa
+    if (!category.isActive) return false;
+    // Si no tiene locations definidas (array vacío), aplica a todas las sedes
+    if (!category.locations || category.locations.length === 0) return true;
+    // Si tiene locations, verificar que incluya esta sede
+    return category.locations.includes(locationId);
+  });
+
   return (
     <div className='min-h-screen bg-gray-100 relative'>
       {/* Modal selector de modo */}
@@ -64,7 +77,7 @@ const MenuDisplay = ({ locationId }) => {
       )}
 
       <header className="fixed top-0 left-0 right-0 z-50">
-        <CategoryNav categories={data.categories} />
+        <CategoryNav categories={activeCategories} />
       </header>
 
       <main className="mt-4 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 main-container-menu pb-32">
@@ -82,7 +95,7 @@ const MenuDisplay = ({ locationId }) => {
           </p>
         </motion.div>
         <Promotion />
-        {data.categories.map((category) => (
+        {activeCategories.map((category) => (
           <CategoryDisplay key={category._id} category={category} locationId={locationId} isTakeaway={isTakeaway} />
         ))}
         <BrandsSection />

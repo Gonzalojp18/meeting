@@ -41,7 +41,7 @@ export const useFetch = (url, token) => {
     } else {
       setLoading(false)
     }
-  }, [url, token])
+  }, [url, token, fetchData])
 
   const refetch = useCallback(async () => {
     // Solo hacer refetch si hay una URL válida

@@ -1,21 +1,27 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { MdRestaurant, MdDeliveryDining } from 'react-icons/md';
 
 const ModeSelector = ({ locationId, onModeSelect }) => {
     const [isOpen, setIsOpen] = useState(false);
+    const onModeSelectRef = useRef(onModeSelect);
+
+    // Mantener la ref actualizada
+    useEffect(() => {
+        onModeSelectRef.current = onModeSelect;
+    });
 
     useEffect(() => {
         // Verificar si ya hay un modo seleccionado para esta ubicación
         const savedMode = localStorage.getItem(`menuMode_${locationId}`);
         if (savedMode) {
-            onModeSelect(savedMode);
+            onModeSelectRef.current(savedMode);
         } else {
             setIsOpen(true);
         }
-    }, [locationId, onModeSelect]);
+    }, [locationId]);
 
     const handleSelectMode = (mode) => {
         localStorage.setItem(`menuMode_${locationId}`, mode);

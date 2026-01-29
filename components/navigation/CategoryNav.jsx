@@ -5,9 +5,12 @@ import Link from 'next/link';
 import styles from './CategoryNav.module.css';
 import { getCategoryIcon } from './CategoryIcons';
 
-const CategoryNav = ({ categories }) => {
+const CategoryNav = ({ categories = [] }) => {
   const [activeCategory, setActiveCategory] = useState(null);
   const scrollContainerRef = useRef(null);
+
+  // Defensa: asegurar que categories sea un array
+  const safeCategories = Array.isArray(categories) ? categories : [];
 
   const scrollToCategory = (categoryId) => {
     const element = document.getElementById(`category-${categoryId}`);
@@ -25,7 +28,7 @@ const CategoryNav = ({ categories }) => {
   };
 
   useEffect(() => {
-    const categoriesWithElements = categories.map((cat) => ({
+    const categoriesWithElements = safeCategories.map((cat) => ({
       id: cat._id,
       element: document.getElementById(`category-${cat._id}`),
     }));
@@ -51,7 +54,7 @@ const CategoryNav = ({ categories }) => {
 
     window.addEventListener('scroll', handleScroll);
     return () => window.removeEventListener('scroll', handleScroll);
-  }, [categories]);
+  }, [safeCategories]);
 
   return (
     <nav className={styles.categoryNav}>
@@ -61,7 +64,7 @@ const CategoryNav = ({ categories }) => {
         </Link>
         <div className={styles.scrollContainer} ref={scrollContainerRef}>
           <div className={styles.categoriesContainer}>
-            {categories.map((category) => (
+            {safeCategories.map((category) => (
               <button
                 key={category._id}
                 id={`cat-button-${category._id}`}

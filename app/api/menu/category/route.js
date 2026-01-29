@@ -1,0 +1,54 @@
+import { NextResponse } from 'next/server';
+import dbConnect from '@/utils/dbConnect';
+import Menu from '@/models/Menu';
+import jwt from 'jsonwebtoken';
+
+// @desc Create Category
+// @route POST /api/menu/category
+// @access Private
+export async function POST(req) {
+  try {
+    const authHeader = req.headers.get('authorization');
+    if (!authHeader || !authHeader.startsWith('Bearer')) {
+      return NextResponse.json({ error: 'Not authorized, no token' }, { status: 401 });
+    }
+
+    const token = authHeader.split(' ')[1];
+    try {
+      jwt.verify(token, process.env.JWT_SECRET);
+    } catch {
+      return NextResponse.json({ error: 'Not authorized' }, { status: 401 });
+    }
+
+    await dbConnect();
+
+    const newCategory = await req.json();
+
+    const menu = await Menu.findOne();
+
+    if (!menu) {
+      return NextResponse.json({ error: 'Menu not found' }, { status: 404 });
+    }
+
+    // Agregar la nueva categoría al array
+    menu.categories.push({
+      name: newCategory.name,
+      subtitle: newCategory.subtitle || '',
+      style: newCategory.style || 'default',
+      image: newCategory.image || {},
+      locations: newCategory.locations || [],
+      items: [],
+      isActive: true
+    });
+
+    await menu.save();
+
+    return NextResponse.json({ 
+      message: 'Category created successfully',
+      data: menu.categories[menu.categories.length - 1] 
+    }, { status: 201 });
+  } catch (error) {
+    console.error('POST /api/menu/category error:', error);
+    return NextResponse.json({ error: 'Server error' }, { status: 500 });
+  }
+}

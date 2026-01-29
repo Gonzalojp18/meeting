@@ -32,9 +32,14 @@ export async function GET(req, { params }) {
     };
 
     const filteredMenu = {
-      categories: menu.categories.map(category => ({
+      categories: (menu.categories || []).map(category => ({
         ...category,
-        items: filterItemsByLocation(category, locationId)
+        // Normalizar campos para evitar undefined (datos viejos sin estos campos)
+        locations: category.locations || [],
+        isActive: category.isActive !== false, // default true si no existe
+        items: filterItemsByLocation(category, locationId),
+        style: category.style || 'default',
+        image: category.image || {}
       })),
       locations: location
     };
