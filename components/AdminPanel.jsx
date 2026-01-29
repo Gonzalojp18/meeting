@@ -11,7 +11,7 @@ import { handleAxiosError } from '../utils/handleAxiosError';
 import API_URI from '../utils/getApiUri'
 import { useRouter } from 'next/navigation';
 import { useSession, signOut } from 'next-auth/react';
-import { MdSearch, MdClear, MdLogout } from 'react-icons/md';
+import { MdSearch, MdClear, MdLogout, MdMenu, MdClose } from 'react-icons/md';
 
 const AdminPanel = () => {
   const router = useRouter();
@@ -19,9 +19,9 @@ const AdminPanel = () => {
 
   const [activeTab, setActiveTab] = useState('products');
   const [searchTerm, setSearchTerm] = useState('');
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   const token = session?.user?.token;
-  // Solo hacer fetch cuando el token está disponible (evita 401 mientras carga la sesión)
   const { data, loading, error, refetch } = useFetch(token ? `${API_URI}/api/menu` : null, token)
 
   useEffect(() => {
@@ -31,7 +31,12 @@ const AdminPanel = () => {
   }, [status, error, router]);
 
   if (status === 'loading' || loading) {
-    return <div>Loading...</div>
+    return (
+      <div className="flex flex-col items-center justify-center min-h-screen gap-4 bg-gray-50">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-orange-500"></div>
+        <p className="text-base text-gray-600">Cargando panel...</p>
+      </div>
+    )
   }
 
   if (status === 'unauthenticated' || error) {
@@ -39,8 +44,6 @@ const AdminPanel = () => {
   }
 
   const authHeaders = { headers: { Authorization: `Bearer ${token}` } };
-
-  // Normalizar datos para evitar undefined
   const categories = data?.categories || [];
   const locations = data?.locations || [];
 
@@ -116,158 +119,255 @@ const AdminPanel = () => {
     }).filter(category => (category.items || []).length > 0);
 
   return (
-    <div className="max-w-7xl mx-auto px-4 py-8 bg-gray-200 min-h-screen">
-      {/* Header con usuario y logout */}
-      <div className="mb-4 bg-gray-800 p-4 shadow sm:rounded-lg flex items-center justify-between">
-        <div className="flex items-center gap-3">
-          <div className="w-10 h-10 bg-orange-500 rounded-full flex items-center justify-center text-white font-bold">
-            {session?.user?.name?.charAt(0)?.toUpperCase() || 'A'}
-          </div>
-          <div>
-            <p className="text-white font-medium">{session?.user?.name || 'Usuario'}</p>
-            <p className="text-gray-400 text-sm">{session?.user?.role || 'Sin rol'}</p>
-          </div>
-        </div>
-        <button
-          onClick={handleLogout}
-          className="flex items-center gap-2 bg-red-600 text-white px-4 py-2 rounded-lg hover:bg-red-700 transition-colors font-medium"
-        >
-          <MdLogout size={20} />
-          Cerrar Sesión
-        </button>
-      </div>
-
-      <div className="mb-8 bg-white p-6 shadow sm:rounded-lg">
-        <div className="flex items-center justify-between">
-          <h2 className="text-lg font-medium text-gray-900">Configuración de Ubicación</h2>
-          <LocationNav adminView={true} locations={locations} />
-        </div>
-        <p className="mt-2 text-sm text-gray-500">
-          Seleccione la ubicación para administrar los menús y precios específicos.
-        </p>
-      </div>
-
-      <div className="mb-6">
-        <div className="border-b border-gray-200 flex flex-col md:flex-row md:items-center justify-between gap-4">
-          <nav className="-mb-px flex space-x-8">
-            <button
-              onClick={() => setActiveTab('categories')}
-              className={`py-4 px-1 border-b-2 font-medium text-sm transition-all duration-200 ${activeTab === 'categories'
-                ? 'border-orange-500 text-orange-600'
-                : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
-                }`}
-            >
-              Categorías
-            </button>
-            <button
-              onClick={() => setActiveTab('products')}
-              className={`py-4 px-1 border-b-2 font-medium text-sm transition-all duration-200 ${activeTab === 'products'
-                ? 'border-orange-500 text-orange-600'
-                : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
-                }`}
-            >
-              Productos
-            </button>
-            <button
-              onClick={() => setActiveTab('promotions')}
-              className={`py-4 px-1 border-b-2 font-medium text-sm transition-all duration-200 ${activeTab === 'promotions'
-                ? 'border-orange-500 text-orange-600'
-                : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
-                }`}
-            >
-              Promociones
-            </button>
-            <button
-              onClick={() => setActiveTab('users')}
-              className={`py-4 px-1 border-b-2 font-medium text-sm transition-all duration-200 ${activeTab === 'users'
-                ? 'border-orange-500 text-orange-600'
-                : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
-                }`}
-            >
-              Usuarios
-            </button>
-          </nav>
-
-          {activeTab === 'products' && (
-            <div className="relative w-full md:w-96 pb-2 md:pb-0">
-              <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                <MdSearch className="h-5 w-5 text-gray-400" />
+    <div className="min-h-screen bg-gray-50">
+      {/* HEADER - Sticky, modern, minimal */}
+      <header className="sticky top-0 z-50 bg-white border-b border-gray-200 shadow-sm">
+        <div className="max-w-7xl mx-auto">
+          <div className="flex items-center justify-between px-4 py-3">
+            {/* Left: Logo + Menu mobile */}
+            <div className="flex items-center gap-4">
+              <button
+                onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+                className="lg:hidden p-2 hover:bg-gray-100 rounded-lg transition-colors"
+              >
+                {mobileMenuOpen ? (
+                  <MdClose className="h-6 w-6 text-gray-700" />
+                ) : (
+                  <MdMenu className="h-6 w-6 text-gray-700" />
+                )}
+              </button>
+              
+              <div className="flex items-center gap-3">
+                <div className="w-8 h-8 bg-gradient-to-br from-orange-400 to-orange-600 rounded-lg flex items-center justify-center">
+                  <span className="text-white font-bold text-sm">H</span>
+                </div>
+                <div className="hidden sm:block">
+                  <h1 className="text-lg font-bold text-gray-900">HÉNOS</h1>
+                  <p className="text-xs text-gray-500">Admin Panel</p>
+                </div>
               </div>
+            </div>
+
+            {/* Center: Location selector (desktop) */}
+            <div className="hidden lg:block">
+              <LocationNav adminView={true} locations={locations} />
+            </div>
+
+            {/* Right: User + Logout */}
+            <div className="flex items-center gap-3">
+              <div className="hidden md:flex items-center gap-3 px-3 py-1.5 bg-gray-50 rounded-lg">
+                <div className="w-8 h-8 bg-orange-500 rounded-full flex items-center justify-center text-white font-bold text-sm">
+                  {session?.user?.name?.charAt(0)?.toUpperCase() || 'A'}
+                </div>
+                <div className="hidden lg:block">
+                  <p className="text-sm font-medium text-gray-900 truncate max-w-32">
+                    {session?.user?.name || 'Usuario'}
+                  </p>
+                  <p className="text-xs text-gray-500 capitalize">
+                    {session?.user?.role || 'Sin rol'}
+                  </p>
+                </div>
+              </div>
+              
+              <button
+                onClick={handleLogout}
+                className="p-2 hover:bg-red-50 rounded-lg transition-colors group"
+                title="Cerrar Sesión"
+              >
+                <MdLogout className="h-5 w-5 text-gray-600 group-hover:text-red-600" />
+              </button>
+            </div>
+          </div>
+
+          {/* TABS - Horizontal scroll mobile */}
+          <div className="px-4 -mb-px overflow-x-auto scrollbar-hide">
+            <nav className="flex space-x-6 min-w-max">
+              <button
+                onClick={() => setActiveTab('products')}
+                className={`py-3 px-1 border-b-2 font-medium text-sm whitespace-nowrap transition-colors ${
+                  activeTab === 'products'
+                    ? 'border-orange-500 text-orange-600'
+                    : 'border-transparent text-gray-600 hover:text-gray-900'
+                }`}
+              >
+                Productos
+              </button>
+              <button
+                onClick={() => setActiveTab('categories')}
+                className={`py-3 px-1 border-b-2 font-medium text-sm whitespace-nowrap transition-colors ${
+                  activeTab === 'categories'
+                    ? 'border-orange-500 text-orange-600'
+                    : 'border-transparent text-gray-600 hover:text-gray-900'
+                }`}
+              >
+                Categorías
+              </button>
+              <button
+                onClick={() => setActiveTab('promotions')}
+                className={`py-3 px-1 border-b-2 font-medium text-sm whitespace-nowrap transition-colors ${
+                  activeTab === 'promotions'
+                    ? 'border-orange-500 text-orange-600'
+                    : 'border-transparent text-gray-600 hover:text-gray-900'
+                }`}
+              >
+                Promociones
+              </button>
+              <button
+                onClick={() => setActiveTab('users')}
+                className={`py-3 px-1 border-b-2 font-medium text-sm whitespace-nowrap transition-colors ${
+                  activeTab === 'users'
+                    ? 'border-orange-500 text-orange-600'
+                    : 'border-transparent text-gray-600 hover:text-gray-900'
+                }`}
+              >
+                Usuarios
+              </button>
+            </nav>
+          </div>
+        </div>
+      </header>
+
+      {/* Mobile menu overlay */}
+      {mobileMenuOpen && (
+        <div className="lg:hidden fixed inset-0 z-40 bg-black/50" onClick={() => setMobileMenuOpen(false)}>
+          <div className="absolute left-0 top-16 bottom-0 w-64 bg-white shadow-xl p-4" onClick={e => e.stopPropagation()}>
+            <div className="mb-4 pb-4 border-b">
+              <p className="text-xs text-gray-500 uppercase tracking-wide mb-2">Ubicación</p>
+              <LocationNav adminView={true} locations={locations} />
+            </div>
+            
+            <div className="space-y-1">
+              <button
+                onClick={() => {
+                  setActiveTab('products')
+                  setMobileMenuOpen(false)
+                }}
+                className={`w-full text-left px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
+                  activeTab === 'products' ? 'bg-orange-50 text-orange-600' : 'text-gray-700 hover:bg-gray-50'
+                }`}
+              >
+                Productos
+              </button>
+              <button
+                onClick={() => {
+                  setActiveTab('categories')
+                  setMobileMenuOpen(false)
+                }}
+                className={`w-full text-left px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
+                  activeTab === 'categories' ? 'bg-orange-50 text-orange-600' : 'text-gray-700 hover:bg-gray-50'
+                }`}
+              >
+                Categorías
+              </button>
+              <button
+                onClick={() => {
+                  setActiveTab('promotions')
+                  setMobileMenuOpen(false)
+                }}
+                className={`w-full text-left px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
+                  activeTab === 'promotions' ? 'bg-orange-50 text-orange-600' : 'text-gray-700 hover:bg-gray-50'
+                }`}
+              >
+                Promociones
+              </button>
+              <button
+                onClick={() => {
+                  setActiveTab('users')
+                  setMobileMenuOpen(false)
+                }}
+                className={`w-full text-left px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
+                  activeTab === 'users' ? 'bg-orange-50 text-orange-600' : 'text-gray-700 hover:bg-gray-50'
+                }`}
+              >
+                Usuarios
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* MAIN CONTENT */}
+      <main className="max-w-7xl mx-auto px-4 py-6">
+        {/* Search bar - Solo en tab de productos */}
+        {activeTab === 'products' && (
+          <div className="mb-6">
+            <div className="relative max-w-md">
+              <MdSearch className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-gray-400" />
               <input
                 type="text"
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
-                placeholder="Buscar platos por nombre o descripción..."
-                className="block w-full pl-10 pr-10 py-2 border border-gray-300 rounded-full leading-5 bg-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-orange-500 sm:text-sm transition-all duration-200 shadow-sm"
+                placeholder="Buscar productos..."
+                className="w-full pl-10 pr-10 py-2.5 border border-gray-300 rounded-lg text-sm placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent transition-all"
               />
               {searchTerm && (
                 <button
                   onClick={() => setSearchTerm('')}
-                  className="absolute inset-y-0 right-0 pr-3 flex items-center"
+                  className="absolute right-3 top-1/2 -translate-y-1/2"
                 >
-                  <MdClear className="h-5 w-5 text-gray-400 hover:text-orange-500 cursor-pointer" />
+                  <MdClear className="h-5 w-5 text-gray-400 hover:text-gray-600" />
                 </button>
               )}
             </div>
-          )}
-        </div>
-      </div>
+          </div>
+        )}
 
-      {/* CONTENIDO DE TABS */}
-      {activeTab === 'categories' ? (
-        <div className="bg-white shadow sm:rounded-lg p-6">
-          <CategoryManager
-            categories={categories}
-            locations={locations}
-            onAddCategory={handleAddCategory}
-            onUpdateCategory={handleUpdateCategory}
-            onDeleteCategory={handleDeleteCategory}
-          />
-        </div>
-      ) : activeTab === 'products' ? (
-        <div className="space-y-8">
-          {filteredCategories.length > 0 ? (
-            filteredCategories.map(category => (
-              <div key={category._id} className="bg-white shadow sm:rounded-lg p-6">
-                <CategoryItems
-                  category={category}
-                  locations={locations}
-                  onAddItem={handleAddItem}
-                  onUpdateItem={handleUpdateItem}
-                  onDeleteItem={handleDeleteItem}
-                />
+        {/* CONTENIDO DE TABS */}
+        {activeTab === 'categories' ? (
+          <div className="bg-white rounded-lg border border-gray-200 shadow-sm p-6">
+            <CategoryManager
+              categories={categories}
+              locations={locations}
+              onAddCategory={handleAddCategory}
+              onUpdateCategory={handleUpdateCategory}
+              onDeleteCategory={handleDeleteCategory}
+            />
+          </div>
+        ) : activeTab === 'products' ? (
+          <div className="space-y-6">
+            {filteredCategories.length > 0 ? (
+              filteredCategories.map(category => (
+                <div key={category._id} className="bg-white rounded-lg border border-gray-200 shadow-sm overflow-hidden">
+                  <CategoryItems
+                    category={category}
+                    locations={locations}
+                    onAddItem={handleAddItem}
+                    onUpdateItem={handleUpdateItem}
+                    onDeleteItem={handleDeleteItem}
+                  />
+                </div>
+              ))
+            ) : (
+              <div className="text-center py-16 bg-white rounded-lg border border-gray-200">
+                <MdSearch className="mx-auto h-12 w-12 text-gray-300" />
+                <h3 className="mt-4 text-base font-medium text-gray-900">No se encontraron productos</h3>
+                <p className="mt-2 text-sm text-gray-500">
+                  Intenta con otra búsqueda o{' '}
+                  <button
+                    onClick={() => setSearchTerm('')}
+                    className="text-orange-600 hover:text-orange-700 font-medium"
+                  >
+                    limpia el filtro
+                  </button>
+                </p>
               </div>
-            ))
-          ) : (
-            <div className="text-center py-12 bg-white shadow sm:rounded-lg">
-              <MdSearch className="mx-auto h-12 w-12 text-gray-400" />
-              <h3 className="mt-2 text-sm font-medium text-gray-900">No se encontraron productos</h3>
-              <p className="mt-1 text-sm text-gray-500">
-                No hay platos que coincidan con tu búsqueda "{searchTerm}".
-              </p>
-              <div className="mt-6">
-                <button
-                  onClick={() => setSearchTerm('')}
-                  className="inline-flex items-center px-4 py-2 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-orange-600 hover:bg-orange-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-orange-500"
-                >
-                  Limpiar búsqueda
-                </button>
+            )}
+          </div>
+        ) : activeTab === 'promotions' ? (
+          <div className="space-y-6">
+            {categories.map(category => (
+              <div key={category._id} className="bg-white rounded-lg border border-gray-200 shadow-sm p-6">
+                <h3 className="text-lg font-semibold text-gray-900 mb-4">{category.name}</h3>
+                <PromotionManager category={category} />
               </div>
-            </div>
-          )}
-        </div>
-      ) : activeTab === 'promotions' ? (
-        <div className="space-y-8">
-          {categories.map(category => (
-            <div key={category._id} className="bg-white shadow sm:rounded-lg p-6">
-              <h3 className="text-2xl font-medium leading-6 text-gray-900 mb-4">{category.name}</h3>
-              <PromotionManager category={category} />
-            </div>
-          ))}
-        </div>
-      ) : (
-        <UserManagement locations={locations} />
-      )}
+            ))}
+          </div>
+        ) : (
+          <div className="bg-white rounded-lg border border-gray-200 shadow-sm">
+            <UserManagement locations={locations} />
+          </div>
+        )}
+      </main>
     </div>
   );
 };
