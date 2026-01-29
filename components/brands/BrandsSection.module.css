@@ -1,0 +1,176 @@
+/* Brands Section - Minimalist Design */
+
+.brandsSection {
+    background: transparent;
+    padding: 2rem 0;
+    margin: 1rem 0;
+}
+
+.container {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 0 1rem;
+}
+
+.header {
+    text-align: center;
+    margin-bottom: 1.5rem;
+}
+
+.title {
+    font-size: 1.25rem;
+    font-weight: 600;
+    color: #64748b;
+    margin-bottom: 0.5rem;
+    letter-spacing: 0.5px;
+    text-transform: uppercase;
+    font-size: 0.875rem;
+}
+
+.subtitle {
+    display: none;
+    /* Hide subtitle for minimalist approach */
+}
+
+/* Brands Grid */
+.brandsGrid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 1rem;
+    align-items: center;
+}
+
+/* Brand Item */
+.brandItem {
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0.75rem;
+    transition: all 0.3s ease;
+    opacity: 0.6;
+    filter: grayscale(100%);
+}
+
+.brandItem:hover {
+    opacity: 1;
+    filter: grayscale(0%);
+    transform: scale(1.05);
+}
+
+.brandImageContainer {
+    position: relative;
+    width: 100%;
+    aspect-ratio: 3/2;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: transparent;
+    border-radius: 8px;
+    overflow: hidden;
+}
+
+.brandImage {
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+    padding: 0.5rem;
+    transition: all 0.3s ease;
+}
+
+.brandItem:hover .brandImage {
+    transform: scale(1.05);
+}
+
+/* Footer Note */
+.footer {
+    margin-top: 1.5rem;
+    text-align: center;
+}
+
+.footerNote {
+    font-size: 0.75rem;
+    color: #94a3b8;
+    font-style: italic;
+}
+
+/* Tablet */
+@media (min-width: 640px) {
+    .brandsSection {
+        padding: 3rem 0;
+    }
+
+    .brandsGrid {
+        grid-template-columns: repeat(4, 1fr);
+        gap: 1.5rem;
+    }
+
+    .title {
+        font-size: 1rem;
+    }
+}
+
+/* Desktop */
+@media (min-width: 1024px) {
+    .brandsSection {
+        padding: 4rem 0;
+    }
+
+    .brandsGrid {
+        grid-template-columns: repeat(6, 1fr);
+        gap: 2rem;
+    }
+
+    .container {
+        padding: 0 2rem;
+    }
+
+    .header {
+        margin-bottom: 2rem;
+    }
+
+    .title {
+        font-size: 1.125rem;
+    }
+}
+
+/* Mobile optimization - Very compact */
+@media (max-width: 639px) {
+    .brandsSection {
+        padding: 1.5rem 0;
+        margin: 0.5rem 0;
+    }
+
+    .header {
+        margin-bottom: 1rem;
+    }
+
+    .title {
+        font-size: 0.75rem;
+        margin-bottom: 0.25rem;
+    }
+
+    .brandsGrid {
+        gap: 0.75rem;
+    }
+
+    .brandItem {
+        padding: 0.5rem;
+    }
+
+    .brandImageContainer {
+        border-radius: 6px;
+    }
+
+    .brandImage {
+        padding: 0.25rem;
+    }
+
+    .footer {
+        margin-top: 1rem;
+    }
+
+    .footerNote {
+        font-size: 0.625rem;
+    }
+}

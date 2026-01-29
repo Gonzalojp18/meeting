@@ -1,0 +1,30 @@
+@media (min-width: 768px) {
+    /* style og menu container */
+    #weather * {
+        font-variant: normal;
+        font-size: .9em;
+    }
+
+    .box-plate{
+        width: 20vw;
+}
+
+    /* ocultar todas las imagenes excepto imagen del clima de weather */
+    .main-container-menu {
+        img {
+            display: none;
+        }
+
+        .main-weather {
+            img {
+                display: block !important;
+            }
+        }
+        .brand{
+            img {
+                display: block !important;
+            }
+        }
+    }
+
+}
