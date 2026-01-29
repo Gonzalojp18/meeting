@@ -43,7 +43,7 @@ export async function POST(req) {
         // URL base desde las variables de entorno
         const baseUrl = process.env.NEXT_PUBLIC_API_NODE_ENV === 'development'
             ? (process.env.NEXT_PUBLIC_API_URI_DEVELOPMENT || 'http://localhost:3000')
-            : (process.env.NEXT_PUBLIC_API_URI_PRODUCTION || 'https://meeting-pink.vercel.app');
+            : (process.env.NEXT_PUBLIC_API_URI_PRODUCTION || 'https://meeting-ebon.vercel.app');
 
         // Crear preferencia de pago
         const preference = new Preference(client);

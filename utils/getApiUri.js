@@ -6,7 +6,7 @@ const getFullUrl = () => {
   if (process.env.NEXT_PUBLIC_API_NODE_ENV === 'development') {
     return process.env.NEXT_PUBLIC_API_URI_DEVELOPMENT || 'http://localhost:3000';
   }
-  return process.env.NEXT_PUBLIC_API_URI_PRODUCTION || 'https://meeting-pink.vercel.app';
+  return process.env.NEXT_PUBLIC_API_URI_PRODUCTION || 'https://meeting-ebon.vercel.app';
 };
 
 // En el navegador, usar string vacío para URLs relativas (mismo origen)
