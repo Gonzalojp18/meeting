@@ -5,6 +5,7 @@ import CategoryManager from './admin/CategoryManager';
 import PromotionManager from './PromotionManager';
 import UserManagement from './admin/UserManagement';
 import MercadoPagoSettings from './admin/MercadoPagoSettings';
+import SalesReportExport from './admin/SalesReportExport';
 import { LocationNav } from './navigation';
 import { useFetch } from '../hooks/useFetch';
 import axios from 'axios';
@@ -29,7 +30,8 @@ import {
   MdShowChart,
   MdWarning,
   MdCheckCircle,
-  MdAttachMoney
+  MdAttachMoney,
+  MdDescription
 } from 'react-icons/md';
 
 const AdminPanel = () => {
@@ -179,6 +181,7 @@ const AdminPanel = () => {
   ];
 
   if (session?.user?.role === 'admin') {
+    tabs.push({ id: 'reports', label: 'Reportes', icon: MdDescription });
     tabs.push({ id: 'settings', label: 'Ajustes', icon: MdSettings });
   }
 
@@ -693,6 +696,26 @@ const AdminPanel = () => {
               </div>
             </div>
             <UserManagement locations={locations} />
+          </div>
+        )}
+
+        {/* ========== REPORTES TAB ========== */}
+        {activeTab === 'reports' && (
+          <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
+            <div className="bg-gradient-to-r from-orange-50 to-amber-50 border-b border-gray-200 p-6">
+              <div className="flex items-center justify-between">
+                <div>
+                  <h2 className="text-xl font-bold text-gray-900 mb-1">Reportes de Ventas</h2>
+                  <p className="text-sm text-gray-700">Genera y exporta reportes detallados en PDF y Excel</p>
+                </div>
+                <div className="p-4 bg-orange-500 rounded-xl shadow-lg">
+                  <MdDescription className="h-8 w-8 text-white" />
+                </div>
+              </div>
+            </div>
+            <div className="p-6 lg:p-8">
+              <SalesReportExport locations={locations} />
+            </div>
           </div>
         )}
 
