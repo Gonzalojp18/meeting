@@ -1,3 +1,4 @@
+import './global.css'
 import '../index.css'
 import '../Screen.css'
 import { Analytics } from '@vercel/analytics/react'

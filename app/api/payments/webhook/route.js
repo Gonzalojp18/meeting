@@ -2,10 +2,7 @@ import { NextResponse } from 'next/server';
 import { MercadoPagoConfig, Payment } from 'mercadopago';
 import dbConnect from '@/utils/dbConnect';
 import Order from '@/models/Order';
-
-const client = new MercadoPagoConfig({
-    accessToken: process.env.NEXT_PUBLIC_MP_ACCESS_TOKEN
-});
+import { getMPCredentials } from '@/utils/getMPCredentials';
 
 export async function POST(req) {
     try {
@@ -14,13 +11,10 @@ export async function POST(req) {
 
         // Si está vacío, devolver OK (MP hace health checks)
         if (!text || text.trim() === '') {
-            console.log('⚠️ Webhook vacío recibido (health check)');
             return NextResponse.json({ received: true });
         }
 
         const body = JSON.parse(text);
-
-        console.log('🔔 Webhook recibido de MercadoPago:', body);
 
         // Solo procesar notificaciones de pagos
         if (body.type !== 'payment') {
@@ -33,13 +27,22 @@ export async function POST(req) {
             return NextResponse.json({ received: true });
         }
 
-        console.log('💳 Payment ID:', paymentId);
+        // Obtener credenciales dinámicas desde la DB
+        const credentials = await getMPCredentials();
+        if (!credentials) {
+            console.error('Webhook: Credenciales de MP no configuradas');
+            return NextResponse.json({ error: 'MP not configured' }, { status: 503 });
+        }
+
+        const client = new MercadoPagoConfig({
+            accessToken: credentials.accessToken
+        });
 
         // Obtener detalles del pago
         const payment = new Payment(client);
         const paymentInfo = await payment.get({ id: paymentId });
 
-        console.log('📄 Info del pago:', {
+        console.log('Info del pago:', {
             id: paymentInfo.id,
             status: paymentInfo.status,
             status_detail: paymentInfo.status_detail,
@@ -48,19 +51,17 @@ export async function POST(req) {
 
         // Solo crear pedido si el pago fue aprobado
         if (paymentInfo.status !== 'approved') {
-            console.log('⏳ Pago no aprobado aún, estado:', paymentInfo.status);
             return NextResponse.json({ received: true });
         }
 
         await dbConnect();
 
-        // CRÍTICO: Verificar si ya existe un pedido con este payment_id
+        // Verificar si ya existe un pedido con este payment_id
         const existingOrder = await Order.findOne({
             mercadoPagoId: paymentId.toString()
         });
 
         if (existingOrder) {
-            console.log('⚠️ Pedido ya existe con este payment_id:', existingOrder.orderNumber);
             return NextResponse.json({
                 received: true,
                 order: existingOrder.orderNumber
@@ -72,13 +73,6 @@ export async function POST(req) {
         const items = JSON.parse(paymentInfo.metadata.items);
         const total = paymentInfo.metadata.total;
         const locationId = paymentInfo.metadata.location_id;
-
-        console.log('📦 Datos del pedido:', {
-            items: items.length,
-            customer: customerData.name,
-            total,
-            locationId
-        });
 
         // Generar número de orden
         const orderCount = await Order.countDocuments();
@@ -110,7 +104,7 @@ export async function POST(req) {
         });
 
         await newOrder.save();
-        console.log('✅ Pedido creado exitosamente:', orderNumber);
+        console.log('Pedido creado:', orderNumber);
 
         return NextResponse.json({
             received: true,
@@ -118,7 +112,7 @@ export async function POST(req) {
         });
 
     } catch (error) {
-        console.error('❌ Error en webhook:', error);
+        console.error('Error en webhook:', error);
         return NextResponse.json(
             { error: error.message },
             { status: 500 }
