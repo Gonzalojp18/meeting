@@ -5,12 +5,12 @@ import { useParams, useRouter } from 'next/navigation';
 import useCartStore from '@/store/cartStore';
 import API_URI from '@/utils/getApiUri';
 import axios from 'axios';
-import { MdArrowBack, MdPayment } from 'react-icons/md';
+import { MdArrowBack, MdPayment, MdAdd, MdRemove, MdDelete } from 'react-icons/md';
 
 const CheckoutPage = () => {
     const { locationId } = useParams();
     const router = useRouter();
-    const { items, getCartTotal, clearCart } = useCartStore();
+    const { items, getCartTotal, clearCart, addItem, removeItem, deleteItem } = useCartStore();
 
     const locationItems = items.filter(i => i.locationId === locationId);
     const total = getCartTotal(locationId);
@@ -105,14 +105,45 @@ const CheckoutPage = () => {
                 )}
                 <div className="bg-white rounded-2xl shadow-sm p-6 mb-6">
                     <h2 className="font-bold text-gray-900 mb-4 border-b pb-2">Resumen de tu pedido</h2>
-                    <div className="space-y-3">
-                        {locationItems.map((item, idx) => (
-                            <div key={idx} className="flex justify-between items-center text-sm">
-                                <div className="flex gap-2">
-                                    <span className="font-bold text-orange-600">{item.quantity}x</span>
-                                    <span className="text-gray-700">{item.name}</span>
+                    <div className="space-y-4">
+                        {locationItems.map((item) => (
+                            <div key={item._id} className="flex flex-col gap-2 pb-4 border-b border-gray-100 last:border-0 last:pb-0">
+                                <div className="flex justify-between items-start">
+                                    <div className="flex-1">
+                                        <h3 className="font-bold text-gray-800">{item.name}</h3>
+                                        <p className="text-sm text-gray-500">${item.price.toLocaleString()}</p>
+                                    </div>
+                                    <div className="text-right">
+                                        <p className="font-black text-gray-900">${(item.price * item.quantity).toLocaleString()}</p>
+                                    </div>
                                 </div>
-                                <span className="font-medium">${(item.price * item.quantity).toLocaleString()}</span>
+                                <div className="flex justify-between items-center bg-gray-50 p-2 rounded-xl">
+                                    <div className="flex items-center gap-4">
+                                        <button
+                                            type="button"
+                                            onClick={() => removeItem(item._id, locationId)}
+                                            className="w-8 h-8 flex items-center justify-center bg-white rounded-lg shadow-sm text-orange-600 active:scale-95 transition-all"
+                                        >
+                                            <MdRemove size={18} />
+                                        </button>
+                                        <span className="font-black text-lg min-w-[20px] text-center">{item.quantity}</span>
+                                        <button
+                                            type="button"
+                                            onClick={() => addItem(item, locationId)}
+                                            className="w-8 h-8 flex items-center justify-center bg-white rounded-lg shadow-sm text-orange-600 active:scale-95 transition-all"
+                                        >
+                                            <MdAdd size={18} />
+                                        </button>
+                                    </div>
+                                    <button
+                                        type="button"
+                                        onClick={() => deleteItem(item._id, locationId)}
+                                        className="text-red-400 p-2 hover:text-red-600 transition-colors"
+                                        title="Eliminar item"
+                                    >
+                                        <MdDelete size={20} />
+                                    </button>
+                                </div>
                             </div>
                         ))}
                         <div className="pt-4 mt-4 border-t flex justify-between items-center text-xl font-black">
@@ -172,8 +203,8 @@ const CheckoutPage = () => {
                                 type="button"
                                 onClick={() => setFormData({ ...formData, deliveryMethod: 'Retiro en Sucursal' })}
                                 className={`flex-1 py-4 border-2 rounded-xl text-sm font-bold transition-all ${formData.deliveryMethod === 'Retiro en Sucursal'
-                                        ? 'border-orange-500 bg-orange-50 text-orange-600'
-                                        : 'border-gray-100 text-gray-500'
+                                    ? 'border-orange-500 bg-orange-50 text-orange-600'
+                                    : 'border-gray-100 text-gray-500'
                                     }`}
                             >
                                 Retiro en Local
@@ -182,8 +213,8 @@ const CheckoutPage = () => {
                                 type="button"
                                 onClick={() => setFormData({ ...formData, deliveryMethod: 'A domicilio' })}
                                 className={`flex-1 py-4 border-2 rounded-xl text-sm font-bold transition-all ${formData.deliveryMethod === 'A domicilio'
-                                        ? 'border-orange-500 bg-orange-50 text-orange-600'
-                                        : 'border-gray-100 text-gray-500'
+                                    ? 'border-orange-500 bg-orange-50 text-orange-600'
+                                    : 'border-gray-100 text-gray-500'
                                     }`}
                             >
                                 Delivery

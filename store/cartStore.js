@@ -13,8 +13,11 @@ const useCartStore = create(
                     );
 
                     if (existingItemIndex !== -1) {
-                        const newItems = [...state.items];
-                        newItems[existingItemIndex].quantity += 1;
+                        const newItems = state.items.map((item, idx) =>
+                            idx === existingItemIndex
+                                ? { ...item, quantity: item.quantity + 1 }
+                                : item
+                        );
                         return { items: newItems };
                     }
 
@@ -32,14 +35,26 @@ const useCartStore = create(
 
                     if (existingItemIndex === -1) return state;
 
-                    const newItems = [...state.items];
-                    if (newItems[existingItemIndex].quantity > 1) {
-                        newItems[existingItemIndex].quantity -= 1;
+                    const currentItem = state.items[existingItemIndex];
+                    if (currentItem.quantity > 1) {
+                        const newItems = state.items.map((item, idx) =>
+                            idx === existingItemIndex
+                                ? { ...item, quantity: item.quantity - 1 }
+                                : item
+                        );
                         return { items: newItems };
                     } else {
-                        return { items: newItems.filter((i, idx) => idx !== existingItemIndex) };
+                        return { items: state.items.filter((_, idx) => idx !== existingItemIndex) };
                     }
                 });
+            },
+
+            deleteItem: (itemId, locationId) => {
+                set((state) => ({
+                    items: state.items.filter(
+                        (i) => !(i._id === itemId && i.locationId === locationId)
+                    )
+                }));
             },
 
             clearCart: (locationId) => {

@@ -108,7 +108,7 @@ const MenuDisplay = ({ locationId }) => {
       {isTakeaway && cartCount > 0 && (
         <Link
           href={`/checkout/${locationId}`}
-          className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 bg-orange-600 text-white px-6 py-4 rounded-full shadow-2xl flex items-center gap-4 hover:bg-orange-700 transition-all hover:scale-105 active:scale-95 w-[90%] max-w-md animate-in fade-in slide-in-from-bottom-4 duration-300"
+          className="fixed bottom-[15%] left-1/2 -translate-x-1/2 z-50 bg-orange-600 text-white px-6 py-2 rounded-full shadow-2xl flex items-center gap-4 hover:bg-orange-700 transition-all hover:scale-105 active:scale-95 w-[90%] max-w-md animate-in fade-in slide-in-from-bottom-4 duration-300"
         >
           <div className="relative">
             <MdShoppingCart size={24} />
