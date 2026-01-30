@@ -59,6 +59,10 @@ coverage/
 
 
 .next/
+
+# Serwist (PWA service worker generado)
+public/sw*
+public/swe-worker*
 nul
 .vercel
 .env.local

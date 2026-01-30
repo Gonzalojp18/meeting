@@ -4,11 +4,30 @@ import '../Screen.css'
 import { Analytics } from '@vercel/analytics/react'
 import Providers from './Providers'
 
+export const metadata = {
+  title: 'Meeting Resto Bar',
+  description: 'Meeting Resto Bar - Menu y pedidos',
+  manifest: '/manifest.json',
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: 'default',
+    title: 'Meeting',
+  },
+}
+
+export const dynamic = 'force-dynamic'
+
+export const viewport = {
+  themeColor: '#000000',
+  width: 'device-width',
+  initialScale: 1,
+}
+
 export default function RootLayout({ children }) {
   return (
     <html lang="es">
       <head>
-        <title>Meeting Resto Bar - Admin</title>
+        <link rel="apple-touch-icon" href="/icons/icon-192x192.svg" />
       </head>
       <body>
         <Providers>
