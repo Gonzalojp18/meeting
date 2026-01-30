@@ -4,7 +4,7 @@
   "description": "Meeting Resto Bar - Menu y pedidos",
   "start_url": "/",
   "display": "standalone",
-  "background_color": "#ffffff",
+  "background_color": "#202122",
   "theme_color": "#000000",
   "orientation": "portrait",
   "icons": [
