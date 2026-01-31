@@ -198,46 +198,48 @@ const CashierPanel = ({ standalone = true }) => {
 
             {/* Filtros */}
             <div className={`bg-white shadow-sm border-b ${standalone ? 'sticky top-[72px] z-40' : ''}`}>
-                <div className="max-w-7xl mx-auto p-4">
+                <div className="max-w-7xl mx-auto px-4 py-3 lg:py-4">
                     <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
-                        <div className="flex items-center gap-2 overflow-x-auto pb-2 lg:pb-0 scrollbar-hide">
-                            <span className="text-sm font-medium text-gray-500 mr-2">Filtrar:</span>
-                            {[
-                                { key: 'all', label: 'Todos' },
-                                { key: 'active', label: 'Activos' },
-                                { key: 'pending', label: 'Pendientes' },
-                                { key: 'confirmed', label: 'Confirmados' },
-                                { key: 'preparing', label: 'Preparando' },
-                                { key: 'ready', label: 'Listos' },
-                                { key: 'completed', label: 'Completados' }
-                            ].map(filter => (
-                                <button
-                                    key={filter.key}
-                                    onClick={() => setFilterStatus(filter.key)}
-                                    className={`px-4 py-2 rounded-full text-sm font-medium transition-colors whitespace-nowrap ${filterStatus === filter.key
-                                            ? 'bg-orange-500 text-white shadow-md'
-                                            : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
-                                        }`}
-                                >
-                                    {filter.label}
-                                </button>
-                            ))}
+                        <div className="flex items-center gap-2 min-w-0">
+                            <span className="text-xs font-bold text-gray-400 uppercase tracking-widest hidden sm:inline-block">Filtrar:</span>
+                            <div className="flex items-center gap-2 overflow-x-auto pb-1 -mb-1 scrollbar-hide flex-1 min-w-0">
+                                {[
+                                    { key: 'all', label: 'Todos' },
+                                    { key: 'active', label: 'Activos' },
+                                    { key: 'pending', label: 'Pendientes' },
+                                    { key: 'confirmed', label: 'Confirmados' },
+                                    { key: 'preparing', label: 'Preparando' },
+                                    { key: 'ready', label: 'Listos' },
+                                    { key: 'completed', label: 'Completados' }
+                                ].map(filter => (
+                                    <button
+                                        key={filter.key}
+                                        onClick={() => setFilterStatus(filter.key)}
+                                        className={`px-4 py-2 rounded-full text-xs font-bold transition-all whitespace-nowrap flex-shrink-0 border ${filterStatus === filter.key
+                                                ? 'bg-orange-500 text-white border-orange-500 shadow-md transform scale-105'
+                                                : 'bg-white text-gray-600 border-gray-200 hover:border-orange-300 hover:text-orange-500 hover:bg-orange-50'
+                                            }`}
+                                    >
+                                        {filter.label}
+                                    </button>
+                                ))}
+                            </div>
                         </div>
 
                         {/* Controles adicionales (Location + Refresh) para modo Admin/Embedded */}
-                        <div className="flex items-center gap-3 self-end lg:self-auto">
+                        <div className="flex items-center gap-2 sm:gap-3 self-end lg:self-auto sm:justify-end">
                             {!standalone && accessibleLocations.length > 0 && (
-                                <div className="flex items-center gap-2 bg-gray-50 px-3 py-1.5 rounded-xl border border-gray-200 shadow-sm">
-                                    <span className="text-xs font-bold text-gray-400 uppercase tracking-wider hidden sm:inline">Sede:</span>
-                                    <div className="flex items-center gap-2">
+                                <div className="flex items-center gap-2 bg-gray-50 px-3 py-2 rounded-xl border border-gray-200 shadow-sm flex-1 sm:flex-none">
+                                    <span className="text-[10px] font-black text-gray-400 uppercase tracking-tighter hidden md:inline">Sede:</span>
+                                    <div className="flex items-center gap-2 w-full sm:w-auto">
                                         <div
-                                            className="w-3 h-3 rounded-full shadow-sm"
+                                            className="w-2.5 h-2.5 rounded-full shadow-sm flex-shrink-0"
                                             style={{ backgroundColor: locationColor.accent }}
                                         />
                                         <select
                                             value={selectedLocation || ''}
                                             onChange={(e) => setSelectedLocation(e.target.value)}
-                                            className="bg-transparent text-gray-700 text-sm font-bold focus:outline-none cursor-pointer pr-1"
+                                            className="bg-transparent text-gray-700 text-xs font-bold focus:outline-none cursor-pointer pr-1 w-full sm:w-auto"
                                         >
                                             {accessibleLocations.map((loc) => (
                                                 <option key={loc.nameId} value={loc.nameId}>{loc.name}</option>
@@ -250,10 +252,10 @@ const CashierPanel = ({ standalone = true }) => {
                             {!standalone && (
                                 <button
                                     onClick={refetchOrders}
-                                    className="p-2 bg-gray-50 text-gray-600 rounded-xl border border-gray-200 hover:bg-orange-50 hover:text-orange-600 hover:border-orange-200 transition-all shadow-sm group"
+                                    className="p-2 bg-gray-50 text-gray-600 rounded-xl border border-gray-200 hover:bg-orange-50 hover:text-orange-600 hover:border-orange-200 transition-all shadow-sm group flex-shrink-0"
                                     title="Actualizar pedidos"
                                 >
-                                    <MdRefresh className={`${ordersLoading ? 'animate-spin' : 'group-hover:rotate-180 transition-transform duration-500'}`} size={22} />
+                                    <MdRefresh className={`${ordersLoading ? 'animate-spin' : 'group-hover:rotate-180 transition-transform duration-500'}`} size={20} />
                                 </button>
                             )}
                         </div>
