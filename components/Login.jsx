@@ -4,9 +4,11 @@ import { useRouter } from 'next/navigation';
 import { signIn } from 'next-auth/react';
 import axios from 'axios';
 import API_URI from '../utils/getApiUri';
+import { MdVisibility, MdVisibilityOff } from 'react-icons/md';
 
 const Login = () => {
   const [credentials, setCredentials] = useState({ email: '', password: '' });
+  const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState(null);
   const [loading, setLoading] = useState(null);
   const [isNavigateToRegister, setIsNavigateToRegister] = useState(false);
@@ -84,22 +86,33 @@ const Login = () => {
                 }
               />
             </div>
-            <div>
+            <div className='relative'>
               <label htmlFor='password' className='sr-only'>
                 Contraseña
               </label>
               <input
                 id='password'
                 name='password'
-                type='password'
+                type={showPassword ? 'text' : 'password'}
                 required
-                className='appearance-none rounded-none relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-b-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 focus:z-10 sm:text-sm'
+                className='appearance-none rounded-none relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-b-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 focus:z-10 sm:text-sm pr-10'
                 placeholder='Contraseña'
                 value={credentials.password}
                 onChange={(e) =>
                   setCredentials({ ...credentials, password: e.target.value })
                 }
               />
+              <button
+                type='button'
+                onClick={() => setShowPassword(!showPassword)}
+                className='absolute inset-y-0 right-0 pr-3 flex items-center text-gray-400 hover:text-gray-600 focus:outline-none z-20'
+              >
+                {showPassword ? (
+                  <MdVisibilityOff className='h-5 w-5' />
+                ) : (
+                  <MdVisibility className='h-5 w-5' />
+                )}
+              </button>
             </div>
           </div>
 
