@@ -76,6 +76,7 @@ export async function POST(req) {
                 },
                 auto_return: 'approved',
                 notification_url: `${baseUrl}/api/payments/webhook`,
+                installments: 1,
                 metadata: {
                     customerData: JSON.stringify(customerData),
                     items: JSON.stringify(items),
