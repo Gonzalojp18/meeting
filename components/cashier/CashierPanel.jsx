@@ -38,7 +38,7 @@ const LOCATION_COLORS = [
     { bg: 'bg-indigo-50', border: 'border-indigo-400', text: 'text-indigo-700', shadow: 'shadow-indigo-200', accent: '#6366f1' }
 ];
 
-const CashierPanel = () => {
+const CashierPanel = ({ standalone = true }) => {
     const router = useRouter();
     const { data: session, status } = useSession();
     const [selectedLocation, setSelectedLocation] = useState(null);
@@ -133,93 +133,130 @@ const CashierPanel = () => {
 
     if (status === 'loading') {
         return (
-            <div className="min-h-screen flex items-center justify-center bg-gray-100">
+            <div className={`${standalone ? 'min-h-screen' : 'py-20'} flex items-center justify-center bg-gray-100`}>
                 <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-orange-500"></div>
             </div>
         );
     }
 
     return (
-        <div className="min-h-screen bg-gray-100">
+        <div className={`${standalone ? 'min-h-screen' : ''} bg-gray-100`}>
             {/* Header */}
-            <header className="bg-gray-800 text-white p-4 sticky top-0 z-50">
-                <div className="max-w-7xl mx-auto flex items-center justify-between">
-                    <div className="flex items-center gap-4">
-                        <div className="w-10 h-10 bg-orange-500 rounded-full flex items-center justify-center font-bold">
-                            {session?.user?.name?.charAt(0)?.toUpperCase() || 'C'}
-                        </div>
-                        <div>
-                            <h1 className="font-bold text-lg">Panel de Caja</h1>
-                            <p className="text-gray-400 text-sm">{session?.user?.name} - {session?.user?.role}</p>
-                        </div>
-                    </div>
-
-                    <div className="flex items-center gap-4">
-                        {/* Selector de ubicación con indicador de color */}
-                        {accessibleLocations.length > 0 && (
-                            <div className="flex items-center gap-2">
-                                <div
-                                    className="w-3 h-3 rounded-full ring-2 ring-white"
-                                    style={{ backgroundColor: locationColor.accent }}
-                                />
-                                <select
-                                    value={selectedLocation || ''}
-                                    onChange={(e) => setSelectedLocation(e.target.value)}
-                                    className="bg-gray-700 text-white px-4 py-2 rounded-lg border border-gray-600 focus:ring-2 focus:ring-orange-500"
-                                    style={{ borderColor: locationColor.accent }}
-                                >
-                                    {accessibleLocations.map((loc, idx) => (
-                                        <option key={loc.nameId} value={loc.nameId}>{loc.name}</option>
-                                    ))}
-                                </select>
+            {standalone && (
+                <header className="bg-gray-800 text-white p-4 sticky top-0 z-50">
+                    <div className="max-w-7xl mx-auto flex items-center justify-between">
+                        <div className="flex items-center gap-4">
+                            <div className="w-10 h-10 bg-orange-500 rounded-full flex items-center justify-center font-bold">
+                                {session?.user?.name?.charAt(0)?.toUpperCase() || 'C'}
                             </div>
-                        )}
+                            <div>
+                                <h1 className="font-bold text-lg">Panel de Caja</h1>
+                                <p className="text-gray-400 text-sm">{session?.user?.name} - {session?.user?.role}</p>
+                            </div>
+                        </div>
 
-                        <button
-                            onClick={refetchOrders}
-                            className="p-2 bg-gray-700 rounded-lg hover:bg-gray-600 transition-colors"
-                            title="Actualizar"
-                        >
-                            <MdRefresh size={24} />
-                        </button>
+                        <div className="flex items-center gap-4">
+                            {/* Selector de ubicación con indicador de color */}
+                            {accessibleLocations.length > 0 && (
+                                <div className="flex items-center gap-2">
+                                    <div
+                                        className="w-3 h-3 rounded-full ring-2 ring-white"
+                                        style={{ backgroundColor: locationColor.accent }}
+                                    />
+                                    <select
+                                        value={selectedLocation || ''}
+                                        onChange={(e) => setSelectedLocation(e.target.value)}
+                                        className="bg-gray-700 text-white px-4 py-2 rounded-lg border border-gray-600 focus:ring-2 focus:ring-orange-500"
+                                        style={{ borderColor: locationColor.accent }}
+                                    >
+                                        {accessibleLocations.map((loc, idx) => (
+                                            <option key={loc.nameId} value={loc.nameId}>{loc.name}</option>
+                                        ))}
+                                    </select>
+                                </div>
+                            )}
 
-                        <button
-                            onClick={handleLogout}
-                            className="flex items-center gap-2 bg-red-600 px-4 py-2 rounded-lg hover:bg-red-700 transition-colors"
-                        >
-                            <MdLogout size={20} />
-                            Salir
-                        </button>
+                            <button
+                                onClick={refetchOrders}
+                                className="p-2 bg-gray-700 rounded-lg hover:bg-gray-600 transition-colors"
+                                title="Actualizar"
+                            >
+                                <MdRefresh size={24} />
+                            </button>
+
+                            <button
+                                onClick={handleLogout}
+                                className="flex items-center gap-2 bg-red-600 px-4 py-2 rounded-lg hover:bg-red-700 transition-colors"
+                            >
+                                <MdLogout size={20} />
+                                Salir
+                            </button>
+                        </div>
                     </div>
-                </div>
-            </header>
+                </header>
+            )}
 
             {/* Filtros */}
-            <div className="bg-white shadow-sm border-b sticky top-[72px] z-40">
+            <div className={`bg-white shadow-sm border-b ${standalone ? 'sticky top-[72px] z-40' : ''}`}>
                 <div className="max-w-7xl mx-auto p-4">
-                    <div className="flex items-center gap-2 overflow-x-auto pb-2">
-                        <span className="text-sm font-medium text-gray-500 mr-2">Filtrar:</span>
-                        {[
-                            { key: 'all', label: 'Todos' },
-                            { key: 'active', label: 'Activos' },
-                            { key: 'pending', label: 'Pendientes' },
-                            { key: 'confirmed', label: 'Confirmados' },
-                            { key: 'preparing', label: 'Preparando' },
-                            { key: 'ready', label: 'Listos' },
-                            { key: 'completed', label: 'Completados' }
-                        ].map(filter => (
-                            <button
-                                key={filter.key}
-                                onClick={() => setFilterStatus(filter.key)}
-                                className={`px-4 py-2 rounded-full text-sm font-medium transition-colors whitespace-nowrap ${
-                                    filterStatus === filter.key
-                                        ? 'bg-orange-500 text-white'
-                                        : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
-                                }`}
-                            >
-                                {filter.label}
-                            </button>
-                        ))}
+                    <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
+                        <div className="flex items-center gap-2 overflow-x-auto pb-2 lg:pb-0 scrollbar-hide">
+                            <span className="text-sm font-medium text-gray-500 mr-2">Filtrar:</span>
+                            {[
+                                { key: 'all', label: 'Todos' },
+                                { key: 'active', label: 'Activos' },
+                                { key: 'pending', label: 'Pendientes' },
+                                { key: 'confirmed', label: 'Confirmados' },
+                                { key: 'preparing', label: 'Preparando' },
+                                { key: 'ready', label: 'Listos' },
+                                { key: 'completed', label: 'Completados' }
+                            ].map(filter => (
+                                <button
+                                    key={filter.key}
+                                    onClick={() => setFilterStatus(filter.key)}
+                                    className={`px-4 py-2 rounded-full text-sm font-medium transition-colors whitespace-nowrap ${filterStatus === filter.key
+                                            ? 'bg-orange-500 text-white shadow-md'
+                                            : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                                        }`}
+                                >
+                                    {filter.label}
+                                </button>
+                            ))}
+                        </div>
+
+                        {/* Controles adicionales (Location + Refresh) para modo Admin/Embedded */}
+                        <div className="flex items-center gap-3 self-end lg:self-auto">
+                            {!standalone && accessibleLocations.length > 0 && (
+                                <div className="flex items-center gap-2 bg-gray-50 px-3 py-1.5 rounded-xl border border-gray-200 shadow-sm">
+                                    <span className="text-xs font-bold text-gray-400 uppercase tracking-wider hidden sm:inline">Sede:</span>
+                                    <div className="flex items-center gap-2">
+                                        <div
+                                            className="w-3 h-3 rounded-full shadow-sm"
+                                            style={{ backgroundColor: locationColor.accent }}
+                                        />
+                                        <select
+                                            value={selectedLocation || ''}
+                                            onChange={(e) => setSelectedLocation(e.target.value)}
+                                            className="bg-transparent text-gray-700 text-sm font-bold focus:outline-none cursor-pointer pr-1"
+                                        >
+                                            {accessibleLocations.map((loc) => (
+                                                <option key={loc.nameId} value={loc.nameId}>{loc.name}</option>
+                                            ))}
+                                        </select>
+                                    </div>
+                                </div>
+                            )}
+
+                            {!standalone && (
+                                <button
+                                    onClick={refetchOrders}
+                                    className="p-2 bg-gray-50 text-gray-600 rounded-xl border border-gray-200 hover:bg-orange-50 hover:text-orange-600 hover:border-orange-200 transition-all shadow-sm group"
+                                    title="Actualizar pedidos"
+                                >
+                                    <MdRefresh className={`${ordersLoading ? 'animate-spin' : 'group-hover:rotate-180 transition-transform duration-500'}`} size={22} />
+                                </button>
+                            )}
+                        </div>
                     </div>
                 </div>
             </div>

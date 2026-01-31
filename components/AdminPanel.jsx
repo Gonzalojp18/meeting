@@ -31,8 +31,10 @@ import {
   MdWarning,
   MdCheckCircle,
   MdAttachMoney,
-  MdDescription
+  MdDescription,
+  MdPointOfSale
 } from 'react-icons/md';
+import CashierPanel from './cashier/CashierPanel';
 
 const AdminPanel = () => {
   const router = useRouter();
@@ -178,6 +180,7 @@ const AdminPanel = () => {
     { id: 'categories', label: 'Categorías', icon: MdCategory },
     { id: 'promotions', label: 'Promociones', icon: MdLocalOffer },
     { id: 'users', label: 'Usuarios', icon: MdPeople },
+    { id: 'caja', label: 'Caja', icon: MdPointOfSale },
   ];
 
   if (session?.user?.role === 'admin') {
@@ -353,7 +356,7 @@ const AdminPanel = () => {
       {/* ========== BOTTOM NAV MOBILE ========== */}
       <nav className="lg:hidden fixed bottom-0 left-0 right-0 z-40 bg-white border-t border-gray-200 shadow-lg safe-area-pb">
         <div className="flex items-center justify-around px-2 py-2">
-          {tabs.slice(0, 5).map(tab => {
+          {tabs.slice(0, 6).map(tab => {
             const Icon = tab.icon;
             const isActive = activeTab === tab.id;
             return (
@@ -464,6 +467,12 @@ const AdminPanel = () => {
                     className="w-full text-left text-xs font-medium text-emerald-700 hover:text-emerald-900 transition-colors py-1"
                   >
                     → Crear promoción
+                  </button>
+                  <button
+                    onClick={() => setActiveTab('caja')}
+                    className="w-full text-left text-xs font-medium text-emerald-700 hover:text-emerald-900 transition-colors py-1"
+                  >
+                    → Ver Caja / Pedidos
                   </button>
                 </div>
               </div>
@@ -735,6 +744,26 @@ const AdminPanel = () => {
             </div>
             <div className="p-6 lg:p-8">
               <MercadoPagoSettings />
+            </div>
+          </div>
+        )}
+
+        {/* ========== CAJA TAB ========== */}
+        {activeTab === 'caja' && (
+          <div className="space-y-6">
+            <div className="bg-gradient-to-r from-gray-800 to-gray-900 rounded-xl border border-gray-700 p-6 shadow-lg shadow-gray-900/10">
+              <div className="flex items-center justify-between">
+                <div>
+                  <h2 className="text-xl font-bold text-white mb-1">Centro de Control de Pedidos</h2>
+                  <p className="text-sm text-gray-400">Monitorea y gestiona los pedidos de todas las sedes en tiempo real</p>
+                </div>
+                <div className="p-4 bg-orange-500 rounded-xl shadow-lg ring-4 ring-orange-500/20">
+                  <MdPointOfSale className="h-8 w-8 text-white" />
+                </div>
+              </div>
+            </div>
+            <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden min-h-[600px]">
+              <CashierPanel standalone={false} />
             </div>
           </div>
         )}
