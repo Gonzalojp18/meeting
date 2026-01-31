@@ -1,0 +1,88 @@
+import { NextResponse } from 'next/server';
+import dbConnect from '@/utils/dbConnect';
+import Order from '@/models/Order';
+import { auth } from '@/auth';
+
+export async function GET(req) {
+    try {
+        await dbConnect();
+        const session = await auth();
+
+        if (!session || session.user.role !== 'admin') {
+            return NextResponse.json({ error: 'No autorizado' }, { status: 401 });
+        }
+
+        const { searchParams } = new URL(req.url);
+        const startDate = searchParams.get('startDate');
+        const endDate = searchParams.get('endDate');
+        const locationId = searchParams.get('locationId');
+
+        if (!startDate || !endDate) {
+            return NextResponse.json(
+                { error: 'startDate y endDate son requeridos' },
+                { status: 400 }
+            );
+        }
+
+        const start = new Date(startDate);
+        const end = new Date(new Date(endDate).setHours(23, 59, 59, 999));
+
+        const matchQuery = {
+            createdAt: { $gte: start, $lte: end },
+            status: { $nin: ['cancelled'] } // Excluir cancelados de las métricas de venta
+        };
+
+        if (locationId) {
+            matchQuery['location.locationId'] = locationId;
+        }
+
+        // 1. Métricas generales (Ventas, Cantidad, Promedio)
+        const generalStats = await Order.aggregate([
+            { $match: matchQuery },
+            {
+                $group: {
+                    _id: null,
+                    totalRevenue: { $sum: '$total' },
+                    orderCount: { $sum: 1 },
+                    avgTicket: { $avg: '$total' }
+                }
+            }
+        ]);
+
+        // 2. Platos más vendidos
+        const topDishes = await Order.aggregate([
+            { $match: matchQuery },
+            { $unwind: '$items' },
+            {
+                $group: {
+                    _id: '$items.name',
+                    quantity: { $sum: '$items.quantity' },
+                    revenue: { $sum: { $multiply: ['$items.price', '$items.quantity'] } }
+                }
+            },
+            { $sort: { quantity: -1 } },
+            { $limit: 10 }
+        ]);
+
+        // 3. Ventas por método de entrega
+        const deliveryStats = await Order.aggregate([
+            { $match: matchQuery },
+            {
+                $group: {
+                    _id: '$deliveryMethod',
+                    count: { $sum: 1 },
+                    revenue: { $sum: '$total' }
+                }
+            }
+        ]);
+
+        return NextResponse.json({
+            summary: generalStats[0] || { totalRevenue: 0, orderCount: 0, avgTicket: 0 },
+            topDishes,
+            deliveryStats
+        });
+    } catch (error) {
+        console.error('Error in stats API:', error);
+        return NextResponse.json({ error: 'Error al generar estadísticas' }, { status: 500 });
+    }
+}

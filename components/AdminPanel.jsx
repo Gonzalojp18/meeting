@@ -5,8 +5,9 @@ import CategoryManager from './admin/CategoryManager';
 import PromotionManager from './PromotionManager';
 import UserManagement from './admin/UserManagement';
 import MercadoPagoSettings from './admin/MercadoPagoSettings';
-import SalesReportExport from './admin/SalesReportExport';
 import { LocationNav } from './navigation';
+import StatsGrid from './admin/StatsGrid';
+import TopItemsList from './admin/TopItemsList';
 import { useFetch } from '../hooks/useFetch';
 import axios from 'axios';
 import { handleAxiosError } from '../utils/handleAxiosError';
@@ -32,7 +33,8 @@ import {
   MdCheckCircle,
   MdAttachMoney,
   MdDescription,
-  MdPointOfSale
+  MdPointOfSale,
+  MdLocationOn
 } from 'react-icons/md';
 import CashierPanel from './cashier/CashierPanel';
 
@@ -43,6 +45,11 @@ const AdminPanel = () => {
   const [activeTab, setActiveTab] = useState('dashboard');
   const [searchTerm, setSearchTerm] = useState('');
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+
+  // Stats Dashboard State
+  const [dashboardLocation, setDashboardLocation] = useState('');
+  const [statsData, setStatsData] = useState(null);
+  const [statsLoading, setStatsLoading] = useState(false);
 
   const token = session?.user?.token;
   const { data, loading, error, refetch } = useFetch(token ? `${API_URI}/api/menu` : null, token)
@@ -56,6 +63,35 @@ const AdminPanel = () => {
   const handleLogout = () => {
     signOut({ callbackUrl: '/login' });
   };
+
+  // Fetch Stats for Dashboard
+  useEffect(() => {
+    if (activeTab === 'dashboard' && token) {
+      const fetchDashboardStats = async () => {
+        setStatsLoading(true);
+        try {
+          // Default: Mes actual
+          const today = new Date();
+          const startOfMonth = new Date(today.getFullYear(), today.getMonth(), 1).toISOString().split('T')[0];
+          const todayStr = today.toISOString().split('T')[0];
+
+          let url = `/api/admin/reports/stats?startDate=${startOfMonth}&endDate=${todayStr}`;
+          if (dashboardLocation) url += `&locationId=${dashboardLocation}`;
+
+          const res = await fetch(url, {
+            headers: { Authorization: `Bearer ${token}` }
+          });
+          const data = await res.json();
+          setStatsData(data);
+        } catch (err) {
+          console.error('Error fetching dashboard stats:', err);
+        } finally {
+          setStatsLoading(false);
+        }
+      };
+      fetchDashboardStats();
+    }
+  }, [activeTab, token, dashboardLocation]);
 
   // ========== MÉTRICAS DEL DASHBOARD (CALCULADAS) ==========
   const dashboardMetrics = useMemo(() => {
@@ -388,172 +424,145 @@ const AdminPanel = () => {
 
         {/* ========== DASHBOARD TAB (NUEVO) ========== */}
         {activeTab === 'dashboard' && (
-          <div className="space-y-6">
+          <div className="space-y-6 animate-fadeIn">
             {/* Welcome header */}
-            <div className="bg-gradient-to-r from-orange-500 via-orange-600 to-orange-700 rounded-2xl p-6 lg:p-8 text-white shadow-xl shadow-orange-500/20">
-              <h2 className="text-2xl lg:text-3xl font-bold mb-2">
-                ¡Bienvenido, {session?.user?.name || 'Admin'}!
-              </h2>
-              <p className="text-orange-100 text-base lg:text-lg">
-                Aquí tienes un resumen de tu restaurante
-              </p>
-            </div>
-
-            {/* Metrics grid */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 lg:gap-6">
-              {/* Total Productos */}
-              <div className="bg-white rounded-xl border border-gray-200 p-6 shadow-sm hover:shadow-md transition-shadow">
-                <div className="flex items-start justify-between mb-4">
-                  <div className="p-3 bg-blue-100 rounded-xl">
-                    <MdRestaurantMenu className="h-6 w-6 text-blue-600" />
-                  </div>
-                  <span className="text-2xl">🍽️</span>
+            <div className="bg-gradient-to-r from-gray-800 via-gray-900 to-black rounded-2xl p-6 lg:p-8 text-white shadow-xl shadow-gray-900/10 border border-gray-700 relative overflow-hidden">
+              <div className="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-4">
+                <div>
+                  <h2 className="text-2xl lg:text-3xl font-black mb-2 tracking-tight">
+                    ¡Bienvenido, <span className="text-orange-500">{session?.user?.name || 'Admin'}</span>!
+                  </h2>
+                  <p className="text-gray-400 text-base lg:text-lg font-medium">
+                    Resumen de rendimiento del mes actual
+                  </p>
                 </div>
-                <p className="text-sm font-medium text-gray-600 mb-1">Total Productos</p>
-                <h3 className="text-3xl font-bold text-gray-900">{dashboardMetrics.totalProducts}</h3>
-                <p className="text-xs text-gray-500 mt-2">
-                  En {dashboardMetrics.totalCategories} categorías
-                </p>
+
+                <div className="flex items-center gap-3 bg-gray-800/50 backdrop-blur-md px-4 py-2.5 rounded-xl border border-gray-700/50 shadow-inner group">
+                  <MdLocationOn className="text-orange-500 h-5 w-5 group-hover:scale-110 transition-transform" />
+                  <div className="flex flex-col">
+                    <span className="text-[10px] font-black text-gray-500 uppercase tracking-tighter">Sede Seleccionada</span>
+                    <select
+                      value={dashboardLocation}
+                      onChange={(e) => setDashboardLocation(e.target.value)}
+                      className="bg-transparent text-sm font-bold text-white focus:outline-none cursor-pointer pr-4"
+                    >
+                      <option value="" className="bg-gray-800">Todas las Sedes</option>
+                      {locations.map(loc => (
+                        <option key={loc._id} value={loc.nameId} className="bg-gray-800">{loc.name}</option>
+                      ))}
+                    </select>
+                  </div>
+                </div>
               </div>
 
-              {/* Categorías */}
-              <div className="bg-white rounded-xl border border-gray-200 p-6 shadow-sm hover:shadow-md transition-shadow">
-                <div className="flex items-start justify-between mb-4">
-                  <div className="p-3 bg-purple-100 rounded-xl">
-                    <MdCategory className="h-6 w-6 text-purple-600" />
-                  </div>
-                  <span className="text-2xl">📂</span>
-                </div>
-                <p className="text-sm font-medium text-gray-600 mb-1">Categorías</p>
-                <h3 className="text-3xl font-bold text-gray-900">{dashboardMetrics.totalCategories}</h3>
-                <p className="text-xs text-gray-500 mt-2">
-                  Activas en el menú
-                </p>
-              </div>
-
-              {/* Promociones */}
-              <div className="bg-white rounded-xl border border-gray-200 p-6 shadow-sm hover:shadow-md transition-shadow">
-                <div className="flex items-start justify-between mb-4">
-                  <div className="p-3 bg-orange-100 rounded-xl">
-                    <MdLocalOffer className="h-6 w-6 text-orange-600" />
-                  </div>
-                  <span className="text-2xl">🏷️</span>
-                </div>
-                <p className="text-sm font-medium text-gray-600 mb-1">Promociones Activas</p>
-                <h3 className="text-3xl font-bold text-gray-900">{dashboardMetrics.activePromotions}</h3>
-                <p className="text-xs text-gray-500 mt-2">
-                  En vigencia hoy
-                </p>
-              </div>
-
-              {/* Quick Actions */}
-              <div className="bg-gradient-to-br from-emerald-50 to-emerald-100 rounded-xl border border-emerald-200 p-6 shadow-sm">
-                <div className="flex items-start justify-between mb-4">
-                  <div className="p-3 bg-emerald-500 rounded-xl shadow-lg">
-                    <MdCheckCircle className="h-6 w-6 text-white" />
-                  </div>
-                  <span className="text-2xl">⚡</span>
-                </div>
-                <p className="text-sm font-semibold text-emerald-900 mb-3">Acciones Rápidas</p>
-                <div className="space-y-2">
-                  <button
-                    onClick={() => setActiveTab('products')}
-                    className="w-full text-left text-xs font-medium text-emerald-700 hover:text-emerald-900 transition-colors py-1"
-                  >
-                    → Agregar producto
-                  </button>
-                  <button
-                    onClick={() => setActiveTab('promotions')}
-                    className="w-full text-left text-xs font-medium text-emerald-700 hover:text-emerald-900 transition-colors py-1"
-                  >
-                    → Crear promoción
-                  </button>
-                  <button
-                    onClick={() => setActiveTab('caja')}
-                    className="w-full text-left text-xs font-medium text-emerald-700 hover:text-emerald-900 transition-colors py-1"
-                  >
-                    → Ver Caja / Pedidos
-                  </button>
-                </div>
+              {/* Decoración de fondo */}
+              <div className="absolute top-0 right-0 p-8 opacity-10 pointer-events-none">
+                <MdShowChart className="h-32 w-32 text-orange-500" />
               </div>
             </div>
 
-            {/* Top Products / Alerts */}
+            {/* Stats Grid Principal */}
+            {statsLoading ? (
+              <div className="grid grid-cols-2 lg:grid-cols-5 gap-4">
+                {[1, 2, 3, 4, 5].map(i => (
+                  <div key={i} className="h-28 bg-gray-100 animate-pulse rounded-xl border border-gray-200" />
+                ))}
+              </div>
+            ) : (
+              statsData && <StatsGrid summary={statsData.summary} deliveryStats={statsData.deliveryStats} />
+            )}
+
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-              {/* Top Products */}
-              <div className="lg:col-span-2 bg-white rounded-xl border border-gray-200 p-6 shadow-sm">
-                <div className="flex items-center justify-between mb-6">
-                  <h3 className="text-lg font-bold text-gray-900">Productos Recientes</h3>
-                  <MdShowChart className="h-6 w-6 text-gray-400" />
+              {/* Panel Izquierdo: Métricas del Menú y Acciones */}
+              <div className="lg:col-span-2 space-y-6">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+                  {/* Catálogo */}
+                  <div className="bg-white rounded-xl border border-gray-100 shadow-sm p-6 hover:shadow-md transition-all group">
+                    <div className="flex items-center justify-between mb-4">
+                      <div className="p-3 bg-blue-50 text-blue-600 rounded-xl group-hover:scale-110 transition-transform">
+                        <MdRestaurantMenu size={24} />
+                      </div>
+                      <span className="text-[10px] font-black text-blue-500 bg-blue-50 px-2.5 py-1 rounded-full uppercase tracking-widest border border-blue-100">Catálogo</span>
+                    </div>
+                    <p className="text-xs font-bold text-gray-400 uppercase tracking-widest mb-1">Productos en Menú</p>
+                    <div className="flex items-baseline gap-2">
+                      <h4 className="text-3xl font-black text-gray-900">{dashboardMetrics.totalProducts}</h4>
+                      <span className="text-sm font-bold text-gray-400">ítems activos</span>
+                    </div>
+                  </div>
+
+                  {/* Promociones */}
+                  <div className="bg-white rounded-xl border border-gray-100 shadow-sm p-6 hover:shadow-md transition-all group">
+                    <div className="flex items-center justify-between mb-4">
+                      <div className="p-3 bg-indigo-50 text-indigo-600 rounded-xl group-hover:scale-110 transition-transform">
+                        <MdLocalOffer size={24} />
+                      </div>
+                      <span className="text-[10px] font-black text-indigo-500 bg-indigo-50 px-2.5 py-1 rounded-full uppercase tracking-widest border border-indigo-100">Marketing</span>
+                    </div>
+                    <p className="text-xs font-bold text-gray-400 uppercase tracking-widest mb-1">Promo Activas</p>
+                    <div className="flex items-baseline gap-2">
+                      <h4 className="text-3xl font-black text-gray-900">{dashboardMetrics.activePromotions}</h4>
+                      <span className="text-sm font-bold text-gray-400">campañas</span>
+                    </div>
+                  </div>
                 </div>
 
-                {dashboardMetrics.topProducts.length > 0 ? (
-                  <div className="space-y-3">
-                    {dashboardMetrics.topProducts.map((product, idx) => (
-                      <div key={idx} className="flex items-center gap-4 p-3 rounded-lg hover:bg-gray-50 transition-colors">
-                        <div className="flex-shrink-0 w-8 h-8 bg-gradient-to-br from-orange-100 to-orange-200 rounded-lg flex items-center justify-center">
-                          <span className="text-sm font-bold text-orange-600">#{idx + 1}</span>
-                        </div>
-                        <div className="flex-1 min-w-0">
-                          <p className="text-sm font-semibold text-gray-900 truncate">{product.name}</p>
-                          <p className="text-xs text-gray-500">{product.categoryName}</p>
-                        </div>
-                        <div className="text-right">
-                          <p className="text-sm font-bold text-gray-900">
-                            ${product.price?.toLocaleString() || '0'}
-                          </p>
-                        </div>
-                      </div>
-                    ))}
+                {/* Acciones Rápidas */}
+                <div className="bg-gradient-to-br from-emerald-500 to-emerald-700 rounded-2xl p-6 text-white shadow-lg shadow-emerald-500/20 relative overflow-hidden group">
+                  <div className="relative z-10">
+                    <h3 className="text-lg font-black mb-4 flex items-center gap-2">
+                      <MdSearch className="h-5 w-5" /> Acciones de Gestión
+                    </h3>
+                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                      {[
+                        { label: 'Gestionar Productos', tab: 'products', icon: MdRestaurantMenu },
+                        { label: 'Ver Promociones', tab: 'promotions', icon: MdLocalOffer },
+                        { label: 'Control de Caja', tab: 'caja', icon: MdPointOfSale },
+                      ].map((action, i) => (
+                        <button
+                          key={i}
+                          onClick={() => setActiveTab(action.tab)}
+                          className="flex items-center gap-2 bg-white/10 hover:bg-white/20 backdrop-blur-sm px-4 py-3 rounded-xl border border-white/20 transition-all font-bold text-sm text-white group/btn"
+                        >
+                          <action.icon className="h-4 w-4 text-emerald-300 group-hover/btn:scale-125 transition-transform" />
+                          {action.label}
+                        </button>
+                      ))}
+                    </div>
                   </div>
-                ) : (
-                  <div className="text-center py-12">
-                    <MdRestaurantMenu className="h-12 w-12 text-gray-300 mx-auto mb-3" />
-                    <p className="text-sm text-gray-500">No hay productos aún</p>
+                  <div className="absolute -bottom-6 -right-6 opacity-10 scale-150 rotate-12">
+                    <MdCheckCircle className="h-32 w-32" />
+                  </div>
+                </div>
+              </div>
+
+            </div>
+
+            {/* Alerts / Info - Integrated into Dashboard */}
+            <div className="bg-white rounded-xl border border-gray-200 p-6 shadow-sm">
+              <div className="flex items-center justify-between mb-6">
+                <h3 className="text-lg font-bold text-gray-900">Estado del Sistema</h3>
+                <MdCheckCircle className="h-6 w-6 text-emerald-500" />
+              </div>
+
+              <div className="space-y-4">
+                <div className="flex items-start gap-3 p-3 bg-emerald-50 border border-emerald-200 rounded-lg">
+                  <MdCheckCircle className="h-5 w-5 text-emerald-600 flex-shrink-0 mt-0.5" />
+                  <div>
+                    <p className="text-sm font-semibold text-emerald-900">Todo funcionando</p>
+                    <p className="text-xs text-emerald-700 mt-1">Sistema operativo sin problemas</p>
+                  </div>
+                </div>
+
+                {dashboardMetrics.totalProducts === 0 && (
+                  <div className="flex items-start gap-3 p-3 bg-amber-50 border border-amber-200 rounded-lg">
+                    <MdWarning className="h-5 w-5 text-amber-600 flex-shrink-0 mt-0.5" />
+                    <div>
+                      <p className="text-sm font-semibold text-amber-900">Menú vacío</p>
+                      <p className="text-xs text-amber-700 mt-1">Comienza agregando productos</p>
+                    </div>
                   </div>
                 )}
-              </div>
-
-              {/* Alerts / Info */}
-              <div className="bg-white rounded-xl border border-gray-200 p-6 shadow-sm">
-                <div className="flex items-center justify-between mb-6">
-                  <h3 className="text-lg font-bold text-gray-900">Estado del Sistema</h3>
-                  <MdCheckCircle className="h-6 w-6 text-emerald-500" />
-                </div>
-
-                <div className="space-y-4">
-                  <div className="flex items-start gap-3 p-3 bg-emerald-50 border border-emerald-200 rounded-lg">
-                    <MdCheckCircle className="h-5 w-5 text-emerald-600 flex-shrink-0 mt-0.5" />
-                    <div>
-                      <p className="text-sm font-semibold text-emerald-900">Todo funcionando</p>
-                      <p className="text-xs text-emerald-700 mt-1">Sistema operativo sin problemas</p>
-                    </div>
-                  </div>
-
-                  {dashboardMetrics.totalProducts === 0 && (
-                    <div className="flex items-start gap-3 p-3 bg-amber-50 border border-amber-200 rounded-lg">
-                      <MdWarning className="h-5 w-5 text-amber-600 flex-shrink-0 mt-0.5" />
-                      <div>
-                        <p className="text-sm font-semibold text-amber-900">Menú vacío</p>
-                        <p className="text-xs text-amber-700 mt-1">Comienza agregando productos</p>
-                      </div>
-                    </div>
-                  )}
-
-                  {/* <div className="pt-4 border-t border-gray-200">
-                    <p className="text-xs text-gray-500 mb-3">Sugerencias</p>
-                    <ul className="space-y-2">
-                      <li className="text-xs text-gray-600 flex items-start gap-2">
-                        <span className="text-orange-500 mt-0.5">•</span>
-                        <span>Revisa tus promociones semanalmente</span>
-                      </li>
-                      <li className="text-xs text-gray-600 flex items-start gap-2">
-                        <span className="text-orange-500 mt-0.5">•</span>
-                        <span>Actualiza el menú según temporada</span>
-                      </li>
-                    </ul>
-                  </div> */}
-                </div>
               </div>
             </div>
           </div>
@@ -623,152 +632,165 @@ const AdminPanel = () => {
               )}
             </div>
           </>
-        )}
+        )
+        }
 
         {/* ========== CATEGORÍAS TAB ========== */}
-        {activeTab === 'categories' && (
-          <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-6 lg:p-8">
-            <CategoryManager
-              categories={categories}
-              locations={locations}
-              onAddCategory={handleAddCategory}
-              onUpdateCategory={handleUpdateCategory}
-              onDeleteCategory={handleDeleteCategory}
-            />
-          </div>
-        )}
+        {
+          activeTab === 'categories' && (
+            <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-6 lg:p-8">
+              <CategoryManager
+                categories={categories}
+                locations={locations}
+                onAddCategory={handleAddCategory}
+                onUpdateCategory={handleUpdateCategory}
+                onDeleteCategory={handleDeleteCategory}
+              />
+            </div>
+          )
+        }
 
         {/* ========== PROMOCIONES TAB ========== */}
-        {activeTab === 'promotions' && (
-          <div className="space-y-6">
-            {/* Header con métrica */}
-            <div className="bg-gradient-to-r from-orange-50 to-orange-100 rounded-xl border border-orange-200 p-6">
-              <div className="flex items-center justify-between">
-                <div>
-                  <h2 className="text-xl font-bold text-orange-900 mb-1">Gestión de Promociones</h2>
-                  <p className="text-sm text-orange-700">
-                    {dashboardMetrics.activePromotions} promociones activas
-                  </p>
-                </div>
-                <div className="p-4 bg-orange-500 rounded-xl shadow-lg">
-                  <MdLocalOffer className="h-8 w-8 text-white" />
-                </div>
-              </div>
-            </div>
-
-            {categories.length > 0 ? (
-              categories.map(category => (
-                <div key={category._id} className="bg-white rounded-xl border border-gray-200 shadow-sm p-6 lg:p-8 hover:shadow-md transition-shadow">
-                  <div className="flex items-center gap-3 mb-6">
-                    <div className="p-2 bg-orange-100 rounded-lg">
-                      <MdCategory className="h-5 w-5 text-orange-600" />
-                    </div>
-                    <h3 className="text-xl font-bold text-gray-900">{category.name}</h3>
-                    <span className="ml-auto text-xs font-medium text-gray-500 bg-gray-100 px-3 py-1 rounded-full">
-                      {category.items?.length || 0} productos
-                    </span>
+        {
+          activeTab === 'promotions' && (
+            <div className="space-y-6">
+              {/* Header con métrica */}
+              <div className="bg-gradient-to-r from-orange-50 to-orange-100 rounded-xl border border-orange-200 p-6">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <h2 className="text-xl font-bold text-orange-900 mb-1">Gestión de Promociones</h2>
+                    <p className="text-sm text-orange-700">
+                      {dashboardMetrics.activePromotions} promociones activas
+                    </p>
                   </div>
-                  <PromotionManager category={category} />
+                  <div className="p-4 bg-orange-500 rounded-xl shadow-lg">
+                    <MdLocalOffer className="h-8 w-8 text-white" />
+                  </div>
                 </div>
-              ))
-            ) : (
-              <div className="text-center py-20 bg-white rounded-xl border border-gray-200">
-                <MdLocalOffer className="mx-auto h-16 w-16 text-gray-300 mb-4" />
-                <h3 className="text-lg font-semibold text-gray-900 mb-2">No hay categorías disponibles</h3>
-                <p className="text-sm text-gray-500 mb-6">
-                  Crea categorías primero para poder gestionar promociones
-                </p>
-                <button
-                  onClick={() => setActiveTab('categories')}
-                  className="inline-flex items-center gap-2 px-6 py-3 bg-orange-500 hover:bg-orange-600 text-white font-medium rounded-lg transition-colors"
-                >
-                  <MdCategory className="h-5 w-5" />
-                  Ir a Categorías
-                </button>
               </div>
-            )}
-          </div>
-        )}
+
+              {categories.length > 0 ? (
+                categories.map(category => (
+                  <div key={category._id} className="bg-white rounded-xl border border-gray-200 shadow-sm p-6 lg:p-8 hover:shadow-md transition-shadow">
+                    <div className="flex items-center gap-3 mb-6">
+                      <div className="p-2 bg-orange-100 rounded-lg">
+                        <MdCategory className="h-5 w-5 text-orange-600" />
+                      </div>
+                      <h3 className="text-xl font-bold text-gray-900">{category.name}</h3>
+                      <span className="ml-auto text-xs font-medium text-gray-500 bg-gray-100 px-3 py-1 rounded-full">
+                        {category.items?.length || 0} productos
+                      </span>
+                    </div>
+                    <PromotionManager category={category} />
+                  </div>
+                ))
+              ) : (
+                <div className="text-center py-20 bg-white rounded-xl border border-gray-200">
+                  <MdLocalOffer className="mx-auto h-16 w-16 text-gray-300 mb-4" />
+                  <h3 className="text-lg font-semibold text-gray-900 mb-2">No hay categorías disponibles</h3>
+                  <p className="text-sm text-gray-500 mb-6">
+                    Crea categorías primero para poder gestionar promociones
+                  </p>
+                  <button
+                    onClick={() => setActiveTab('categories')}
+                    className="inline-flex items-center gap-2 px-6 py-3 bg-orange-500 hover:bg-orange-600 text-white font-medium rounded-lg transition-colors"
+                  >
+                    <MdCategory className="h-5 w-5" />
+                    Ir a Categorías
+                  </button>
+                </div>
+              )}
+            </div>
+          )
+        }
 
         {/* ========== USUARIOS TAB ========== */}
-        {activeTab === 'users' && (
-          <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
-            <div className="bg-gradient-to-r from-purple-50 to-purple-100 border-b border-purple-200 p-6">
-              <div className="flex items-center justify-between">
-                <div>
-                  <h2 className="text-xl font-bold text-purple-900 mb-1">Gestión de Usuarios</h2>
-                  <p className="text-sm text-purple-700">Administra los accesos al panel</p>
-                </div>
-                <div className="p-4 bg-purple-500 rounded-xl shadow-lg">
-                  <MdPeople className="h-8 w-8 text-white" />
+        {
+          activeTab === 'users' && (
+            <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
+              <div className="bg-gradient-to-r from-purple-50 to-purple-100 border-b border-purple-200 p-6">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <h2 className="text-xl font-bold text-purple-900 mb-1">Gestión de Usuarios</h2>
+                    <p className="text-sm text-purple-700">Administra los accesos al panel</p>
+                  </div>
+                  <div className="p-4 bg-purple-500 rounded-xl shadow-lg">
+                    <MdPeople className="h-8 w-8 text-white" />
+                  </div>
                 </div>
               </div>
+              <UserManagement locations={locations} />
             </div>
-            <UserManagement locations={locations} />
-          </div>
-        )}
+          )
+        }
 
         {/* ========== REPORTES TAB ========== */}
-        {activeTab === 'reports' && (
-          <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
-            <div className="bg-gradient-to-r from-orange-50 to-amber-50 border-b border-gray-200 p-6">
-              <div className="flex items-center justify-between">
-                <div>
-                  <h2 className="text-xl font-bold text-gray-900 mb-1">Reportes de Ventas</h2>
-                  <p className="text-sm text-gray-700">Genera y exporta reportes detallados en PDF y Excel</p>
-                </div>
-                <div className="p-4 bg-orange-500 rounded-xl shadow-lg">
-                  <MdDescription className="h-8 w-8 text-white" />
+        {
+          activeTab === 'reports' && (
+            <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
+              <div className="bg-gradient-to-r from-orange-50 to-amber-50 border-b border-gray-200 p-6">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <h2 className="text-xl font-bold text-gray-900 mb-1">Reportes de Ventas</h2>
+                    <p className="text-sm text-gray-700">Genera y exporta reportes detallados en PDF y Excel</p>
+                  </div>
+                  <div className="p-4 bg-orange-500 rounded-xl shadow-lg">
+                    <MdDescription className="h-8 w-8 text-white" />
+                  </div>
                 </div>
               </div>
+              <div className="p-6 lg:p-8">
+                <SalesReportExport locations={locations} />
+              </div>
             </div>
-            <div className="p-6 lg:p-8">
-              <SalesReportExport locations={locations} />
-            </div>
-          </div>
-        )}
+          )
+        }
 
         {/* ========== AJUSTES TAB ========== */}
-        {activeTab === 'settings' && (
-          <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
-            <div className="bg-gradient-to-r from-gray-50 to-gray-100 border-b border-gray-200 p-6">
-              <div className="flex items-center justify-between">
-                <div>
-                  <h2 className="text-xl font-bold text-gray-900 mb-1">Configuración del Sistema</h2>
-                  <p className="text-sm text-gray-700">Ajustes generales y configuraciones</p>
-                </div>
-                <div className="p-4 bg-gray-700 rounded-xl shadow-lg">
-                  <MdSettings className="h-8 w-8 text-white" />
+        {
+          activeTab === 'settings' && (
+            <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
+              <div className="bg-gradient-to-r from-gray-50 to-gray-100 border-b border-gray-200 p-6">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <h2 className="text-xl font-bold text-gray-900 mb-1">Configuración del Sistema</h2>
+                    <p className="text-sm text-gray-700">Ajustes generales y configuraciones</p>
+                  </div>
+                  <div className="p-4 bg-gray-700 rounded-xl shadow-lg">
+                    <MdSettings className="h-8 w-8 text-white" />
+                  </div>
                 </div>
               </div>
+              <div className="p-6 lg:p-8">
+                <MercadoPagoSettings />
+              </div>
             </div>
-            <div className="p-6 lg:p-8">
-              <MercadoPagoSettings />
-            </div>
-          </div>
-        )}
+          )
+        }
 
         {/* ========== CAJA TAB ========== */}
-        {activeTab === 'caja' && (
-          <div className="space-y-6">
-            <div className="bg-gradient-to-r from-gray-800 to-gray-900 rounded-xl border border-gray-700 p-6 shadow-lg shadow-gray-900/10">
-              <div className="flex items-center justify-between">
-                <div>
-                  <h2 className="text-xl font-bold text-white mb-1">Centro de Control de Pedidos</h2>
-                  <p className="text-sm text-gray-400">Monitorea y gestiona los pedidos de todas las sedes en tiempo real</p>
-                </div>
-                <div className="p-4 bg-orange-500 rounded-xl shadow-lg ring-4 ring-orange-500/20">
-                  <MdPointOfSale className="h-8 w-8 text-white" />
+        {
+          activeTab === 'caja' && (
+            <div className="space-y-6">
+              <div className="bg-gradient-to-r from-gray-800 to-gray-900 rounded-xl border border-gray-700 p-6 shadow-lg shadow-gray-900/10">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <h2 className="text-xl font-bold text-white mb-1">Centro de Control de Pedidos</h2>
+                    <p className="text-sm text-gray-400">Monitorea y gestiona los pedidos de todas las sedes en tiempo real</p>
+                  </div>
+                  <div className="p-4 bg-orange-500 rounded-xl shadow-lg ring-4 ring-orange-500/20">
+                    <MdPointOfSale className="h-8 w-8 text-white" />
+                  </div>
                 </div>
               </div>
+              <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden min-h-[600px]">
+                <CashierPanel standalone={false} />
+              </div>
             </div>
-            <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden min-h-[600px]">
-              <CashierPanel standalone={false} />
-            </div>
-          </div>
-        )}
-      </main>
-    </div>
+          )
+        }
+      </main >
+    </div >
   );
 };
 
