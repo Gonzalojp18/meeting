@@ -8,6 +8,8 @@ import MercadoPagoSettings from './admin/MercadoPagoSettings';
 import { LocationNav } from './navigation';
 import StatsGrid from './admin/StatsGrid';
 import TopItemsList from './admin/TopItemsList';
+import ReportFilters from './admin/ReportFilters';
+import SalesReportExport from './admin/SalesReportExport';
 import { useFetch } from '../hooks/useFetch';
 import axios from 'axios';
 import { handleAxiosError } from '../utils/handleAxiosError';
