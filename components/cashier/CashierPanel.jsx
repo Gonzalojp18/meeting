@@ -15,7 +15,8 @@ import {
     MdRestaurant,
     MdCancel,
     MdExpandMore,
-    MdExpandLess
+    MdExpandLess,
+    MdTimer
 } from 'react-icons/md';
 
 const ORDER_STATUSES = {
@@ -303,6 +304,13 @@ const CashierPanel = () => {
                                             </span>
                                         </div>
 
+                                        {/* Contador de tiempo transcurrido */}
+                                        {!['completed', 'cancelled'].includes(order.status) && (
+                                            <div className="mt-2">
+                                                <OrderTimer createdAt={order.createdAt} />
+                                            </div>
+                                        )}
+
                                         <div className="mt-2 flex items-center justify-between">
                                             <span className="font-medium">{order.customer?.name} {order.customer?.lastname}</span>
                                             <span className="font-bold text-orange-600">${order.total?.toLocaleString()}</span>
@@ -368,6 +376,53 @@ const CashierPanel = () => {
             {/* Auto-refresh cada 30 segundos */}
             <AutoRefresh refetch={refetchOrders} interval={30000} />
         </div>
+    );
+};
+
+// Componente contador de tiempo transcurrido
+const OrderTimer = ({ createdAt }) => {
+    const [elapsed, setElapsed] = useState('');
+    const [colorClass, setColorClass] = useState('text-green-600 bg-green-50');
+
+    useEffect(() => {
+        const update = () => {
+            const now = new Date();
+            const created = new Date(createdAt);
+            const diffMs = now - created;
+            const diffSec = Math.floor(diffMs / 1000);
+            const hours = Math.floor(diffSec / 3600);
+            const minutes = Math.floor((diffSec % 3600) / 60);
+            const seconds = diffSec % 60;
+
+            if (hours > 0) {
+                setElapsed(`${hours}h ${minutes}m`);
+            } else if (minutes > 0) {
+                setElapsed(`${minutes}m ${seconds}s`);
+            } else {
+                setElapsed(`${seconds}s`);
+            }
+
+            // Color basado en el tiempo transcurrido
+            const totalMinutes = diffSec / 60;
+            if (totalMinutes >= 20) {
+                setColorClass('text-red-600 bg-red-50 border-red-200');
+            } else if (totalMinutes >= 10) {
+                setColorClass('text-yellow-600 bg-yellow-50 border-yellow-200');
+            } else {
+                setColorClass('text-green-600 bg-green-50 border-green-200');
+            }
+        };
+
+        update();
+        const timer = setInterval(update, 1000);
+        return () => clearInterval(timer);
+    }, [createdAt]);
+
+    return (
+        <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-bold border ${colorClass}`}>
+            <MdTimer size={14} />
+            {elapsed}
+        </span>
     );
 };
 
