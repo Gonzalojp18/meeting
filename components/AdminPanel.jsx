@@ -540,7 +540,7 @@ const AdminPanel = () => {
                     </div>
                   )}
 
-                  <div className="pt-4 border-t border-gray-200">
+                  {/* <div className="pt-4 border-t border-gray-200">
                     <p className="text-xs text-gray-500 mb-3">Sugerencias</p>
                     <ul className="space-y-2">
                       <li className="text-xs text-gray-600 flex items-start gap-2">
@@ -552,7 +552,7 @@ const AdminPanel = () => {
                         <span>Actualiza el menú según temporada</span>
                       </li>
                     </ul>
-                  </div>
+                  </div> */}
                 </div>
               </div>
             </div>
