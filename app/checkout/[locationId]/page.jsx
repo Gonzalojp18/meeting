@@ -167,9 +167,9 @@ const CheckoutPage = () => {
                                 />
                             </div>
                             <div className="col-span-1">
-                                <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Apellido</label>
+                                <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Apellido (Opcional)</label>
                                 <input
-                                    type="text" required
+                                    type="text"
                                     className="w-full bg-gray-50 border-0 rounded-xl px-4 py-3 focus:ring-2 focus:ring-orange-500"
                                     value={formData.lastname}
                                     onChange={e => setFormData({ ...formData, lastname: e.target.value })}

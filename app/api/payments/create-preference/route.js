@@ -37,7 +37,7 @@ export async function POST(req) {
 
         if (!customerData || !customerData.name || !customerData.phone) {
             return NextResponse.json(
-                { error: 'Datos del cliente incompletos' },
+                { error: 'El nombre y teléfono son obligatorios para el pedido.' },
                 { status: 400 }
             );
         }
