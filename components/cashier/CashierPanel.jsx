@@ -16,7 +16,8 @@ import {
     MdCancel,
     MdExpandMore,
     MdExpandLess,
-    MdTimer
+    MdTimer,
+    MdPrint
 } from 'react-icons/md';
 
 const ORDER_STATUSES = {
@@ -99,6 +100,22 @@ const CashierPanel = ({ standalone = true }) => {
         } catch (error) {
             console.error('Error updating order:', error);
             alert('Error al actualizar el pedido');
+        }
+    };
+
+    const handlePrintTicket = async (orderId) => {
+        try {
+            await axios.get(
+                `${API_URI}/api/admin/printers?action=reprint&orderId=${orderId}&type=cashier`,
+                {
+                    headers: { Authorization: `Bearer ${token}` },
+                    withCredentials: true
+                }
+            );
+            // No alert to keep it smooth, or a subtle message if needed
+        } catch (error) {
+            console.error('Error printing ticket:', error);
+            alert('Error al imprimir el ticket');
         }
     };
 
@@ -216,8 +233,8 @@ const CashierPanel = ({ standalone = true }) => {
                                         key={filter.key}
                                         onClick={() => setFilterStatus(filter.key)}
                                         className={`px-4 py-2 rounded-full text-xs font-bold transition-all whitespace-nowrap flex-shrink-0 border ${filterStatus === filter.key
-                                                ? 'bg-orange-500 text-white border-orange-500 shadow-md transform scale-105'
-                                                : 'bg-white text-gray-600 border-gray-200 hover:border-orange-300 hover:text-orange-500 hover:bg-orange-50'
+                                            ? 'bg-orange-500 text-white border-orange-500 shadow-md transform scale-105'
+                                            : 'bg-white text-gray-600 border-gray-200 hover:border-orange-300 hover:text-orange-500 hover:bg-orange-50'
                                             }`}
                                     >
                                         {filter.label}
@@ -402,6 +419,14 @@ const CashierPanel = ({ standalone = true }) => {
                                                         Cancelar
                                                     </button>
                                                 )}
+                                                <button
+                                                    onClick={() => handlePrintTicket(order._id)}
+                                                    className="inline-flex items-center justify-center gap-1 bg-indigo-100 text-indigo-700 py-2 px-3 rounded-lg font-medium hover:bg-indigo-200 transition-colors"
+                                                    title="Imprimir ticket de compra"
+                                                >
+                                                    <MdPrint size={18} />
+                                                    Ticket
+                                                </button>
                                             </div>
                                         </div>
                                     )}

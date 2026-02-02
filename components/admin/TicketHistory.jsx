@@ -51,6 +51,7 @@ const TicketHistory = ({ locations = [] }) => {
             const data = await res.json();
             if (res.ok) {
                 setMessage({ type: 'success', text: 'Ticket enviado correctamente.' });
+                fetchOrders();
             } else {
                 setMessage({ type: 'error', text: data.error || 'Error al re-imprimir.' });
             }
@@ -140,7 +141,7 @@ const TicketHistory = ({ locations = [] }) => {
                         <thead>
                             <tr className="bg-gray-50/50 border-b border-gray-100">
                                 <th className="px-6 py-4 text-[10px] font-black uppercase tracking-widest text-gray-400">Orden</th>
-                                <th className="px-6 py-4 text-[10px] font-black uppercase tracking-widest text-gray-400">Tipo Ticket</th>
+                                <th className="px-6 py-4 text-[10px] font-black uppercase tracking-widest text-gray-400">Impresión</th>
                                 <th className="px-6 py-4 text-[10px] font-black uppercase tracking-widest text-gray-400">Cliente</th>
                                 <th className="px-6 py-4 text-[10px] font-black uppercase tracking-widest text-gray-400">Total</th>
                                 <th className="px-6 py-4 text-[10px] font-black uppercase tracking-widest text-gray-400">Sede</th>
@@ -156,84 +157,76 @@ const TicketHistory = ({ locations = [] }) => {
                                     </tr>
                                 ))
                             ) : filteredOrders.length > 0 ? (
-                                filteredOrders.flatMap((order) => {
-                                    // Flatten: One row per print history item, or fallback to one row per order
-                                    if (order.printHistory?.length > 0) {
-                                        return order.printHistory.map((ph, idx) => ({
-                                            ...order,
-                                            uniqueKey: `${order._id}_${idx}`,
-                                            displayRole: ph.role,
-                                            displayStatus: ph.status,
-                                            displayTimestamp: ph.timestamp || order.createdAt
-                                        }));
-                                    }
-                                    return [{
-                                        ...order,
-                                        uniqueKey: order._id,
-                                        displayRole: null,
-                                        displayStatus: order.printStatus?.printed ? 'success' : 'pending',
-                                        displayTimestamp: order.createdAt
-                                    }];
-                                }).map((row) => (
-                                    <tr key={row.uniqueKey} className="hover:bg-gray-50/50 transition-colors group">
-                                        <td className="px-6 py-4">
-                                            <span className="font-mono text-xs font-bold text-gray-900">{row.orderNumber}</span>
-                                            <p className="text-[10px] text-gray-400 mt-1">
-                                                {new Date(row.displayTimestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                                            </p>
-                                        </td>
-                                        <td className="px-6 py-4">
-                                            <span className={`text-[10px] font-black uppercase tracking-widest px-2 py-1 rounded-md ${row.displayRole === 'cashier' ? 'bg-blue-50 text-blue-600' :
-                                                    row.displayRole === 'kitchen' ? 'bg-orange-50 text-orange-600' :
-                                                        'bg-gray-100 text-gray-500'
-                                                }`}>
-                                                {row.displayRole === 'cashier' ? 'Caja' :
-                                                    row.displayRole === 'kitchen' ? 'Cocina' :
-                                                        'General'}
-                                            </span>
-                                        </td>
-                                        <td className="px-6 py-4">
-                                            <p className="text-xs font-bold text-gray-700">{row.customer?.name} {row.customer?.lastname}</p>
-                                        </td>
-                                        <td className="px-6 py-4 font-bold text-xs text-gray-900">
-                                            ${row.total?.toLocaleString()}
-                                        </td>
-                                        <td className="px-6 py-4 text-xs text-gray-500">
-                                            {row.location?.locationName}
-                                        </td>
-                                        <td className="px-6 py-4">
-                                            <span className={`px-2 py-1 rounded-lg text-[9px] font-black uppercase flex items-center gap-1 w-fit ${row.displayStatus === 'success' ? 'bg-emerald-100 text-emerald-700' :
-                                                    row.displayStatus === 'pending' ? 'bg-gray-100 text-gray-500' :
-                                                        'bg-rose-100 text-rose-700'
-                                                }`}>
-                                                {row.displayStatus === 'success' ? 'Exitoso' :
-                                                    row.displayStatus === 'pending' ? 'Pendiente' : 'Error'}
-                                                {row.displayStatus === 'error' && '!'}
-                                            </span>
-                                        </td>
-                                        <td className="px-6 py-4">
-                                            <div className="flex justify-end items-center gap-2">
-                                                <button
-                                                    onClick={() => handleReprint(row._id, row.displayRole || 'kitchen')}
-                                                    className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-indigo-600 text-white rounded-lg text-[10px] font-bold uppercase tracking-wider hover:bg-indigo-700 transition-all shadow-sm shadow-indigo-100"
-                                                    title={`Re-imprimir ticket de ${row.displayRole || 'Cocina'}`}
-                                                >
-                                                    <MdPrint className="h-3 w-3" /> Re-imprimir
-                                                </button>
+                                filteredOrders.map((order) => {
+                                    const kitchenPrinted = order.printHistory?.some(ph => ph.role === 'kitchen' && ph.status === 'success');
+                                    const cashierPrinted = order.printHistory?.some(ph => ph.role === 'cashier' && ph.status === 'success');
 
-                                                {session?.user?.role === 'admin' && (
+                                    return (
+                                        <tr key={order._id} className="hover:bg-gray-50/50 transition-colors group">
+                                            <td className="px-6 py-4">
+                                                <span className="font-mono text-xs font-bold text-gray-900">{order.orderNumber}</span>
+                                                <p className="text-[10px] text-gray-400 mt-1">
+                                                    {new Date(order.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                                                </p>
+                                            </td>
+                                            <td className="px-6 py-4">
+                                                <div className="flex flex-col gap-1">
+                                                    <span className={`text-[9px] font-black uppercase tracking-widest px-1.5 py-0.5 rounded w-fit ${kitchenPrinted ? 'bg-emerald-50 text-emerald-600' : 'bg-gray-100 text-gray-400'}`}>
+                                                        Cocina: {kitchenPrinted ? 'OK' : 'Pend.'}
+                                                    </span>
+                                                    <span className={`text-[9px] font-black uppercase tracking-widest px-1.5 py-0.5 rounded w-fit ${cashierPrinted ? 'bg-blue-50 text-blue-600' : 'bg-gray-100 text-gray-400'}`}>
+                                                        Caja: {cashierPrinted ? 'OK' : 'Pend.'}
+                                                    </span>
+                                                </div>
+                                            </td>
+                                            <td className="px-6 py-4">
+                                                <p className="text-xs font-bold text-gray-700">{order.customer?.name} {order.customer?.lastname}</p>
+                                                <p className="text-[10px] text-gray-400">{order.customer?.phone}</p>
+                                            </td>
+                                            <td className="px-6 py-4 font-bold text-xs text-gray-900">
+                                                ${order.total?.toLocaleString()}
+                                            </td>
+                                            <td className="px-6 py-4 text-xs text-gray-500">
+                                                {order.location?.locationName}
+                                            </td>
+                                            <td className="px-6 py-4">
+                                                <span className={`px-2 py-1 rounded-lg text-[9px] font-black uppercase flex items-center gap-1 w-fit ${order.status === 'completed' ? 'bg-emerald-100 text-emerald-700' :
+                                                    order.status === 'pending' ? 'bg-amber-100 text-amber-700' :
+                                                        order.status === 'cancelled' ? 'bg-rose-100 text-rose-700' : 'bg-blue-100 text-blue-700'
+                                                    }`}>
+                                                    {order.status}
+                                                </span>
+                                            </td>
+                                            <td className="px-6 py-4">
+                                                <div className="flex justify-end items-center gap-2">
                                                     <button
-                                                        onClick={() => handleDeleteOrder(row._id)}
-                                                        className="p-2 bg-rose-50 text-rose-600 rounded-lg hover:bg-rose-600 hover:text-white transition-all shadow-sm border border-rose-100"
-                                                        title="Eliminar Orden"
+                                                        onClick={() => handleReprint(order._id, 'kitchen')}
+                                                        className={`inline-flex items-center gap-1 px-2 py-1.5 rounded-lg text-[10px] font-bold uppercase transition-all shadow-sm ${kitchenPrinted ? 'bg-white text-emerald-600 border border-emerald-200 hover:bg-emerald-50' : 'bg-orange-600 text-white hover:bg-orange-700'}`}
+                                                        title="Imprimir ticket de Cocina"
                                                     >
-                                                        <MdDelete className="h-3.5 w-3.5" />
+                                                        <MdPrint className="h-3 w-3" /> Cocina
                                                     </button>
-                                                )}
-                                            </div>
-                                        </td>
-                                    </tr>
-                                ))
+                                                    <button
+                                                        onClick={() => handleReprint(order._id, 'cashier')}
+                                                        className={`inline-flex items-center gap-1 px-2 py-1.5 rounded-lg text-[10px] font-bold uppercase transition-all shadow-sm ${cashierPrinted ? 'bg-white text-blue-600 border border-blue-200 hover:bg-blue-50' : 'bg-blue-600 text-white hover:bg-blue-700'}`}
+                                                        title="Imprimir ticket de Compra (Caja)"
+                                                    >
+                                                        <MdPrint className="h-3 w-3" /> Caja
+                                                    </button>
+                                                    {session?.user?.role === 'admin' && (
+                                                        <button
+                                                            onClick={() => handleDeleteOrder(order._id)}
+                                                            className="p-1.5 bg-rose-50 text-rose-600 rounded-lg hover:bg-rose-600 hover:text-white transition-all shadow-sm border border-rose-100"
+                                                            title="Eliminar Orden"
+                                                        >
+                                                            <MdDelete className="h-3.5 w-3.5" />
+                                                        </button>
+                                                    )}
+                                                </div>
+                                            </td>
+                                        </tr>
+                                    );
+                                })
                             ) : (
                                 <tr>
                                     <td colSpan="7" className="px-6 py-20 text-center text-gray-400 italic text-sm">

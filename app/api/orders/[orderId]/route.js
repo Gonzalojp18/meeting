@@ -44,18 +44,15 @@ export async function PATCH(req, { params }) {
 
         await order.save();
 
-        // Trigger printing if status changes to confirmed or preparing
-        // AND checks if status actually changed to avoid double clicking
+        // Trigger kitchen printing automatically ONLY when status changes to 'preparing'
         if (
-            (updates.status === 'confirmed' || updates.status === 'preparing') &&
-            updates.status !== previousStatus
+            updates.status === 'preparing' &&
+            previousStatus !== 'preparing'
         ) {
             console.log(`[ORDER-PATCH] Triggering Kitchen Print for ${order._id} (Status: ${previousStatus} -> ${updates.status})`);
 
-            // Force print because 'printed' might be true from Cashier ticket
-            // REMOVED: force: true to prevent duplicates on multiple clicks or refreshes
-            executePrintSaga(order._id, { type: 'kitchen', template: 'ORDER_TICKET' })
-                .catch(err => console.error('Error printing kitchen ticket on update:', err));
+            executePrintSaga(order._id, { type: 'kitchen', template: 'ORDER_TICKET', force: true })
+                .catch(err => console.error('[ORDER-PATCH] Error in kitchen printing:', err));
         }
 
         return NextResponse.json(order);
