@@ -7,7 +7,7 @@ const path = require('path');
 const CONFIG_PATH = path.join(process.cwd(), 'config.json');
 
 let config = {
-    apiUrl: 'https://bardish-natalia-uncheckable.ngrok-free.dev',
+    apiUrl: 'https://www.meetingrestobar.com',
     locationId: 'location1',
     pollInterval: 3000
 };
