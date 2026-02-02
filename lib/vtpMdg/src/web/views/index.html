@@ -1,0 +1,777 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <title>VTP Sim</title>
+    <style>
+        :root {
+            --bg-body: #f7f9fc;
+            --bg-sidebar: #1e293b;
+            --text-sidebar: #94a3b8;
+            --text-sidebar-active: #fff;
+            --primary: #3b82f6;
+            --danger: #ef4444;
+            --success: #10b981;
+            --warning: #f59e0b;
+            --border: #e2e8f0;
+            --card-bg: #fff;
+        }
+
+        body {
+            font-family: 'Inter', system-ui, sans-serif;
+            margin: 0;
+            padding: 0;
+            background: var(--bg-body);
+            color: #1e293b;
+            display: flex;
+            height: 100vh;
+            overflow: hidden;
+        }
+
+        /* Sidebar */
+        aside {
+            width: 250px;
+            background: var(--bg-sidebar);
+            color: var(--text-sidebar);
+            display: flex;
+            flex-direction: column;
+            flex-shrink: 0;
+        }
+
+        aside .brand {
+            padding: 1.5rem;
+            font-size: 1.25rem;
+            font-weight: bold;
+            color: #fff;
+            border-bottom: 1px solid #334155;
+        }
+
+        aside nav {
+            flex: 1;
+            padding: 1rem;
+            padding-top: 2rem;
+        }
+
+        aside a {
+            display: flex;
+            align-items: center;
+            padding: 0.75rem 1rem;
+            color: inherit;
+            text-decoration: none;
+            border-radius: 6px;
+            margin-bottom: 0.5rem;
+            transition: all 0.2s;
+            cursor: pointer;
+        }
+
+        aside a:hover,
+        aside a.active {
+            background: #334155;
+            color: var(--text-sidebar-active);
+        }
+
+        aside .footer {
+            padding: 1rem;
+            font-size: 0.75rem;
+            border-top: 1px solid #334155;
+        }
+
+        /* Main */
+        main {
+            flex: 1;
+            overflow-y: auto;
+            padding: 2rem;
+        }
+
+        header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 2rem;
+        }
+
+        h1 {
+            margin: 0;
+            font-size: 1.8rem;
+        }
+
+        /* Grid & Cards */
+        .grid-4 {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+            gap: 1.5rem;
+        }
+
+        .card {
+            background: var(--card-bg);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            padding: 1.5rem;
+            box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+        }
+
+        .stat-val {
+            font-size: 2rem;
+            font-weight: bold;
+            color: #0f172a;
+            margin: 0.5rem 0;
+        }
+
+        .stat-label {
+            color: #64748b;
+            font-size: 0.875rem;
+        }
+
+        /* Tables */
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        th {
+            text-align: left;
+            padding: 1rem;
+            border-bottom: 1px solid var(--border);
+            color: #64748b;
+            font-size: 0.75rem;
+            text-transform: uppercase;
+            font-weight: 600;
+        }
+
+        td {
+            padding: 1rem;
+            border-bottom: 1px solid var(--border);
+        }
+
+        tr:last-child td {
+            border-bottom: none;
+        }
+
+        .status-dot {
+            height: 8px;
+            width: 8px;
+            border-radius: 50%;
+            display: inline-block;
+            margin-right: 6px;
+        }
+
+        .dot-green {
+            background: var(--success);
+        }
+
+        .dot-gray {
+            background: #cbd5e1;
+        }
+
+        /* Buttons */
+        .btn {
+            padding: 0.5rem 1rem;
+            border-radius: 6px;
+            border: none;
+            font-weight: 500;
+            cursor: pointer;
+            font-size: 0.875rem;
+            transition: 0.2s;
+        }
+
+        .btn-primary {
+            background: var(--primary);
+            color: #fff;
+        }
+
+        .btn-primary:hover {
+            opacity: 0.9;
+        }
+
+        .btn-danger {
+            background: var(--danger);
+            color: #fff;
+        }
+
+        .btn-danger:hover {
+            opacity: 0.9;
+        }
+
+        .btn-ghost {
+            background: transparent;
+            color: #64748b;
+        }
+
+        .btn-ghost:hover {
+            background: #f1f5f9;
+            color: #0f172a;
+        }
+
+        .btn-toggle {
+            background: #e2e8f0;
+            color: #64748b;
+        }
+
+        .btn-toggle.active {
+            background: var(--danger);
+            color: #fff;
+        }
+
+        .icon-btn {
+            padding: 4px;
+            background: transparent;
+            border: none;
+            cursor: pointer;
+            color: #64748b;
+        }
+
+        .icon-btn:hover {
+            color: var(--danger);
+        }
+
+        /* Views */
+        .view {
+            display: none;
+        }
+
+        .view.active {
+            display: block;
+        }
+
+        /* Logs & Preview */
+        .log-window {
+            background: #0f172a;
+            color: #10b981;
+            padding: 1rem;
+            font-family: monospace;
+            height: 400px;
+            overflow-y: auto;
+            border-radius: 6px;
+            white-space: pre-wrap;
+            font-size: 0.9rem;
+        }
+
+        .hex-window {
+            background: #fff;
+            padding: 1rem;
+            font-family: monospace;
+            height: 100%;
+            overflow-y: auto;
+            font-size: 0.9rem;
+            border: 1px solid #ddd;
+        }
+
+        iframe {
+            width: 100%;
+            height: 500px;
+            border: 1px solid var(--border);
+            background: #f0f0f0;
+            border-radius: 6px;
+        }
+
+        /* Modal */
+        .modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.5);
+            display: none;
+            justify-content: center;
+            align-items: center;
+            z-index: 100;
+        }
+
+        .modal-box {
+            background: #fff;
+            width: 400px;
+            padding: 2rem;
+            border-radius: 8px;
+        }
+
+        .form-group {
+            margin-bottom: 1rem;
+        }
+
+        .form-label {
+            display: block;
+            margin-bottom: 0.5rem;
+            font-weight: 600;
+            font-size: 0.875rem;
+        }
+
+        .form-input {
+            width: 100%;
+            padding: 0.6rem;
+            border: 1px solid var(--border);
+            border-radius: 4px;
+            box-sizing: border-box;
+        }
+    </style>
+</head>
+
+<body>
+
+    <aside>
+        <div class="brand">VTP Simulator</div>
+        <nav>
+            <a onclick="app.nav('dashboard')" id="nav-dashboard" class="active">Overview</a>
+            <a onclick="app.nav('printers')" id="nav-printers">Printers</a>
+            <a onclick="app.nav('settings')" id="nav-settings">System</a>
+        </nav>
+        <div class="footer">v1.3.0 &bull; Node.js</div>
+    </aside>
+
+    <main>
+        <!-- Dashboard View -->
+        <div id="view-dashboard" class="view active">
+            <header>
+                <h1>Overview</h1>
+                <button class="btn btn-primary" onclick="app.showAddModal()">+ New Printer</button>
+            </header>
+
+            <div class="grid-4" style="margin-bottom:2rem;">
+                <div class="card">
+                    <div class="stat-label">Active Printers</div>
+                    <div class="stat-val" id="d-active-printers">-</div>
+                </div>
+                <div class="card">
+                    <div class="stat-label">Active Connections</div>
+                    <div class="stat-val" id="d-connections">-</div>
+                </div>
+                <div class="card">
+                    <div class="stat-label">Total Jobs (Session)</div>
+                    <div class="stat-val" id="d-jobs">-</div>
+                </div>
+                <div class="card">
+                    <div class="stat-label">Total Traffic</div>
+                    <div class="stat-val" id="d-bytes">-</div>
+                </div>
+            </div>
+
+            <div class="card">
+                <h3>Live Activity Log</h3>
+                <div id="global-log"
+                    style="height:200px; overflow-y:auto; font-family:monospace; font-size:0.85rem; color:#475569;">
+                    <div style="padding:4px 0; border-bottom:1px solid #f1f5f9;">Waiting for events...</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Printers List View -->
+        <div id="view-printers" class="view">
+            <header>
+                <h1>Printers</h1> <button class="btn btn-primary" onclick="app.showAddModal()">+ Add</button>
+            </header>
+            <div class="card">
+                <table id="tbl-printers">
+                    <thead>
+                        <tr>
+                            <th>Status</th>
+                            <th>Name</th>
+                            <th>Port</th>
+                            <th>Config</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody></tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- Single Printer Detail View -->
+        <div id="view-detail" class="view">
+            <header>
+                <div>
+                    <button class="btn btn-ghost" onclick="app.nav('printers')">&larr; Back</button>
+                    <h1 id="p-title" style="display:inline-block; margin-left:1rem; vertical-align:middle;">Printer</h1>
+                </div>
+                <div>
+                    <button class="btn btn-ghost" onclick="app.showEditModal()">Config</button>
+                    <button class="btn btn-danger" onclick="api.deletePrinter(currPrinter)">Delete Printer</button>
+                </div>
+            </header>
+
+            <div class="grid-4" style="margin-bottom:2rem;">
+                <div class="card">
+                    <div class="stat-label">TCP Port</div>
+                    <div class="stat-val" id="dp-port" style="font-size:1.5rem">-</div>
+                </div>
+                <div class="card">
+                    <div class="stat-label">Connections</div>
+                    <div class="stat-val" id="dp-conns" style="font-size:1.5rem">0</div>
+                </div>
+                <div class="card">
+                    <div class="stat-label">Error Simulation</div>
+                    <div style="margin-top:0.5rem; display:flex; gap:0.5rem;">
+                        <button class="btn btn-toggle" id="btn-err-paper" onclick="app.toggleError('paperOut')">Out of
+                            Paper</button>
+                        <button class="btn btn-toggle" id="btn-err-cover" onclick="app.toggleError('coverOpen')">Cover
+                            Open</button>
+                    </div>
+                </div>
+            </div>
+
+            <div style="display:grid; grid-template-columns: 350px 1fr; gap: 1.5rem; height: 600px;">
+                <!-- Jobs List -->
+                <div class="card" style="display:flex; flex-direction:column;">
+                    <div style="display:flex; justify-content:space-between; margin-bottom:1rem;">
+                        <strong>Recent Jobs</strong>
+                        <button class="icon-btn" title="Clear History"
+                            onclick="api.clearJobs(currPrinter)">&#128465;</button>
+                    </div>
+                    <div style="flex:1; overflow-y:auto;">
+                        <table id="tbl-jobs">
+                            <thead style="display:none;"></thead> <!-- hidden header -->
+                            <tbody></tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- Preview / Tabs -->
+                <div class="card" style="display:flex; flex-direction:column; padding:0; overflow:hidden;">
+                    <div
+                        style="padding:1rem; border-bottom:1px solid var(--border); background:#f8fafc; display:flex; gap:1rem;">
+                        <button class="btn btn-ghost" onclick="app.tab('preview')">Ticket Preview</button>
+                        <button class="btn btn-ghost" onclick="app.tab('hex')">Hex Inspector</button>
+                        <button class="btn btn-ghost" onclick="app.tab('logs')">Live Logs</button>
+                    </div>
+
+                    <div id="tab-preview" style="flex:1; padding:1.5rem; overflow:hidden; display:block;">
+                        <div id="preview-placeholder" style="text-align:center; color:#94a3b8; margin-top:100px;">Select
+                            a job to
+                            preview</div>
+                        <div id="preview-container"
+                            style="display:none; height:100%; display:flex; flex-direction:column;">
+                            <iframe id="preview-frame" style="flex:1; border:none; background:transparent;"></iframe>
+                            <div style="text-align:center; padding-top:10px;">
+                                <a id="dl-txt" class="btn btn-ghost" target="_blank">TXT</a>
+                                <a id="dl-svg" class="btn btn-ghost" target="_blank">SVG</a>
+                                <a id="dl-raw" class="btn btn-ghost" target="_blank">RAW</a>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div id="tab-hex" style="flex:1; padding:0; display:none; background:#fff;">
+                        <div id="p-hex" class="hex-window">
+                            <div style="padding:1rem; color:#94a3b8;">Select a job to inspect hex data.</div>
+                        </div>
+                    </div>
+
+                    <div id="tab-logs" style="flex:1; padding:0; display:none; background:#0f172a;">
+                        <div id="p-logs" class="log-window" style="height:100%; border-radius:0;"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Settings View -->
+        <div id="view-settings" class="view">
+            <header>
+                <h1>System</h1>
+            </header>
+            <div class="card" style="max-width:600px;">
+                <h3>Maintenance</h3>
+                <p>Restoring factory defaults will remove all printers and logs.</p>
+                <button class="btn btn-danger" onclick="api.resetAll()">Factory Reset System</button>
+            </div>
+        </div>
+
+    </main>
+
+    <!-- Modal -->
+    <div class="modal-overlay" id="modal">
+        <div class="modal-box">
+            <h2 id="modal-title" style="margin-top:0;">Add Printer</h2>
+            <div class="form-group"><label class="form-label">Name</label><input class="form-input" id="m-name"></div>
+            <div style="display:flex; gap:1rem;">
+                <div class="form-group" style="flex:1;"><label class="form-label">TCP Port</label><input type="number"
+                        class="form-input" id="m-port"></div>
+                <div class="form-group" style="flex:1;"><label class="form-label">Bind IP</label><input
+                        class="form-input" id="m-ip" placeholder="0.0.0.0"></div>
+            </div>
+            <div class="form-group"><label class="form-label">Paper</label><select class="form-input" id="m-paper">
+                    <option value="58">58mm</option>
+                    <option value="80">80mm</option>
+                </select></div>
+            <div class="form-group"><label class="form-label">Columns</label><input type="number" class="form-input"
+                    id="m-cols" value="32"></div>
+            <div style="display:flex; justify-content:flex-end; gap:1rem; margin-top:2rem;">
+                <button class="btn btn-ghost" onclick="app.hideModal()">Cancel</button>
+                <button class="btn btn-primary" onclick="app.saveModal()">Save</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const API = '/api';
+        let currPrinter = null;
+        let currJob = null; // Store current job for Hex view refresh
+        let printers = [];
+        let modalMode = 'add';
+
+        // --- API ---
+        const api = {
+            get: async (url) => (await fetch(url)).json(),
+            post: async (url, body) => fetch(url, { method: 'POST', body: JSON.stringify(body) }),
+            put: async (url, body) => fetch(url, { method: 'PUT', body: JSON.stringify(body) }),
+            del: async (url) => fetch(url, { method: 'DELETE' }),
+
+            // Raw fetch for Hex
+            getBuff: async (url) => (await fetch(url)).arrayBuffer(),
+
+            async deleteJob(printer, id) {
+                if (!confirm('Delete this job?')) return;
+                await api.del(`${API}/printers/${printer}/jobs/${id}`);
+                app.loadJobs(printer);
+            },
+            async deletePrinter(name) {
+                if (!confirm('Delete printer?')) return;
+                await api.del(`${API}/printers/${name}`);
+                app.nav('printers');
+            },
+            async clearJobs(name) {
+                if (!confirm('Clear all jobs?')) return;
+                await api.del(`${API}/printers/${name}/jobs`);
+                app.loadJobs(name);
+            },
+            async resetAll() {
+                if (!confirm('RESET SYSTEM?')) return;
+                await api.post(`${API}/reset-all`);
+                location.reload();
+            },
+            async setError(name, key, val) {
+                return api.post(`${API}/printers/${name}/error`, { key, value: val });
+            }
+        };
+
+        // --- APP LOGIC ---
+        const app = {
+            init() {
+                app.setupSSE();
+                app.nav('dashboard');
+                setInterval(app.refreshMetrics, 3000);
+            },
+
+            setupSSE() {
+                const evt = new EventSource('/api/events');
+                evt.addEventListener('job', (e) => {
+                    const d = JSON.parse(e.data);
+                    app.logGlobal(`[Job] ${d.printer}: ${d.jobId}`);
+                    if (d.printer === currPrinter) app.loadJobs(currPrinter);
+                    app.refreshMetrics();
+                });
+                evt.addEventListener('log', (e) => {
+                    const d = JSON.parse(e.data);
+                    if (d.printer === currPrinter) {
+                        const box = document.getElementById('p-logs');
+                        box.innerText += `[${d.printer}] ${d.message}\n`;
+                        box.scrollTop = box.scrollHeight;
+                    }
+                });
+                evt.addEventListener('metrics', () => app.refreshMetrics());
+            },
+
+            nav(view) {
+                document.querySelectorAll('.view').forEach(el => el.classList.remove('active'));
+                document.getElementById('view-' + (view === 'detail' ? 'detail' : view)).classList.add('active');
+                document.querySelectorAll('aside a').forEach(el => el.classList.remove('active'));
+                const navEl = document.getElementById('nav-' + view);
+                if (navEl) navEl.classList.add('active');
+
+                if (view === 'dashboard') app.refreshMetrics();
+                if (view === 'printers') app.loadPrinters();
+            },
+
+            async refreshMetrics() {
+                const m = await api.get(API + '/metrics');
+                document.getElementById('d-active-printers').innerText = m.activePrinters;
+                document.getElementById('d-connections').innerText = m.activeConnections;
+                document.getElementById('d-bytes').innerText = formatBytes(m.totalBytes);
+                document.getElementById('d-jobs').innerText = m.totalJobs;
+
+                if (currPrinter && document.getElementById('view-detail').classList.contains('active')) {
+                    const d = await api.get(API + `/printers/${currPrinter}/diagnostics`);
+                    document.getElementById('dp-conns').innerText = d.activeConnections;
+
+                    // Update Error Toggles
+                    const errs = d.errors || {};
+                    document.getElementById('btn-err-paper').className = 'btn btn-toggle' + (errs.paperOut ? ' active' : '');
+                    document.getElementById('btn-err-cover').className = 'btn btn-toggle' + (errs.coverOpen ? ' active' : '');
+                }
+            },
+
+            async toggleError(key) {
+                const btn = document.getElementById('btn-err-' + (key === 'paperOut' ? 'paper' : 'cover'));
+                const isActive = btn.classList.contains('active');
+                await api.setError(currPrinter, key, !isActive);
+                app.refreshMetrics();
+            },
+
+            async loadPrinters() {
+                printers = await api.get(API + '/printers');
+                const tbody = document.querySelector('#tbl-printers tbody');
+                tbody.innerHTML = printers.map(p => `
+          <tr>
+            <td><span class="status-dot dot-green"></span>Listening</td>
+            <td><strong>${p.name}</strong></td>
+            <td>${p.tcpPort}</td>
+            <td>${p.paper}mm / ${p.columns} cols</td>
+            <td><button class="btn btn-ghost" onclick="app.openPrinter('${p.name}')">Manage &rarr;</button></td>
+          </tr>
+       `).join('');
+            },
+
+            async openPrinter(name) {
+                currPrinter = name;
+                currJob = null;
+                document.getElementById('p-title').innerText = name;
+                document.getElementById('dp-port').innerText = printers.find(x => x.name === name)?.tcpPort || '?';
+
+                // Reset preview
+                document.getElementById('preview-placeholder').style.display = 'block';
+                document.getElementById('preview-container').style.display = 'none';
+
+                app.loadJobs(name);
+                app.nav('detail');
+                app.loadLogs(name);
+            },
+
+            async loadJobs(name) {
+                const jobs = await api.get(`${API}/printers/${name}/jobs`);
+                const tbody = document.querySelector('#tbl-jobs tbody');
+                if (jobs.length === 0) {
+                    tbody.innerHTML = '<tr><td colspan="2" style="text-align:center; color:#94a3b8;">No jobs</td></tr>';
+                    return;
+                }
+                tbody.innerHTML = jobs.map(j => `
+          <tr>
+             <td>
+               <div style="font-weight:bold; cursor:pointer;" onclick="app.preview('${j}')">${j}</div>
+               <div style="font-size:0.75rem; color:#94a3b8;">Today</div>
+             </td>
+             <td style="text-align:right;">
+               <button class="icon-btn" onclick="api.deleteJob('${name}','${j}')">&#128465;</button>
+             </td>
+          </tr>
+       `).join('');
+            },
+
+            async preview(id) {
+                currJob = id;
+                document.getElementById('preview-placeholder').style.display = 'none';
+                const box = document.getElementById('preview-container');
+                box.style.display = 'flex';
+                document.getElementById('preview-frame').src = `/out/${currPrinter}/${id}.html`;
+                document.getElementById('dl-txt').href = `/out/${currPrinter}/${id}.txt`;
+                document.getElementById('dl-svg').href = `/out/${currPrinter}/${id}.svg`;
+                document.getElementById('dl-raw').href = `/out/${currPrinter}/${id}.raw`;
+
+                // Also load hex if that tab is active
+                if (document.getElementById('tab-hex').style.display === 'block') {
+                    app.loadHex(id);
+                }
+            },
+
+            async loadHex(id) {
+                if (!id) return;
+                const box = document.getElementById('p-hex');
+                box.innerHTML = 'Loading...';
+
+                try {
+                    const buf = await api.getBuff(`/out/${currPrinter}/${id}.raw`);
+                    const u8 = new Uint8Array(buf);
+                    let html = '<table style="width:100%; border-collapse:collapse; font-size:12px;">';
+                    html += '<tr><th style="width:40px; text-align:left; border-bottom:1px solid #eee;">Off</th><th style="text-align:left;border-bottom:1px solid #eee;">Hex</th><th style="text-align:left;border-bottom:1px solid #eee;">ASCII</th></tr>';
+
+                    for (let i = 0; i < u8.length; i += 16) {
+                        const chunk = u8.slice(i, i + 16);
+                        const offset = i.toString(16).padStart(4, '0');
+
+                        let hex = '';
+                        let ascii = '';
+                        for (let b of chunk) {
+                            hex += b.toString(16).padStart(2, '0') + ' ';
+                            ascii += (b > 31 && b < 127) ? String.fromCharCode(b) : '.';
+                        }
+
+                        html += `<tr><td style="color:#888;">${offset}</td><td style="color:#0f172a;">${hex}</td><td style="color:#64748b;">${ascii}</td></tr>`;
+                    }
+                    html += '</table>';
+                    box.innerHTML = html;
+                } catch (e) {
+                    box.innerText = 'Failed to load hex view.';
+                }
+            },
+
+            async loadLogs(name) {
+                const l = await api.get(`${API}/printers/${name}/logs`);
+                document.getElementById('p-logs').innerText = l.content || 'No logs.';
+            },
+
+            logGlobal(msg) {
+                const box = document.getElementById('global-log');
+                const div = document.createElement('div');
+                div.innerText = `[${new Date().toLocaleTimeString()}] ${msg}`;
+                div.style.padding = '4px 0';
+                div.style.borderBottom = '1px solid #f1f5f9';
+                box.prepend(div);
+            },
+
+            // Modal logic (same as before)
+            showAddModal() {
+                modalMode = 'add';
+                document.getElementById('modal-title').innerText = 'Add Printer';
+                document.getElementById('m-name').value = 'Printer_' + (printers.length + 1);
+                document.getElementById('m-port').value = 9100 + printers.length;
+                document.getElementById('m-ip').value = '0.0.0.0';
+                document.getElementById('modal').style.display = 'flex';
+            },
+            showEditModal() {
+                modalMode = 'edit';
+                const p = printers.find(x => x.name === currPrinter);
+                document.getElementById('modal-title').innerText = 'Edit Printer';
+                document.getElementById('m-name').value = p.name;
+                document.getElementById('m-port').value = p.tcpPort;
+                document.getElementById('m-ip').value = p.bindIp || '0.0.0.0';
+                document.getElementById('m-paper').value = p.paper;
+                document.getElementById('m-cols').value = p.columns;
+                document.getElementById('modal').style.display = 'flex';
+            },
+            hideModal() { document.getElementById('modal').style.display = 'none'; },
+            async saveModal() {
+                const body = {
+                    name: document.getElementById('m-name').value,
+                    tcpPort: Number(document.getElementById('m-port').value),
+                    bindIp: document.getElementById('m-ip').value || '0.0.0.0',
+                    paper: Number(document.getElementById('m-paper').value),
+                    columns: Number(document.getElementById('m-cols').value)
+                };
+                if (modalMode === 'add') await api.post(API + '/printers', body);
+                else await api.put(API + '/printers/' + currPrinter, body);
+
+                app.hideModal();
+                app.loadPrinters();
+                if (modalMode === 'edit' && currPrinter) app.openPrinter(body.name);
+            },
+
+            tab(t) {
+                document.getElementById('tab-preview').style.display = t === 'preview' ? 'block' : 'none';
+                document.getElementById('tab-hex').style.display = t === 'hex' ? 'block' : 'none';
+                document.getElementById('tab-logs').style.display = t === 'logs' ? 'block' : 'none';
+
+                if (t === 'hex' && currJob) app.loadHex(currJob);
+            }
+        };
+
+        function formatBytes(bytes, decimals = 2) {
+            if (!+bytes) return '0 B';
+            const k = 1024;
+            const dm = decimals < 0 ? 0 : decimals;
+            const sizes = ['B', 'KB', 'MB', 'GB'];
+            const i = Math.floor(Math.log(bytes) / Math.log(k));
+            return `${parseFloat((bytes / Math.pow(k, i)).toFixed(dm))} ${sizes[i]}`;
+        }
+
+        app.init();
+    </script>
+</body>
+
+</html>

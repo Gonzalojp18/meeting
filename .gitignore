@@ -34,6 +34,7 @@ server/node_modules/
 # Archivos generados por la construcción
 build/
 dist/
+out/
 
 # Archivos temporales
 .cache/

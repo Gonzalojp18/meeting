@@ -54,6 +54,8 @@ export async function POST(req) {
             return NextResponse.json({ received: true });
         }
 
+        console.log(`[WEBHOOK] Pago Aprobado (${paymentId}). Creando orden en estado Pending (Requiere confirmación manual para imprimir).`);
+
         await dbConnect();
 
         // Verificar si ya existe un pedido con este payment_id
