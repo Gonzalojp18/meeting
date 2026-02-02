@@ -50,13 +50,19 @@ export async function POST(req) {
             currency_id: 'ARS'
         }));
 
-        // URL base: Priorizamos NEXT_PUBLIC_URL que es la que tiene ngrok o el dominio real
-        const baseUrl = process.env.NEXT_PUBLIC_URL ||
-            (process.env.NEXT_PUBLIC_API_NODE_ENV === 'development'
-                ? (process.env.NEXT_PUBLIC_API_URI_DEVELOPMENT || 'http://localhost:3000')
-                : (process.env.NEXT_PUBLIC_API_URI_PRODUCTION || 'https://meeting-ebon.vercel.app'));
+        // URL base dinámica: Intentamos obtenerla de los headers si no está en env
+        const host = req.headers.get('host');
+        const protocol = host?.includes('localhost') ? 'http' : 'https';
 
-        // Limpiar slash final si existe para evitar double slash
+        let baseUrl = process.env.NEXT_PUBLIC_URL || `${protocol}://${host}`;
+
+        // Fallback si lo anterior falla (para seguridad en server-side)
+        if (!baseUrl || baseUrl.includes('undefined')) {
+            baseUrl = process.env.NEXT_PUBLIC_API_NODE_ENV === 'development'
+                ? 'http://localhost:3000'
+                : 'https://www.meetingrestobar.com'; // Dominio principal
+        }
+
         const cleanBaseUrl = baseUrl.replace(/\/$/, '');
 
         // Crear preferencia de pago
