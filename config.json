@@ -1,0 +1,5 @@
+{
+  "apiUrl": "https://bardish-natalia-uncheckable.ngrok-free.dev",
+  "locationId": "location1",
+  "pollInterval": 3000
+}

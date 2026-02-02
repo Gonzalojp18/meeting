@@ -7,8 +7,8 @@ const path = require('path');
 const CONFIG_PATH = path.join(process.cwd(), 'config.json');
 
 let config = {
-    apiUrl: 'http://localhost:3000', // Cambiar a tu dominio de Hostinger (ej: https://mirestaurante.com)
-    locationId: 'centro',
+    apiUrl: 'https://bardish-natalia-uncheckable.ngrok-free.dev',
+    locationId: 'location1',
     pollInterval: 3000
 };
 

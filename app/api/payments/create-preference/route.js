@@ -50,10 +50,14 @@ export async function POST(req) {
             currency_id: 'ARS'
         }));
 
-        // URL base desde las variables de entorno
-        const baseUrl = process.env.NEXT_PUBLIC_API_NODE_ENV === 'development'
-            ? (process.env.NEXT_PUBLIC_API_URI_DEVELOPMENT || 'http://localhost:3000')
-            : (process.env.NEXT_PUBLIC_API_URI_PRODUCTION || 'https://meeting-ebon.vercel.app');
+        // URL base: Priorizamos NEXT_PUBLIC_URL que es la que tiene ngrok o el dominio real
+        const baseUrl = process.env.NEXT_PUBLIC_URL ||
+            (process.env.NEXT_PUBLIC_API_NODE_ENV === 'development'
+                ? (process.env.NEXT_PUBLIC_API_URI_DEVELOPMENT || 'http://localhost:3000')
+                : (process.env.NEXT_PUBLIC_API_URI_PRODUCTION || 'https://meeting-ebon.vercel.app'));
+
+        // Limpiar slash final si existe para evitar double slash
+        const cleanBaseUrl = baseUrl.replace(/\/$/, '');
 
         // Crear preferencia de pago
         const preference = new Preference(client);
@@ -61,6 +65,7 @@ export async function POST(req) {
         const result = await preference.create({
             body: {
                 items: mpItems,
+                external_reference: JSON.stringify({ locationId }),
                 payer: {
                     name: customerData.name,
                     surname: customerData.lastname || '',
@@ -70,12 +75,13 @@ export async function POST(req) {
                     }
                 },
                 back_urls: {
-                    success: `${baseUrl}/checkout/result?status=success`,
-                    failure: `${baseUrl}/checkout/result?status=failure`,
-                    pending: `${baseUrl}/checkout/result?status=pending`
+                    success: `${cleanBaseUrl}/checkout/result?status=success`,
+                    failure: `${cleanBaseUrl}/checkout/result?status=failure`,
+                    pending: `${cleanBaseUrl}/checkout/result?status=pending`
                 },
                 auto_return: 'approved',
-                notification_url: `${baseUrl}/api/payments/webhook`,
+                notification_url: `${cleanBaseUrl}/api/payments/webhook`,
+                binary_mode: true,
                 installments: 1,
                 metadata: {
                     customerData: JSON.stringify(customerData),

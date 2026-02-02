@@ -1,86 +1,123 @@
 import { NextResponse } from 'next/server';
-import { MercadoPagoConfig, Payment } from 'mercadopago';
+import { MercadoPagoConfig, Payment, MerchantOrder } from 'mercadopago';
 import dbConnect from '@/utils/dbConnect';
 import Order from '@/models/Order';
 import { getMPCredentials } from '@/utils/getMPCredentials';
 
 export async function POST(req) {
     try {
-        // Leer el body como texto primero para manejar health checks
-        const text = await req.text();
+        const url = new URL(req.url);
+        const queryId = url.searchParams.get('id');
+        const queryTopic = url.searchParams.get('topic');
 
-        // Si está vacío, devolver OK (MP hace health checks)
-        if (!text || text.trim() === '') {
+        // Leer body por si es un Webhook (JSON)
+        let body = {};
+        try {
+            body = await req.json();
+        } catch (e) {
+            // Body vacío o no JSON (es común en IPN legacy)
+        }
+
+        const id = queryId || body.data?.id || (body.resource ? body.resource.split('/').pop() : null);
+        const topic = queryTopic || body.type || 'unknown';
+
+        console.log(`[WEBHOOK] Recibido: ${topic} (ID: ${id})`);
+
+        if (!id || (topic !== 'payment' && topic !== 'merchant_order')) {
+            console.log(`[WEBHOOK] Ignorado: Topic ${topic} no manejado.`);
             return NextResponse.json({ received: true });
         }
 
-        const body = JSON.parse(text);
-
-        // Solo procesar notificaciones de pagos
-        if (body.type !== 'payment') {
-            return NextResponse.json({ received: true });
-        }
-
-        const paymentId = body.data?.id;
-
-        if (!paymentId) {
-            return NextResponse.json({ received: true });
-        }
-
-        // Obtener credenciales dinámicas desde la DB
+        // Obtener credenciales
         const credentials = await getMPCredentials();
         if (!credentials) {
-            console.error('Webhook: Credenciales de MP no configuradas');
+            console.error('[WEBHOOK] Credenciales no configuradas.');
             return NextResponse.json({ error: 'MP not configured' }, { status: 503 });
         }
 
-        const client = new MercadoPagoConfig({
-            accessToken: credentials.accessToken
-        });
+        const client = new MercadoPagoConfig({ accessToken: credentials.accessToken });
+        const paymentClient = new Payment(client);
+        const merchantOrderClient = new MerchantOrder(client);
 
-        // Obtener detalles del pago
-        const payment = new Payment(client);
-        const paymentInfo = await payment.get({ id: paymentId });
+        let paymentInfo = null;
+        let merchantOrder = null;
 
-        console.log('Info del pago:', {
-            id: paymentInfo.id,
-            status: paymentInfo.status,
-            status_detail: paymentInfo.status_detail,
-            transaction_amount: paymentInfo.transaction_amount
-        });
+        // Estrategia:
+        // 1. Si es 'payment', buscamos el pago directo.
+        // 2. Si es 'merchant_order', buscamos la orden y revisamos sus pagos.
 
-        // Solo crear pedido si el pago fue aprobado
-        if (paymentInfo.status !== 'approved') {
+        if (topic === 'payment') {
+            try {
+                paymentInfo = await paymentClient.get({ id });
+            } catch (error) {
+                console.error(`[WEBHOOK] Error buscando pago ${id}:`, error.message);
+                return NextResponse.json({ received: true }); // Respondemos OK para que no reintente infinito
+            }
+        } else if (topic === 'merchant_order') {
+            try {
+                merchantOrder = await merchantOrderClient.get({ merchantOrderId: id });
+                console.log(`[WEBHOOK] Merchant Order Data:`, JSON.stringify(merchantOrder, null, 2));
+
+                // Buscamos el pago aprobado más reciente (o el último intento)
+                if (merchantOrder.payments && merchantOrder.payments.length > 0) {
+                    const lastPayment = merchantOrder.payments[merchantOrder.payments.length - 1];
+                    paymentInfo = await paymentClient.get({ id: lastPayment.id });
+                } else {
+                    console.log(`[WEBHOOK] Merchant Order ${id} sin pagos asociados.`);
+                    return NextResponse.json({ received: true });
+                }
+            } catch (error) {
+                console.error(`[WEBHOOK] Error buscando merchant_order ${id}:`, error.message);
+                return NextResponse.json({ received: true });
+            }
+        }
+
+        if (!paymentInfo) {
             return NextResponse.json({ received: true });
         }
 
-        console.log(`[WEBHOOK] Pago Aprobado (${paymentId}). Creando orden en estado Pending (Requiere confirmación manual para imprimir).`);
+        // --- Logica de Procesamiento ---
 
-        await dbConnect();
+        console.log(`[WEBHOOK] Procesando Pago ${paymentInfo.id}: Estado=${paymentInfo.status} (${paymentInfo.status_detail})`);
 
-        // Verificar si ya existe un pedido con este payment_id
-        const existingOrder = await Order.findOne({
-            mercadoPagoId: paymentId.toString()
-        });
-
-        if (existingOrder) {
-            return NextResponse.json({
-                received: true,
-                order: existingOrder.orderNumber
-            });
+        // Si NO está aprobado, solo logueamos y salimos (no creamos orden)
+        // IMPORTANTE: Aquí es donde ves por qué salen rechazados los "create-preference"
+        if (paymentInfo.status !== 'approved') {
+            console.warn(`[WEBHOOK] Pago NO APROBADO. Razón: ${paymentInfo.status_detail}`);
+            return NextResponse.json({ received: true });
         }
 
-        // Extraer metadata (MP convierte camelCase a snake_case)
-        const customerData = JSON.parse(paymentInfo.metadata.customer_data);
-        const items = JSON.parse(paymentInfo.metadata.items);
-        const total = paymentInfo.metadata.total;
-        const locationId = paymentInfo.metadata.location_id;
+        // --- Creación de Orden ---
+        await dbConnect();
 
-        // Generar número de orden
+        // Evitar duplicados
+        const existingOrder = await Order.findOne({ mercadoPagoId: paymentInfo.id.toString() });
+        if (existingOrder) {
+            console.log(`[WEBHOOK] La orden ${existingOrder.orderNumber} ya existe.`);
+            return NextResponse.json({ received: true, order: existingOrder.orderNumber });
+        }
+
+        // Extraer metadata
+        // MP a veces devuelve snake_case en metadata cuando se consulta vía API
+        const meta = paymentInfo.metadata || {};
+        const customerDataRaw = meta.customer_data || meta.customerData;
+        const itemsRaw = meta.items;
+        const locationId = meta.location_id || meta.locationId;
+        const total = meta.total;
+
+        if (!customerDataRaw || !itemsRaw) {
+            console.error('[WEBHOOK] Metadata incompleta en el pago.');
+            return NextResponse.json({ received: true }); // No podemos hacer nada sin data
+        }
+
+        // Parsear si vienen como strings (bug usual de MP v1/v2 mix)
+        const customerData = typeof customerDataRaw === 'string' ? JSON.parse(customerDataRaw) : customerDataRaw;
+        const items = typeof itemsRaw === 'string' ? JSON.parse(itemsRaw) : itemsRaw;
+
+        // Generar Order Number
         const orderCount = await Order.countDocuments();
         const orderNumber = `ORD-${String(orderCount + 1).padStart(4, '0')}`;
 
-        // Crear la orden
         const newOrder = new Order({
             orderNumber,
             customer: {
@@ -92,37 +129,30 @@ export async function POST(req) {
             items,
             location: {
                 locationId: locationId,
-                locationName: locationId
+                locationName: locationId // Podrías mejorar esto buscando el nombre real
             },
             deliveryMethod: customerData.deliveryMethod || 'Retiro en Sucursal',
             deliveryAddress: customerData.deliveryAddress || '',
             paymentMethod: 'Mercado Pago',
             paymentStatus: 'approved',
-            mercadoPagoId: paymentId.toString(),
-            status: 'pending',
+            mercadoPagoId: paymentInfo.id.toString(),
+            status: 'pending', // Pending de "Preparación", pero pagado
             subtotal: total,
             total,
             notes: customerData.notes || ''
         });
 
         await newOrder.save();
-        console.log('Pedido creado:', orderNumber);
+        console.log(`[WEBHOOK] ✅ Orden creada exitosamente: ${orderNumber}`);
 
-        return NextResponse.json({
-            received: true,
-            order: orderNumber
-        });
+        return NextResponse.json({ received: true, order: orderNumber });
 
     } catch (error) {
-        console.error('Error en webhook:', error);
-        return NextResponse.json(
-            { error: error.message },
-            { status: 500 }
-        );
+        console.error('[WEBHOOK CRASH]:', error);
+        return NextResponse.json({ error: error.message }, { status: 500 });
     }
 }
 
-// MercadoPago también puede enviar GET para verificar el endpoint
 export async function GET() {
     return NextResponse.json({ status: 'Webhook endpoint active' });
 }
