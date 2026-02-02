@@ -1,0 +1,48 @@
+# Cluster Mode:
+# Runs multiple independent instances of the simulator.
+# Each instance behaves as a separate physical device with its own IP.
+# Access Management Dashboard for each at http://<IP>:2026
+
+services:
+  # Node 1 (Printer 1)
+  # IP: 172.20.0.10
+  node1:
+    build: .
+    restart: unless-stopped
+    container_name: vtp-node1
+    networks:
+      vpc:
+        ipv4_address: 172.20.0.10
+    environment:
+      - HTTP_PORT=2026
+    volumes:
+      - ./cluster/node1/config:/app/config
+      - ./cluster/node1/out:/app/out
+      - ./cluster/node1/logs:/app/logs
+    # Map ports to host for convenience (Node 1 -> localhost:3001)
+    ports:
+      - "2027:2026"
+
+  # Node 2 (Printer 2)
+  # IP: 172.20.0.11
+  node2:
+    build: .
+    container_name: vtp-node2
+    networks:
+      vpc:
+        ipv4_address: 172.20.0.11
+    environment:
+      - HTTP_PORT=3000
+    volumes:
+      - ./cluster/node2/config:/app/config
+      - ./cluster/node2/out:/app/out
+      - ./cluster/node2/logs:/app/logs
+    ports:
+      - "2028:2026"
+
+networks:
+  vpc:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 172.20.0.0/16

@@ -1,0 +1,15 @@
+services:
+  escpos-sim:
+    build: .
+    restart: unless-stopped
+    ports:
+      - "2026:2026"
+      # Map range of ports for up to 10 printers
+      - "9100-9110:9100-9110"
+    volumes:
+      - ./config:/app/config
+      - ./out:/app/out
+      - ./logs:/app/logs
+    environment:
+      - HTTP_PORT=2026
+      - IDLE_FLUSH_MS=500

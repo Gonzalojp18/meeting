@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import dbConnect from '@/utils/dbConnect';
 import Order from '@/models/Order';
 import { auth } from '@/auth';
+import { executePrintSaga } from '@/lib/print/saga';
 
 export async function GET(req) {
     try {
@@ -55,9 +56,19 @@ export async function POST(req) {
         });
 
         await newOrder.save();
+
+        // Disparar impresora automáticamente (Bypass MP para pruebas)
+        try {
+            // Rol: cashier (Caja) al crear el pedido
+            await executePrintSaga(newOrder._id, { type: 'cashier', template: 'CASHIER_TICKET' });
+        } catch (printError) {
+            console.error('Error al imprimir pedido directo:', printError);
+        }
+
         return NextResponse.json(newOrder, { status: 201 });
     } catch (error) {
         console.error('Error creating order:', error);
+        require('fs').appendFileSync('debug-server-error.log', `[${new Date().toISOString()}] Error: ${error.message}\nStack: ${error.stack}\n`);
         return NextResponse.json({ error: 'Error al crear el pedido' }, { status: 500 });
     }
 }

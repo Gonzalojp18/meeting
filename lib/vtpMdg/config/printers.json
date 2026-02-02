@@ -1,0 +1,16 @@
+[
+  {
+    "name": "Caja",
+    "tcpPort": 9101,
+    "bindIp": "0.0.0.0",
+    "paper": 58,
+    "columns": 32
+  },
+  {
+    "name": "Cocina2",
+    "tcpPort": 9100,
+    "bindIp": "192.168.3.5",
+    "paper": 58,
+    "columns": 32
+  }
+]

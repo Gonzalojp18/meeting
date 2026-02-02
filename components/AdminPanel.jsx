@@ -10,6 +10,8 @@ import StatsGrid from './admin/StatsGrid';
 import TopItemsList from './admin/TopItemsList';
 import ReportFilters from './admin/ReportFilters';
 import SalesReportExport from './admin/SalesReportExport';
+import PrinterManagement from './admin/PrinterManagement';
+import TicketHistory from './admin/TicketHistory';
 import { useFetch } from '../hooks/useFetch';
 import axios from 'axios';
 import { handleAxiosError } from '../utils/handleAxiosError';
@@ -36,7 +38,9 @@ import {
   MdAttachMoney,
   MdDescription,
   MdPointOfSale,
-  MdLocationOn
+  MdLocationOn,
+  MdPrint,
+  MdHistory,
 } from 'react-icons/md';
 import CashierPanel from './cashier/CashierPanel';
 
@@ -219,6 +223,8 @@ const AdminPanel = () => {
     { id: 'promotions', label: 'Promociones', icon: MdLocalOffer },
     { id: 'users', label: 'Usuarios', icon: MdPeople },
     { id: 'caja', label: 'Caja', icon: MdPointOfSale },
+    { id: 'printers', label: 'Impresoras', icon: MdPrint },
+    { id: 'history', label: 'Historial', icon: MdHistory },
   ];
 
   if (session?.user?.role === 'admin') {
@@ -787,6 +793,50 @@ const AdminPanel = () => {
               </div>
               <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden min-h-[600px]">
                 <CashierPanel standalone={false} />
+              </div>
+            </div>
+          )
+        }
+
+        {/* ========== PRINTERS TAB ========== */}
+        {
+          activeTab === 'printers' && (
+            <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
+              <div className="bg-gradient-to-r from-blue-50 to-indigo-50 border-b border-indigo-200 p-6">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <h2 className="text-xl font-bold text-indigo-900 mb-1">Gestión de Impresoras</h2>
+                    <p className="text-sm text-indigo-700">Configuración de impresoras térmicas, roles y pruebas</p>
+                  </div>
+                  <div className="p-4 bg-indigo-500 rounded-xl shadow-lg">
+                    <MdPrint className="h-8 w-8 text-white" />
+                  </div>
+                </div>
+              </div>
+              <div className="p-6 lg:p-8">
+                <PrinterManagement locations={locations} />
+              </div>
+            </div>
+          )
+        }
+
+        {/* ========== HISTORY TAB ========== */}
+        {
+          activeTab === 'history' && (
+            <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
+              <div className="bg-gradient-to-r from-gray-50 to-gray-100 border-b border-gray-200 p-6">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <h2 className="text-xl font-bold text-gray-900 mb-1">Historial de Tickets</h2>
+                    <p className="text-sm text-gray-700">Auditoría de impresiones, reimpresiones y estados</p>
+                  </div>
+                  <div className="p-4 bg-gray-600 rounded-xl shadow-lg">
+                    <MdHistory className="h-8 w-8 text-white" />
+                  </div>
+                </div>
+              </div>
+              <div className="p-6 lg:p-8">
+                <TicketHistory locations={locations} />
               </div>
             </div>
           )
