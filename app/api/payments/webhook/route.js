@@ -21,7 +21,12 @@ export async function POST(req) {
         const id = queryId || body.data?.id || (body.resource ? body.resource.split('/').pop() : null);
         const topic = queryTopic || body.type || 'unknown';
 
-        console.log(`[WEBHOOK] Recibido: ${topic} (ID: ${id})`);
+        console.log('---------------------------------------------------');
+        console.log(`[WEBHOOK START] Received: ${req.method} ${req.url}`);
+        console.log('[WEBHOOK HOST] Host Header:', req.headers.get('host'));
+        console.log(`[WEBHOOK PARAMS] Topic: ${topic}, ID: ${id}`);
+        console.log('[WEBHOOK BODY]:', JSON.stringify(body, null, 2));
+        console.log('---------------------------------------------------');
 
         if (!id || (topic !== 'payment' && topic !== 'merchant_order')) {
             console.log(`[WEBHOOK] Ignorado: Topic ${topic} no manejado.`);

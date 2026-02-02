@@ -62,6 +62,11 @@ export async function POST(req) {
         // Crear preferencia de pago
         const preference = new Preference(client);
 
+        const notificationUrl = `${cleanBaseUrl}/api/payments/webhook`;
+        console.log('---------------------------------------------------');
+        console.log('[CREATE PREFERENCE] Notification URL:', notificationUrl);
+        console.log('---------------------------------------------------');
+
         const result = await preference.create({
             body: {
                 items: mpItems,
