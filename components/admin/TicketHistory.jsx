@@ -77,12 +77,12 @@ const TicketHistory = ({ locations = [] }) => {
         }
     };
 
-    const filteredOrders = orders.filter(order => {
+    const filteredOrders = Array.isArray(orders) ? orders.filter(order => {
         const query = searchTerm.toLowerCase();
         const name = `${order.customer?.name || ''} ${order.customer?.lastname || ''}`.toLowerCase();
         const orderNum = (order.orderNumber || '').toLowerCase();
         return name.includes(query) || orderNum.includes(query);
-    });
+    }) : [];
 
     return (
         <div className="space-y-6">

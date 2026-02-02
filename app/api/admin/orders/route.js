@@ -6,7 +6,9 @@ import { auth } from "@/auth";
 export async function GET(req) {
   try {
     const session = await auth();
-    if (session?.user?.role !== "admin") {
+    const role = session?.user?.role;
+
+    if (role !== "admin" && role !== "staff") {
       return NextResponse.json({ error: "No autorizado" }, { status: 401 });
     }
 

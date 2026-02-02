@@ -236,11 +236,6 @@ const AdminPanel = () => {
   tabs.push({ id: 'printers', label: 'Impresoras', icon: MdPrint });
   tabs.push({ id: 'history', label: 'Historial', icon: MdHistory });
 
-  if (!isAdmin && isStaff) {
-    // Si es staff puro, agregamos acceso limitado a productos por si necesitan ver precios/stock
-    tabs.unshift({ id: 'products', label: 'Productos', icon: MdRestaurantMenu });
-  }
-
   return (
     <div className="min-h-screen bg-gray-50">
       {/* ========== HEADER MEJORADO ========== */}
