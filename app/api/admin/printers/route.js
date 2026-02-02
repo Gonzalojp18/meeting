@@ -1,6 +1,8 @@
 import { NextResponse } from "next/server";
 import dbConnect from "@/utils/dbConnect";
 import Printer from "@/models/Printer";
+import Order from "@/models/Order";
+import mongoose from "mongoose";
 import { scanNetwork, checkPrinter } from "@/utils/printers";
 import { auth } from "@/auth";
 import { executePrintSaga } from "@/lib/print/saga";
@@ -100,65 +102,63 @@ export async function GET(req) {
       return NextResponse.json({ status });
     }
 
-    // Acción especial: Re-imprimir orden
+    // Acción especial: Re-imprimir orden (Cloud Friendly)
     if (action === "reprint") {
       const orderId = searchParams.get("orderId");
-      const type = searchParams.get("type") || "kitchen"; // Default to Kitchen ticket for Admins
-
       if (!orderId) throw new Error("orderId es requerido");
 
-      // Force print to bypass "already printed" check
-      const result = await executePrintSaga(orderId, { force: true, type, isReprint: true });
-      return NextResponse.json(result);
+      // Simplemente marcamos como no impresa para que el Agente la recoja
+      await Order.findByIdAndUpdate(orderId, {
+        $set: {
+          "printStatus.printed": false,
+          "printStatus.error": false
+        }
+      });
+      return NextResponse.json({ success: true, message: "Encolado para reimpresión" });
     }
 
-    // Acción especial: Imprimir Prueba (Multitarea o Individual)
+    // Acción especial: Imprimir Prueba (Cloud Friendly)
     if (action === "test_print") {
+      // Necesitamos crear una Orden real en la BD para que el Agente la detecte
       const roles = searchParams.get("roles")?.split(",") || [];
       const printerId = searchParams.get("printerId");
 
-      const mockOrder = {
-        _id: "test_" + Date.now(),
-        orderNumber: "TEST-PRINT",
-        customer: { name: "PRUEBA DE SISTEMA", phone: "000-000" },
-        items: [{ name: "Ticket de Validación", quantity: 1, price: 0 }],
-        location: {
-          locationName: "Sede Admin",
-          locationId: locationId || "admin_test",
+      const ticketTitle = roles.length > 0 ? `TEST ROLES: ${roles.join(', ')}` : "TEST INDIVIDUAL";
+
+      // Crear ID ficticio compatible con Mongoose
+      const fakeId = new mongoose.Types.ObjectId();
+
+      await Order.create({
+        orderNumber: `TEST-${Date.now().toString().slice(-6)}`,
+        customer: {
+          name: "PRUEBA DE SISTEMA",
+          lastname: "ADMIN",
+          phone: "000000000",
+          email: "admin@test.com"
         },
+        items: [{
+          itemId: fakeId,
+          name: "TICKET DE PRUEBA DE CONEXIÓN",
+          quantity: 1,
+          price: 0
+        }],
+        location: {
+          locationName: "Sede Actual",
+          locationId: locationId || "location1",
+        },
+        deliveryMethod: "Retiro en Sucursal", // Requerido por schema
         total: 0,
-        createdAt: new Date(),
-      };
+        subtotal: 0,
+        paymentStatus: "approved", // Vital para que el agente lo vea
+        status: "confirmed", // Vital para que el agente lo vea
+        printStatus: {
+          printed: false, // Vital para que el agente lo vea
+          error: false
+        },
+        isDeleted: false
+      });
 
-      if (printerId) {
-        // Prueba individual
-        const printer = await Printer.findById(printerId);
-        if (!printer) throw new Error("Impresora no encontrada");
-        const result = await executePrintSaga(mockOrder, {
-          type: "test",
-          targetUids: [printer.uid],
-        });
-        return NextResponse.json(result);
-      } else if (roles.length > 0) {
-        // Prueba por roles
-        const results = [];
-        let totalSent = 0;
-        for (const role of roles) {
-          const res = await executePrintSaga(mockOrder, { type: role });
-          results.push({ role, status: res.status });
-          if (res.status === "success") totalSent++;
-        }
-
-        if (totalSent === 0) {
-          return NextResponse.json(
-            { error: "No se encontraron impresoras activas para los roles seleccionados en esta sede.", results },
-            { status: 404 }
-          );
-        }
-
-        return NextResponse.json({ success: true, results, totalSent });
-      }
-      throw new Error("Debe especificar roles o printerId");
+      return NextResponse.json({ success: true, message: "Ticket de prueba creado. El Agente lo imprimirá en breve." });
     }
 
     // Por defecto: Listar impresoras guardadas (Filtrado por sede)

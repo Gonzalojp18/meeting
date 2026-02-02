@@ -58,12 +58,19 @@ export async function POST(req) {
         await newOrder.save();
 
         // Disparar impresora automáticamente (Bypass MP para pruebas)
+        /* 
+           COMENTADO PARA CLOUD:
+           El Agente de Impresión local se encarga de esto mediante polling.
+           Si mantenemos esta llamada, el checkout se queda esperando a una impresora
+           que no puede alcanzar (Hostinger -> Local IP) y da timeout.
+           
         try {
             // Rol: cashier (Caja) al crear el pedido
             await executePrintSaga(newOrder._id, { type: 'cashier', template: 'CASHIER_TICKET' });
         } catch (printError) {
             console.error('Error al imprimir pedido directo:', printError);
         }
+        */
 
         return NextResponse.json(newOrder, { status: 201 });
     } catch (error) {
