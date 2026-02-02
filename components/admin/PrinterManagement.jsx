@@ -95,6 +95,21 @@ const PrinterManagement = ({ locations = [] }) => {
         }
     };
 
+    const handleManualAdd = () => {
+        setFormData({
+            name: '',
+            uid: '',
+            ip: '',
+            port: 9100,
+            paperWidth: 80,
+            roles: ['kitchen'],
+            locationId: selectedLocation
+        });
+        setIsAdding(true);
+        setEditingPrinter(null);
+        setMessage(null);
+    };
+
     const handleQuickAdd = (device) => {
         setFormData({
             ...formData,
@@ -159,10 +174,16 @@ const PrinterManagement = ({ locations = [] }) => {
         const method = isEditing ? 'PUT' : 'POST';
 
         try {
+            // Generar UID automático si es manual
+            const payload = { ...formData };
+            if (!payload.uid && payload.ip) {
+                payload.uid = `manual-${payload.ip.replace(/\./g, '-')}-${Date.now().toString().slice(-4)}`;
+            }
+
             const res = await fetch(url, {
                 method,
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(formData)
+                body: JSON.stringify(payload)
             });
             if (res.ok) {
                 setMessage({ type: 'success', text: isEditing ? 'Roles actualizados correctamente' : 'Impresora vinculada correctamente' });
@@ -253,6 +274,14 @@ const PrinterManagement = ({ locations = [] }) => {
                     </div>
 
                     <button
+                        onClick={handleManualAdd}
+                        disabled={scanning}
+                        className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-emerald-600 bg-white border border-emerald-200 rounded-lg hover:bg-emerald-50 disabled:opacity-50 transition-all shadow-sm"
+                    >
+                        <MdAdd />
+                        Nueva Manual
+                    </button>
+                    <button
                         onClick={handleScan}
                         disabled={scanning}
                         className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-emerald-600 bg-emerald-50 rounded-lg hover:bg-emerald-100 disabled:opacity-50 transition-all shadow-sm"
@@ -319,14 +348,27 @@ const PrinterManagement = ({ locations = [] }) => {
                         </button>
                     </div>
 
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-5 opacity-60 pointer-events-none">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
                         <div className="space-y-1">
-                            <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider">Identidad</label>
-                            <input disabled value={formData.name} className="w-full px-4 py-2.5 bg-gray-100 border border-gray-200 rounded-xl text-sm italic" />
+                            <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider">Nombre Identificativo</label>
+                            <input
+                                required
+                                value={formData.name}
+                                onChange={e => setFormData({ ...formData, name: e.target.value })}
+                                className="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-sm font-bold focus:ring-2 focus:ring-emerald-500 outline-none"
+                                placeholder="Ej: Cocina Principal"
+                            />
                         </div>
                         <div className="space-y-1">
                             <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider">IP Address</label>
-                            <input disabled value={formData.ip} className="w-full px-4 py-2.5 bg-gray-100 border border-gray-200 rounded-xl text-sm font-mono" />
+                            <input
+                                required
+                                value={formData.ip}
+                                onChange={e => setFormData({ ...formData, ip: e.target.value })}
+                                disabled={!!editingPrinter && formData.uid.startsWith('vtp-')} // Solo deshabilitar si es una virtual o editando scan real
+                                className="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-sm font-mono focus:ring-2 focus:ring-emerald-500 outline-none"
+                                placeholder="Ej: 192.168.0.33"
+                            />
                         </div>
                     </div>
 
