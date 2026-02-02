@@ -48,7 +48,10 @@ const AdminPanel = () => {
   const router = useRouter();
   const { data: session, status } = useSession();
 
-  const [activeTab, setActiveTab] = useState('dashboard');
+  const isStaff = session?.user?.role === 'staff';
+  const isAdmin = session?.user?.role === 'admin';
+
+  const [activeTab, setActiveTab] = useState(isStaff ? 'caja' : 'dashboard');
   const [searchTerm, setSearchTerm] = useState('');
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
@@ -215,21 +218,27 @@ const AdminPanel = () => {
     }).filter(category => (category.items || []).length > 0);
 
 
-  // ========== CONFIGURACIÓN DE TABS ==========
-  const tabs = [
-    { id: 'dashboard', label: 'Dashboard', icon: MdDashboard },
-    { id: 'products', label: 'Productos', icon: MdRestaurantMenu },
-    { id: 'categories', label: 'Categorías', icon: MdCategory },
-    { id: 'promotions', label: 'Promociones', icon: MdLocalOffer },
-    { id: 'users', label: 'Usuarios', icon: MdPeople },
-    { id: 'caja', label: 'Caja', icon: MdPointOfSale },
-    { id: 'printers', label: 'Impresoras', icon: MdPrint },
-    { id: 'history', label: 'Historial', icon: MdHistory },
-  ];
+  // ========== CONFIGURACIÓN DE TABS DINÁMICA ==========
+  const tabs = [];
 
-  if (session?.user?.role === 'admin') {
+  if (isAdmin) {
+    tabs.push({ id: 'dashboard', label: 'Dashboard', icon: MdDashboard });
+    tabs.push({ id: 'products', label: 'Productos', icon: MdRestaurantMenu });
+    tabs.push({ id: 'categories', label: 'Categorías', icon: MdCategory });
+    tabs.push({ id: 'promotions', label: 'Promociones', icon: MdLocalOffer });
+    tabs.push({ id: 'users', label: 'Usuarios', icon: MdPeople });
     tabs.push({ id: 'reports', label: 'Reportes', icon: MdDescription });
     tabs.push({ id: 'settings', label: 'Ajustes', icon: MdSettings });
+  }
+
+  // Ambos Roles tienen acceso a la operatividad de Caja e Impresoras
+  tabs.push({ id: 'caja', label: 'Caja', icon: MdPointOfSale });
+  tabs.push({ id: 'printers', label: 'Impresoras', icon: MdPrint });
+  tabs.push({ id: 'history', label: 'Historial', icon: MdHistory });
+
+  if (!isAdmin && isStaff) {
+    // Si es staff puro, agregamos acceso limitado a productos por si necesitan ver precios/stock
+    tabs.unshift({ id: 'products', label: 'Productos', icon: MdRestaurantMenu });
   }
 
   return (
@@ -430,8 +439,8 @@ const AdminPanel = () => {
       {/* ========== MAIN CONTENT ========== */}
       <main className="max-w-[1400px] mx-auto px-4 lg:px-6 py-6 pb-24 lg:pb-6">
 
-        {/* ========== DASHBOARD TAB (NUEVO) ========== */}
-        {activeTab === 'dashboard' && (
+        {/* ========== DASHBOARD TAB (Solo Admin) ========== */}
+        {activeTab === 'dashboard' && isAdmin && (
           <div className="space-y-6 animate-fadeIn">
             {/* Welcome header */}
             <div className="bg-gradient-to-r from-gray-800 via-gray-900 to-black rounded-2xl p-6 lg:p-8 text-white shadow-xl shadow-gray-900/10 border border-gray-700 relative overflow-hidden">

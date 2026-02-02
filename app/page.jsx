@@ -12,13 +12,8 @@ export default async function HomePage() {
   // Redireccionar según el rol
   const userRole = session.user?.role
 
-  // Staff va a la caja
-  if (userRole === 'staff') {
-    redirect('/caja')
-  }
-
-  // Admin y manager van al panel de administración
-  if (userRole === 'admin' || userRole === 'manager') {
+  // Admin, manager y staff van al panel de administración
+  if (userRole === 'admin' || userRole === 'manager' || userRole === 'staff') {
     return <AdminPanel />
   }
 

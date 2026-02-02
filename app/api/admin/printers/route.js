@@ -66,48 +66,61 @@ async function syncPrinters(foundDevices, locationId) {
   // 2. Retornar solo dispositivos que NO estén vinculados (comparación case-insensitive)
   return foundDevices.filter((d) => !linkedUids.has(d.uid.toLowerCase()));
 }
-// Middleware de seguridad básico
-async function checkAdmin() {
+// Middleware de seguridad refinado
+async function verifyAccess(requiredRole = "staff") {
   const session = await auth();
-  if (session?.user?.role !== "admin") {
+  const role = session?.user?.role;
+
+  if (!role) throw new Error("No autorizado");
+
+  if (requiredRole === "admin" && role !== "admin") {
+    throw new Error("No autorizado - Requiere rol de Administrador");
+  }
+
+  if (role !== "admin" && role !== "staff") {
     throw new Error("No autorizado");
   }
+
+  return session;
 }
+
 export async function GET(req) {
   try {
-    await checkAdmin();
-    await dbConnect();
-
     const { searchParams } = new URL(req.url);
     const action = searchParams.get("action");
     const locationId = searchParams.get("locationId");
 
-    // Acción especial: Escaneo de red + Sincronización Automática
-    if (action === "scan") {
-      const found = await scanNetwork();
-      const newDevices = await syncPrinters(found, locationId);
-      return NextResponse.json(newDevices);
+    await dbConnect();
+
+    // 1. Acciones críticas (Solo Admin)
+    if (action === "scan" || action === "test") {
+      await verifyAccess("admin");
+
+      if (action === "scan") {
+        const found = await scanNetwork();
+        const newDevices = await syncPrinters(found, locationId);
+        return NextResponse.json(newDevices);
+      }
+
+      if (action === "test") {
+        const id = searchParams.get("id");
+        const printer = await Printer.findById(id);
+        if (!printer) throw new Error("Impresora no encontrada");
+        const result = await checkPrinter(printer.ip, printer.port);
+        const status = result ? "online" : "offline";
+        await Printer.findByIdAndUpdate(id, { lastStatus: status });
+        return NextResponse.json({ status });
+      }
     }
 
-    // Acción especial: Test de conexión manual (TCP Check)
-    if (action === "test") {
-      const id = searchParams.get("id");
-      const printer = await Printer.findById(id);
-      if (!printer) throw new Error("Impresora no encontrada");
+    // 2. Acciones operativas (Admin y Staff)
+    await verifyAccess("staff");
 
-      const result = await checkPrinter(printer.ip, printer.port);
-      const status = result ? "online" : "offline";
-
-      await Printer.findByIdAndUpdate(id, { lastStatus: status });
-      return NextResponse.json({ status });
-    }
-
-    // Acción especial: Re-imprimir orden (Cloud Friendly)
+    // Re-imprimir orden (Cloud Friendly)
     if (action === "reprint") {
       const orderId = searchParams.get("orderId");
       if (!orderId) throw new Error("orderId es requerido");
 
-      // Simplemente marcamos como no impresa para que el Agente la recoja
       await Order.findByIdAndUpdate(orderId, {
         $set: {
           "printStatus.printed": false,
@@ -117,24 +130,20 @@ export async function GET(req) {
       return NextResponse.json({ success: true, message: "Encolado para reimpresión" });
     }
 
-    // Acción especial: Imprimir Prueba (Cloud Friendly)
+    // Imprimir Prueba (Cloud Friendly)
     if (action === "test_print") {
-      // Necesitamos crear una Orden real en la BD para que el Agente la detecte
       const roles = searchParams.get("roles")?.split(",") || [];
       const printerId = searchParams.get("printerId");
 
-      const ticketTitle = roles.length > 0 ? `TEST ROLES: ${roles.join(', ')}` : "TEST INDIVIDUAL";
-
-      // Crear ID ficticio compatible con Mongoose
       const fakeId = new mongoose.Types.ObjectId();
 
       await Order.create({
         orderNumber: `TEST-${Date.now().toString().slice(-6)}`,
         customer: {
           name: "PRUEBA DE SISTEMA",
-          lastname: "ADMIN",
+          lastname: "OPERADOR",
           phone: "000000000",
-          email: "admin@test.com"
+          email: "staff@test.com"
         },
         items: [{
           itemId: fakeId,
@@ -143,43 +152,58 @@ export async function GET(req) {
           price: 0
         }],
         location: {
-          locationName: "Sede Actual",
+          locationName: "Sede Operativa",
           locationId: locationId || "location1",
         },
-        deliveryMethod: "Retiro en Sucursal", // Requerido por schema
+        deliveryMethod: "Retiro en Sucursal",
         total: 0,
         subtotal: 0,
-        paymentStatus: "approved", // Vital para que el agente lo vea
-        status: "confirmed", // Vital para que el agente lo vea
+        paymentStatus: "approved",
+        status: "confirmed",
         printStatus: {
-          printed: false, // Vital para que el agente lo vea
+          printed: false,
           error: false
         },
         isDeleted: false
       });
 
-      return NextResponse.json({ success: true, message: "Ticket de prueba creado. El Agente lo imprimirá en breve." });
+      return NextResponse.json({ success: true, message: "Ticket de prueba creado." });
     }
 
-    // Por defecto: Listar impresoras guardadas (Filtrado por sede)
+    // Por defecto: Listar impresoras
     const query = locationId ? { locationId } : {};
     const printers = await Printer.find(query);
     return NextResponse.json(printers);
+
   } catch (error) {
-    const status = error.message === "No autorizado" ? 401 : 500;
+    const status = error.message.includes("No autorizado") ? 401 : 500;
     return NextResponse.json({ error: error.message }, { status });
   }
 }
+
 export async function POST(req) {
   try {
-    await checkAdmin();
+    await verifyAccess("admin"); // Solo admin crea impresoras
     await dbConnect();
     const data = await req.json();
-    console.log("RECIBIENDO DATA PRINTER:", data);
-
     const printer = await Printer.create(data);
     return NextResponse.json(printer, { status: 201 });
   } catch (error) {
-    return NextResponse.json({ error: error.message }, { status: 400 });
+    const status = error.message.includes("No autorizado") ? 401 : 400;
+    return NextResponse.json({ error: error.message }, { status });
+  }
+}
+
+export async function DELETE(req) {
+  try {
+    await verifyAccess("admin"); // Solo admin borra
+    await dbConnect();
+    const { searchParams } = new URL(req.url);
+    const id = searchParams.get("id");
+    await Printer.findByIdAndDelete(id);
+    return NextResponse.json({ success: true });
+  } catch (error) {
+    const status = error.message.includes("No autorizado") ? 401 : 400;
+    return NextResponse.json({ error: error.message }, { status });
   }
 }
