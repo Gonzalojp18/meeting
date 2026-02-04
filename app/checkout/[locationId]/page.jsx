@@ -26,7 +26,7 @@ const CheckoutPage = () => {
         notes: ''
     });
 
-    if (locationItems.length === 0) {
+    if (locationItems.length === 0 && !submitting) {
         return (
             <div className="min-h-screen flex flex-col items-center justify-center p-4">
                 <h2 className="text-xl font-bold mb-4">Tu carrito está vacío</h2>
@@ -72,12 +72,10 @@ const CheckoutPage = () => {
                 locationId
             });
 
-            // Limpiar carrito antes de redirigir
-            clearCart(locationId);
-
             // Redirigir a MercadoPago
             if (response.data.init_point) {
                 window.location.href = response.data.init_point;
+                clearCart(locationId);
             } else {
                 throw new Error('No se recibió URL de pago');
             }
