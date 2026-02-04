@@ -17,7 +17,8 @@ const CategoryManager = ({
     subtitle: '',
     style: 'default',
     image: { url: '', position: 'top', alt: '' },
-    locations: []
+    locations: [],
+    schedule: { availableFrom: '', availableTo: '' }
   });
 
   const getInitialFormData = () => ({
@@ -25,7 +26,8 @@ const CategoryManager = ({
     subtitle: '',
     style: 'default',
     image: { url: '', position: 'top', alt: '' },
-    locations: []
+    locations: [],
+    schedule: { availableFrom: '', availableTo: '' }
   });
 
   const handleImageUpload = async (e) => {
@@ -61,13 +63,21 @@ const CategoryManager = ({
 
   const handleSubmit = (e) => {
     e.preventDefault();
+    // Limpiar schedule: convertir strings vacíos a null para Mongoose
+    const dataToSend = {
+      ...formData,
+      schedule: {
+        availableFrom: formData.schedule.availableFrom || null,
+        availableTo: formData.schedule.availableTo || null
+      }
+    };
     if (editingCategory) {
-      onUpdateCategory(editingCategory._id, formData);
+      onUpdateCategory(editingCategory._id, dataToSend);
       setEditingCategory(null);
     } else {
-      onAddCategory(formData);
-      setIsAdding(false);
+      onAddCategory(dataToSend);
     }
+    setIsAdding(false);
     setFormData(getInitialFormData());
   };
 
@@ -82,7 +92,11 @@ const CategoryManager = ({
         position: category.image?.position || 'top',
         alt: category.image?.alt || ''
       },
-      locations: category.locations || []
+      locations: category.locations || [],
+      schedule: {
+        availableFrom: category.schedule?.availableFrom || '',
+        availableTo: category.schedule?.availableTo || ''
+      }
     });
     setIsAdding(true);
   };
@@ -240,6 +254,62 @@ const CategoryManager = ({
               </div>
             )}
 
+            {/* Horario de disponibilidad para takeaway */}
+            <div>
+              <label className="block text-sm font-semibold text-gray-700 mb-2">
+                Horario de Takeaway
+              </label>
+              <select
+                value={formData.schedule.availableFrom ? 'custom' : 'all'}
+                onChange={(e) => {
+                  if (e.target.value === 'all') {
+                    setFormData({ ...formData, schedule: { availableFrom: '', availableTo: '' } });
+                  } else {
+                    setFormData({ ...formData, schedule: { availableFrom: '12:00', availableTo: '20:30' } });
+                  }
+                }}
+                className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent bg-white transition-all"
+              >
+                <option value="all">Toda la jornada del local</option>
+                <option value="custom">Horario personalizado</option>
+              </select>
+            </div>
+
+            {formData.schedule.availableFrom && (
+              <div className="p-4 bg-white rounded-xl border-2 border-orange-200">
+                <p className="text-sm font-semibold text-gray-700 mb-3">Horario personalizado para takeaway:</p>
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-xs font-medium text-gray-500 mb-1">Desde</label>
+                    <input
+                      type="time"
+                      value={formData.schedule.availableFrom}
+                      onChange={(e) => setFormData({
+                        ...formData,
+                        schedule: { ...formData.schedule, availableFrom: e.target.value }
+                      })}
+                      className="w-full px-3 py-2 border-2 border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent bg-white"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-medium text-gray-500 mb-1">Hasta</label>
+                    <input
+                      type="time"
+                      value={formData.schedule.availableTo}
+                      onChange={(e) => setFormData({
+                        ...formData,
+                        schedule: { ...formData.schedule, availableTo: e.target.value }
+                      })}
+                      className="w-full px-3 py-2 border-2 border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent bg-white"
+                    />
+                  </div>
+                </div>
+                <p className="text-xs text-orange-600 mt-2">
+                  Esta categoría solo estará disponible en takeaway durante este horario
+                </p>
+              </div>
+            )}
+
             {/* Imagen con Cloudinary */}
             <div>
               <label className="block text-sm font-semibold text-gray-700 mb-2">
@@ -378,6 +448,11 @@ const CategoryManager = ({
                           📍 {category.locations.join(', ')}
                         </span>
                       )}
+                      {category.schedule?.availableFrom && (
+                        <span className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-orange-100 text-orange-700 text-xs font-semibold rounded-full">
+                          {category.schedule.availableFrom} - {category.schedule.availableTo}
+                        </span>
+                      )}
                     </div>
                   </div>
 
@@ -476,6 +551,11 @@ const CategoryManager = ({
                     <span className="inline-flex items-center gap-1 px-2 py-1 bg-gray-100 text-gray-600 text-xs font-medium rounded-full">
                       {category.style || 'default'}
                     </span>
+                    {category.schedule?.availableFrom && (
+                      <span className="inline-flex items-center gap-1 px-2 py-1 bg-orange-100 text-orange-700 text-xs font-semibold rounded-full">
+                        {category.schedule.availableFrom} - {category.schedule.availableTo}
+                      </span>
+                    )}
                   </div>
                 </div>
 

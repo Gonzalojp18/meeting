@@ -44,6 +44,11 @@ export async function PUT(req, { params }) {
     if (updatedData.image !== undefined) category.image = updatedData.image;
     if (updatedData.locations !== undefined) category.locations = updatedData.locations;
     if (updatedData.isActive !== undefined) category.isActive = updatedData.isActive;
+    if (updatedData.schedule !== undefined) {
+      category.schedule.availableFrom = updatedData.schedule.availableFrom || null;
+      category.schedule.availableTo = updatedData.schedule.availableTo || null;
+      category.markModified('schedule');
+    }
 
     await menu.save();
 

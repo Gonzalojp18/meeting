@@ -16,9 +16,16 @@ import WeatherWidget from './Weather/WeatherWidget'
 import { motion } from 'framer-motion';
 
 import useCartStore from '../store/cartStore';
-import { MdShoppingCart, MdSwapHoriz } from 'react-icons/md';
+import { MdShoppingCart, MdSwapHoriz, MdSchedule } from 'react-icons/md';
 import Link from 'next/link';
 import ModeSelector from './menu/ModeSelector';
+
+const getCurrentTime = () => {
+  const now = new Date();
+  const hours = now.getHours().toString().padStart(2, '0');
+  const minutes = now.getMinutes().toString().padStart(2, '0');
+  return `${hours}:${minutes}`;
+};
 
 const MenuDisplay = ({ locationId }) => {
   const router = useRouter();
@@ -49,21 +56,31 @@ const MenuDisplay = ({ locationId }) => {
 
   // Defensa: verificar que data y categories existan
   const categories = data?.categories || [];
+  const globalHours = data?.takeawayHours || { open: '08:30', close: '20:30' };
+  const now = getCurrentTime();
+  const isStoreOpen = now >= globalHours.open && now <= globalHours.close;
 
   // Filtrar categorías activas y que apliquen a esta sede
   const activeCategories = categories.filter(category => {
     // Debe estar activa
     if (!category.isActive) return false;
     // Si no tiene locations definidas (array vacío), aplica a todas las sedes
-    if (!category.locations || category.locations.length === 0) return true;
-    // Si tiene locations, verificar que incluya esta sede
-    return category.locations.includes(locationId);
+    if (category.locations?.length > 0 && !category.locations.includes(locationId)) return false;
+
+    // Filtro por horario solo en modo takeaway
+    if (isTakeaway && isStoreOpen) {
+      const catFrom = category.schedule?.availableFrom || globalHours.open;
+      const catTo = category.schedule?.availableTo || globalHours.close;
+      if (now < catFrom || now > catTo) return false;
+    }
+
+    return true;
   });
 
   return (
     <div className='min-h-screen bg-gray-100 relative'>
       {/* Modal selector de modo */}
-      <ModeSelector locationId={locationId} onModeSelect={handleModeSelect} />
+      <ModeSelector locationId={locationId} onModeSelect={handleModeSelect} takeawayHours={globalHours} />
 
       {/* Indicador de modo actual */}
       {menuMode && (
@@ -95,7 +112,16 @@ const MenuDisplay = ({ locationId }) => {
           </p>
         </motion.div>
         <Promotion />
-        {activeCategories.map((category) => (
+        {isTakeaway && !isStoreOpen && (
+          <div className="bg-red-50 border border-red-200 rounded-2xl p-8 text-center my-8">
+            <MdSchedule className="mx-auto h-10 w-10 text-red-400 mb-3" />
+            <h3 className="text-lg font-bold text-red-700">Takeaway no disponible</h3>
+            <p className="text-sm text-red-600 mt-2">
+              Nuestro horario de takeaway es de {globalHours.open}hs a {globalHours.close}hs
+            </p>
+          </div>
+        )}
+        {(!isTakeaway || isStoreOpen) && activeCategories.map((category) => (
           <CategoryDisplay key={category._id} category={category} locationId={locationId} isTakeaway={isTakeaway} />
         ))}
         <BrandsSection />
@@ -104,8 +130,8 @@ const MenuDisplay = ({ locationId }) => {
         <MainFooter />
       </main>
 
-      {/* Floating Cart Button - Solo en modo Takeaway */}
-      {isTakeaway && cartCount > 0 && (
+      {/* Floating Cart Button - Solo en modo Takeaway y dentro de horario */}
+      {isTakeaway && isStoreOpen && cartCount > 0 && (
         <Link
           href={`/checkout/${locationId}`}
           className="fixed bottom-[15%] left-1/2 -translate-x-1/2 z-50 bg-orange-600 text-white px-6 py-2 rounded-full shadow-2xl flex items-center gap-4 hover:bg-orange-700 transition-all hover:scale-105 active:scale-95 w-[90%] max-w-md animate-in fade-in slide-in-from-bottom-4 duration-300"

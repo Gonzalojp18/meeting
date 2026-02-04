@@ -115,6 +115,17 @@ const categorySchema = new mongoose.Schema({
   locations: {
     type: [String],
     default: []
+  },
+  // Horario de disponibilidad para takeaway (null = hereda horario global)
+  schedule: {
+    availableFrom: {
+      type: String,
+      default: null
+    },
+    availableTo: {
+      type: String,
+      default: null
+    }
   }
 });
 

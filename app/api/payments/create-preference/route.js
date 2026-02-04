@@ -1,6 +1,8 @@
 import { NextResponse } from 'next/server';
 import { MercadoPagoConfig, Preference } from 'mercadopago';
 import { getMPCredentials } from '@/utils/getMPCredentials';
+import dbConnect from '@/utils/dbConnect';
+import Settings from '@/models/Settings';
 
 export async function POST(req) {
     try {
@@ -38,6 +40,23 @@ export async function POST(req) {
         if (!customerData || !customerData.name || !customerData.phone) {
             return NextResponse.json(
                 { error: 'El nombre y teléfono son obligatorios para el pedido.' },
+                { status: 400 }
+            );
+        }
+
+        // Validar horario de takeaway
+        await dbConnect();
+        const takeawayHours = await Settings.getValue('takeawayHours') || { open: '08:30', close: '20:30' };
+        const now = new Date().toLocaleTimeString('en-GB', {
+            hour: '2-digit',
+            minute: '2-digit',
+            hour12: false,
+            timeZone: 'America/Argentina/Buenos_Aires'
+        });
+
+        if (now < takeawayHours.open || now > takeawayHours.close) {
+            return NextResponse.json(
+                { error: `Fuera del horario de takeaway. Nuestro horario es de ${takeawayHours.open}hs a ${takeawayHours.close}hs` },
                 { status: 400 }
             );
         }

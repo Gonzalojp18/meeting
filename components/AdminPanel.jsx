@@ -5,6 +5,7 @@ import CategoryManager from './admin/CategoryManager';
 import PromotionManager from './PromotionManager';
 import UserManagement from './admin/UserManagement';
 import MercadoPagoSettings from './admin/MercadoPagoSettings';
+import TakeawaySettings from './admin/TakeawaySettings';
 import { LocationNav } from './navigation';
 import StatsGrid from './admin/StatsGrid';
 import TopItemsList from './admin/TopItemsList';
@@ -773,8 +774,9 @@ const AdminPanel = () => {
                   </div>
                 </div>
               </div>
-              <div className="p-6 lg:p-8">
+              <div className="p-6 lg:p-8 space-y-8">
                 <MercadoPagoSettings />
+                <TakeawaySettings />
               </div>
             </div>
           )

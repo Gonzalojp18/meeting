@@ -4,9 +4,20 @@ import { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { MdRestaurant, MdDeliveryDining } from 'react-icons/md';
 
-const ModeSelector = ({ locationId, onModeSelect }) => {
+const getCurrentTime = () => {
+    const now = new Date();
+    const hours = now.getHours().toString().padStart(2, '0');
+    const minutes = now.getMinutes().toString().padStart(2, '0');
+    return `${hours}:${minutes}`;
+};
+
+const ModeSelector = ({ locationId, onModeSelect, takeawayHours }) => {
     const [isOpen, setIsOpen] = useState(false);
     const onModeSelectRef = useRef(onModeSelect);
+
+    const globalHours = takeawayHours || { open: '08:30', close: '20:30' };
+    const now = getCurrentTime();
+    const isTakeawayAvailable = now >= globalHours.open && now <= globalHours.close;
 
     // Mantener la ref actualizada
     useEffect(() => {
@@ -72,14 +83,25 @@ const ModeSelector = ({ locationId, onModeSelect }) => {
                                 </button>
 
                                 <button
-                                    onClick={() => handleSelectMode('takeaway')}
-                                    className="w-full p-6 bg-gradient-to-r from-orange-500 to-orange-600 text-white rounded-2xl hover:from-orange-600 hover:to-orange-700 transition-all duration-300 shadow-lg hover:shadow-xl transform hover:-translate-y-1"
+                                    onClick={() => isTakeawayAvailable && handleSelectMode('takeaway')}
+                                    disabled={!isTakeawayAvailable}
+                                    className={`w-full p-6 rounded-2xl transition-all duration-300 shadow-lg ${
+                                        isTakeawayAvailable
+                                            ? 'bg-gradient-to-r from-orange-500 to-orange-600 text-white hover:from-orange-600 hover:to-orange-700 hover:shadow-xl transform hover:-translate-y-1'
+                                            : 'bg-gray-200 text-gray-500 cursor-not-allowed'
+                                    }`}
                                 >
                                     <div className="flex items-center justify-center gap-4">
                                         <MdDeliveryDining size={32} />
                                         <div className="text-left">
                                             <p className="font-bold text-lg">Takeaway / Para Llevar</p>
-                                            <p className="text-sm text-orange-200">Hacer pedido online</p>
+                                            {isTakeawayAvailable ? (
+                                                <p className="text-sm text-orange-200">Hacer pedido online</p>
+                                            ) : (
+                                                <p className="text-sm text-gray-400">
+                                                    Disponible de {globalHours.open}hs a {globalHours.close}hs
+                                                </p>
+                                            )}
                                         </div>
                                     </div>
                                 </button>
