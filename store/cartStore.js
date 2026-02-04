@@ -4,34 +4,48 @@ import { persist, createJSONStorage } from 'zustand/middleware';
 const useCartStore = create(
     persist(
         (set, get) => ({
-            items: [], // { _id, name, price, quantity, locationId }
+            items: [], // { _id, name, price, quantity, locationId, selectedCustomizations?, cartLineId }
 
-            addItem: (item, locationId) => {
+            addItem: (item, locationId, selectedCustomizations = [], qty = 1) => {
                 set((state) => {
+                    const customizationsKey = JSON.stringify(selectedCustomizations);
                     const existingItemIndex = state.items.findIndex(
-                        (i) => i._id === item._id && i.locationId === locationId
+                        (i) => i._id === item._id &&
+                               i.locationId === locationId &&
+                               JSON.stringify(i.selectedCustomizations || []) === customizationsKey
                     );
 
                     if (existingItemIndex !== -1) {
                         const newItems = state.items.map((item, idx) =>
                             idx === existingItemIndex
-                                ? { ...item, quantity: item.quantity + 1 }
+                                ? { ...item, quantity: item.quantity + qty }
                                 : item
                         );
                         return { items: newItems };
                     }
 
                     return {
-                        items: [...state.items, { ...item, quantity: 1, locationId }]
+                        items: [...state.items, {
+                            ...item,
+                            quantity: qty,
+                            locationId,
+                            selectedCustomizations,
+                            cartLineId: `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`
+                        }]
                     };
                 });
             },
 
-            removeItem: (itemId, locationId) => {
+            removeItem: (itemId, locationId, cartLineId = null) => {
                 set((state) => {
-                    const existingItemIndex = state.items.findIndex(
-                        (i) => i._id === itemId && i.locationId === locationId
-                    );
+                    let existingItemIndex;
+                    if (cartLineId) {
+                        existingItemIndex = state.items.findIndex(i => i.cartLineId === cartLineId);
+                    } else {
+                        existingItemIndex = state.items.findIndex(
+                            (i) => i._id === itemId && i.locationId === locationId
+                        );
+                    }
 
                     if (existingItemIndex === -1) return state;
 
@@ -49,11 +63,12 @@ const useCartStore = create(
                 });
             },
 
-            deleteItem: (itemId, locationId) => {
+            deleteItem: (itemId, locationId, cartLineId = null) => {
                 set((state) => ({
-                    items: state.items.filter(
-                        (i) => !(i._id === itemId && i.locationId === locationId)
-                    )
+                    items: state.items.filter((i) => {
+                        if (cartLineId) return i.cartLineId !== cartLineId;
+                        return !(i._id === itemId && i.locationId === locationId);
+                    })
                 }));
             },
 

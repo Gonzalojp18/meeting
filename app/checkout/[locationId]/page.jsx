@@ -51,7 +51,8 @@ const CheckoutPage = () => {
                 itemId: item._id,
                 name: item.name,
                 quantity: item.quantity,
-                price: item.price
+                price: item.price,
+                customizations: item.selectedCustomizations || []
             }));
 
             // Datos del cliente (se guardarán en metadata)
@@ -105,10 +106,19 @@ const CheckoutPage = () => {
                     <h2 className="font-bold text-gray-900 mb-4 border-b pb-2">Resumen de tu pedido</h2>
                     <div className="space-y-4">
                         {locationItems.map((item) => (
-                            <div key={item._id} className="flex flex-col gap-2 pb-4 border-b border-gray-100 last:border-0 last:pb-0">
+                            <div key={item.cartLineId || item._id} className="flex flex-col gap-2 pb-4 border-b border-gray-100 last:border-0 last:pb-0">
                                 <div className="flex justify-between items-start">
                                     <div className="flex-1">
                                         <h3 className="font-bold text-gray-800">{item.name}</h3>
+                                        {item.selectedCustomizations?.length > 0 && (
+                                            <div className="mt-0.5">
+                                                {item.selectedCustomizations.map((c, idx) => (
+                                                    <p key={idx} className="text-xs text-indigo-600 font-medium">
+                                                        {c.groupName}: {c.selected}
+                                                    </p>
+                                                ))}
+                                            </div>
+                                        )}
                                         <p className="text-sm text-gray-500">${item.price.toLocaleString()}</p>
                                     </div>
                                     <div className="text-right">
@@ -119,7 +129,7 @@ const CheckoutPage = () => {
                                     <div className="flex items-center gap-4">
                                         <button
                                             type="button"
-                                            onClick={() => removeItem(item._id, locationId)}
+                                            onClick={() => removeItem(item._id, locationId, item.cartLineId || null)}
                                             className="w-8 h-8 flex items-center justify-center bg-white rounded-lg shadow-sm text-orange-600 active:scale-95 transition-all"
                                         >
                                             <MdRemove size={18} />
@@ -127,7 +137,7 @@ const CheckoutPage = () => {
                                         <span className="font-black text-lg min-w-[20px] text-center">{item.quantity}</span>
                                         <button
                                             type="button"
-                                            onClick={() => addItem(item, locationId)}
+                                            onClick={() => addItem(item, locationId, item.selectedCustomizations || [])}
                                             className="w-8 h-8 flex items-center justify-center bg-white rounded-lg shadow-sm text-orange-600 active:scale-95 transition-all"
                                         >
                                             <MdAdd size={18} />
@@ -135,7 +145,7 @@ const CheckoutPage = () => {
                                     </div>
                                     <button
                                         type="button"
-                                        onClick={() => deleteItem(item._id, locationId)}
+                                        onClick={() => deleteItem(item._id, locationId, item.cartLineId || null)}
                                         className="text-red-400 p-2 hover:text-red-600 transition-colors"
                                         title="Eliminar item"
                                     >

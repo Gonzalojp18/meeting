@@ -118,8 +118,13 @@ const CategoryItems = ({
               ) : (
                 <tr key={item._id} className="hover:bg-orange-50/30 transition-colors group">
                   <td className="px-6 py-4">
-                    <div className="font-semibold text-gray-900 text-base">
+                    <div className="font-semibold text-gray-900 text-base flex items-center gap-2">
                       {item.name}
+                      {item.customizations?.length > 0 && (
+                        <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold bg-indigo-100 text-indigo-700 uppercase tracking-wide">
+                          {item.customizations[0].name}
+                        </span>
+                      )}
                     </div>
                   </td>
                   <td className="px-6 py-4">
@@ -210,8 +215,13 @@ const CategoryItems = ({
               {/* Header: Nombre + 3-dot menu */}
               <div className="flex items-start justify-between gap-3 mb-3">
                 <div className="flex-1 min-w-0">
-                  <h4 className="font-bold text-gray-900 text-base mb-1.5 leading-tight">
+                  <h4 className="font-bold text-gray-900 text-base mb-1.5 leading-tight flex items-center gap-2 flex-wrap">
                     {item.name}
+                    {item.customizations?.length > 0 && (
+                      <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold bg-indigo-100 text-indigo-700 uppercase tracking-wide">
+                        {item.customizations[0].name}
+                      </span>
+                    )}
                   </h4>
                   {item.description && (
                     <p className="text-sm text-gray-600 leading-relaxed line-clamp-2">

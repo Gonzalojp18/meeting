@@ -1,8 +1,9 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { defaultStyles, compactStyles, featuredStyles } from "./styleCategory";
 import { motion } from 'framer-motion';
 import useCartStore from '../../store/cartStore';
 import { MdAdd, MdRemove } from 'react-icons/md';
+import ProductModal from './ProductModal';
 
 const styles = {
     default: defaultStyles,
@@ -13,9 +14,18 @@ const styles = {
 const Category = ({ category, locationId, isTakeaway = false }) => {
     const { items: cartItems, addItem, removeItem } = useCartStore();
     const style = styles[category.style || 'default'];
+    const [modalItem, setModalItem] = useState(null);
+
+    const hasCustomizations = (item) => item.customizations?.length > 0;
 
     const getItemQuantity = (itemId) => {
-        return cartItems.find(i => i._id === itemId && i.locationId === locationId)?.quantity || 0;
+        return cartItems
+            .filter(i => i._id === itemId && i.locationId === locationId)
+            .reduce((sum, i) => sum + i.quantity, 0);
+    };
+
+    const handleAddToCart = (item, locId, selectedCustomizations, quantity) => {
+        addItem(item, locId, selectedCustomizations, quantity);
     };
 
     const renderImage = (position) => {
@@ -61,6 +71,8 @@ const Category = ({ category, locationId, isTakeaway = false }) => {
             <div className={style.grid}>
                 {(category.items || []).map((item) => {
                     const quantity = getItemQuantity(item._id);
+                    const itemHasCustomizations = hasCustomizations(item);
+
                     return (
                         <div key={item._id} className={`${style.item} relative group`}>
                             <div className="flex items-start gap-3 w-full">
@@ -70,8 +82,8 @@ const Category = ({ category, locationId, isTakeaway = false }) => {
                                     </h3>
                                     <p className={style.itemDescription}>{item.description}</p>
 
-                                    {/* Controles de cantidad - Solo en modo Takeaway */}
-                                    {isTakeaway && quantity > 0 && (
+                                    {/* Controles de cantidad - Solo takeaway, solo items SIN customizations */}
+                                    {isTakeaway && !itemHasCustomizations && quantity > 0 && (
                                         <div className="flex items-center gap-3 mt-3">
                                             <button
                                                 onClick={() => removeItem(item._id, locationId)}
@@ -88,15 +100,33 @@ const Category = ({ category, locationId, isTakeaway = false }) => {
                                             </button>
                                         </div>
                                     )}
+
+                                    {/* Badge de cantidad - Items CON customizations */}
+                                    {isTakeaway && itemHasCustomizations && quantity > 0 && (
+                                        <div className="mt-3">
+                                            <span className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-bold bg-orange-100 text-orange-700">
+                                                {quantity} en tu pedido
+                                            </span>
+                                        </div>
+                                    )}
                                 </div>
                                 <div className="text-right flex flex-col items-end gap-2">
                                     <p className={style.price}>
                                         {item.prices[locationId] > 0 ? `$${item.prices[locationId].toLocaleString()}` : item.prices > 0 ? `$${item.prices.toLocaleString()}` : ''}
                                     </p>
-                                    {/* Botón agregar - Solo en modo Takeaway */}
-                                    {isTakeaway && quantity === 0 && (
+                                    {/* Botón agregar - Items SIN customizations (comportamiento original) */}
+                                    {isTakeaway && !itemHasCustomizations && quantity === 0 && (
                                         <button
                                             onClick={() => addItem({ ...item, price: item.prices[locationId] || item.prices }, locationId)}
+                                            className="bg-orange-500 text-white p-2 rounded-full hover:bg-orange-600 transition-all shadow-md active:scale-95"
+                                        >
+                                            <MdAdd size={20} />
+                                        </button>
+                                    )}
+                                    {/* Botón agregar - Items CON customizations (abre modal) */}
+                                    {isTakeaway && itemHasCustomizations && (
+                                        <button
+                                            onClick={() => setModalItem(item)}
                                             className="bg-orange-500 text-white p-2 rounded-full hover:bg-orange-600 transition-all shadow-md active:scale-95"
                                         >
                                             <MdAdd size={20} />
@@ -109,6 +139,16 @@ const Category = ({ category, locationId, isTakeaway = false }) => {
                 })}
             </div>
             {renderImage('bottom')}
+
+            {/* Modal de personalización */}
+            {modalItem && (
+                <ProductModal
+                    item={modalItem}
+                    locationId={locationId}
+                    onClose={() => setModalItem(null)}
+                    onAddToCart={handleAddToCart}
+                />
+            )}
         </div>
     );
 };
