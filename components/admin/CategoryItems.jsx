@@ -29,6 +29,10 @@ const CategoryItems = ({
     }
   };
 
+  const handleToggleAvailability = (item) => {
+    onUpdateItem(category._id, item._id, { isAvailable: item.isAvailable === false });
+  };
+
   // Filtrar locations sin "Menu sin precios"
   const activeLocations = locations.filter(loc => loc.name !== 'Menu sin precios');
 
@@ -116,10 +120,22 @@ const CategoryItems = ({
                   </td>
                 </tr>
               ) : (
-                <tr key={item._id} className="hover:bg-orange-50/30 transition-colors group">
+                <tr key={item._id} className={`hover:bg-orange-50/30 transition-colors group ${item.isAvailable === false ? 'opacity-50' : ''}`}>
                   <td className="px-6 py-4">
                     <div className="font-semibold text-gray-900 text-base flex items-center gap-2">
+                      <button
+                        onClick={() => handleToggleAvailability(item)}
+                        className={`relative inline-flex h-5 w-9 items-center rounded-full transition-colors flex-shrink-0 ${item.isAvailable !== false ? 'bg-green-500' : 'bg-gray-300'}`}
+                        title={item.isAvailable !== false ? 'Disponible — clic para desactivar' : 'No disponible — clic para activar'}
+                      >
+                        <span className={`inline-block h-3 w-3 transform rounded-full bg-white transition-transform ${item.isAvailable !== false ? 'translate-x-5' : 'translate-x-1'}`} />
+                      </button>
                       {item.name}
+                      {item.isAvailable === false && (
+                        <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold bg-red-100 text-red-600 uppercase tracking-wide">
+                          No disponible
+                        </span>
+                      )}
                       {item.customizations?.length > 0 && (
                         <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold bg-indigo-100 text-indigo-700 uppercase tracking-wide">
                           {item.customizations[0].name}
@@ -211,10 +227,24 @@ const CategoryItems = ({
               />
             </div>
           ) : (
-            <div key={item._id} className="p-4 relative bg-white hover:bg-orange-50/30 transition-colors">
+            <div key={item._id} className={`p-4 relative bg-white hover:bg-orange-50/30 transition-colors ${item.isAvailable === false ? 'opacity-50' : ''}`}>
               {/* Header: Nombre + 3-dot menu */}
               <div className="flex items-start justify-between gap-3 mb-3">
                 <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-2 mb-1.5">
+                    <button
+                      onClick={() => handleToggleAvailability(item)}
+                      className={`relative inline-flex h-5 w-9 items-center rounded-full transition-colors flex-shrink-0 ${item.isAvailable !== false ? 'bg-green-500' : 'bg-gray-300'}`}
+                      title={item.isAvailable !== false ? 'Disponible — clic para desactivar' : 'No disponible — clic para activar'}
+                    >
+                      <span className={`inline-block h-3 w-3 transform rounded-full bg-white transition-transform ${item.isAvailable !== false ? 'translate-x-5' : 'translate-x-1'}`} />
+                    </button>
+                    {item.isAvailable === false && (
+                      <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold bg-red-100 text-red-600 uppercase tracking-wide">
+                        No disponible
+                      </span>
+                    )}
+                  </div>
                   <h4 className="font-bold text-gray-900 text-base mb-1.5 leading-tight flex items-center gap-2 flex-wrap">
                     {item.name}
                     {item.customizations?.length > 0 && (

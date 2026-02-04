@@ -72,9 +72,10 @@ const Category = ({ category, locationId, isTakeaway = false }) => {
                 {(category.items || []).map((item) => {
                     const quantity = getItemQuantity(item._id);
                     const itemHasCustomizations = hasCustomizations(item);
+                    const isAvailable = item.isAvailable !== false;
 
                     return (
-                        <div key={item._id} className={`${style.item} relative group`}>
+                        <div key={item._id} className={`${style.item} relative group ${!isAvailable && isTakeaway ? 'opacity-50' : ''}`}>
                             <div className="flex items-start gap-3 w-full">
                                 <div className='flex flex-col text-left flex-1'>
                                     <h3 className={style.itemName}>
@@ -82,8 +83,15 @@ const Category = ({ category, locationId, isTakeaway = false }) => {
                                     </h3>
                                     <p className={style.itemDescription}>{item.description}</p>
 
-                                    {/* Controles de cantidad - Solo takeaway, solo items SIN customizations */}
-                                    {isTakeaway && !itemHasCustomizations && quantity > 0 && (
+                                    {/* Etiqueta no disponible */}
+                                    {isTakeaway && !isAvailable && (
+                                        <span className="inline-flex items-center mt-2 px-2.5 py-1 rounded-full text-xs font-bold bg-red-100 text-red-600">
+                                            No disponible
+                                        </span>
+                                    )}
+
+                                    {/* Controles de cantidad - Solo takeaway, solo items SIN customizations y disponibles */}
+                                    {isTakeaway && isAvailable && !itemHasCustomizations && quantity > 0 && (
                                         <div className="flex items-center gap-3 mt-3">
                                             <button
                                                 onClick={() => removeItem(item._id, locationId)}
@@ -101,8 +109,8 @@ const Category = ({ category, locationId, isTakeaway = false }) => {
                                         </div>
                                     )}
 
-                                    {/* Badge de cantidad - Items CON customizations */}
-                                    {isTakeaway && itemHasCustomizations && quantity > 0 && (
+                                    {/* Badge de cantidad - Items CON customizations y disponibles */}
+                                    {isTakeaway && isAvailable && itemHasCustomizations && quantity > 0 && (
                                         <div className="mt-3">
                                             <span className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-bold bg-orange-100 text-orange-700">
                                                 {quantity} en tu pedido
@@ -114,8 +122,8 @@ const Category = ({ category, locationId, isTakeaway = false }) => {
                                     <p className={style.price}>
                                         {item.prices[locationId] > 0 ? `$${item.prices[locationId].toLocaleString()}` : item.prices > 0 ? `$${item.prices.toLocaleString()}` : ''}
                                     </p>
-                                    {/* Botón agregar - Items SIN customizations (comportamiento original) */}
-                                    {isTakeaway && !itemHasCustomizations && quantity === 0 && (
+                                    {/* Botón agregar - Items SIN customizations, disponibles */}
+                                    {isTakeaway && isAvailable && !itemHasCustomizations && quantity === 0 && (
                                         <button
                                             onClick={() => addItem({ ...item, price: item.prices[locationId] || item.prices }, locationId)}
                                             className="bg-orange-500 text-white p-2 rounded-full hover:bg-orange-600 transition-all shadow-md active:scale-95"
@@ -123,8 +131,8 @@ const Category = ({ category, locationId, isTakeaway = false }) => {
                                             <MdAdd size={20} />
                                         </button>
                                     )}
-                                    {/* Botón agregar - Items CON customizations (abre modal) */}
-                                    {isTakeaway && itemHasCustomizations && (
+                                    {/* Botón agregar - Items CON customizations, disponibles */}
+                                    {isTakeaway && isAvailable && itemHasCustomizations && (
                                         <button
                                             onClick={() => setModalItem(item)}
                                             className="bg-orange-500 text-white p-2 rounded-full hover:bg-orange-600 transition-all shadow-md active:scale-95"

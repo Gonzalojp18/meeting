@@ -6,6 +6,7 @@ const ItemForm = ({ item, locations, onSubmit, onCancel }) => {
     name: '',
     description: '',
     locations: {},
+    isAvailable: true,
     hasCustomizations: false,
     customization: {
       name: 'Guarnición',
@@ -23,6 +24,7 @@ const ItemForm = ({ item, locations, onSubmit, onCancel }) => {
       setFormData({
         name: item.name || '',
         description: item.description || '',
+        isAvailable: item.isAvailable !== false,
         locations: locations.reduce((acc, loc) => ({
           ...acc,
           [loc.nameId]: {
@@ -35,7 +37,7 @@ const ItemForm = ({ item, locations, onSubmit, onCancel }) => {
           ? {
               name: existingCustomization.name || 'Guarnición',
               required: existingCustomization.required || false,
-              options: existingCustomization.options?.map(o => ({ name: o.name })) || []
+              options: existingCustomization.options?.map(o => ({ name: o.name, isAvailable: o.isAvailable !== false })) || []
             }
           : { name: 'Guarnición', required: false, options: [] }
       });
@@ -50,6 +52,7 @@ const ItemForm = ({ item, locations, onSubmit, onCancel }) => {
             price: ''
           }
         }), {}),
+        isAvailable: true,
         hasCustomizations: false,
         customization: {
           name: 'Guarnición',
@@ -69,7 +72,7 @@ const ItemForm = ({ item, locations, onSubmit, onCancel }) => {
       ...formData,
       customization: {
         ...formData.customization,
-        options: [...formData.customization.options, { name: trimmed }]
+        options: [...formData.customization.options, { name: trimmed, isAvailable: true }]
       }
     });
     setNewOption('');
@@ -91,6 +94,7 @@ const ItemForm = ({ item, locations, onSubmit, onCancel }) => {
     const processedData = {
       name: formData.name,
       description: formData.description,
+      isAvailable: formData.isAvailable,
       prices: Object.entries(formData.locations).reduce((acc, [locationId, data]) => ({
         ...acc,
         [locationId]: data.price
@@ -103,7 +107,7 @@ const ItemForm = ({ item, locations, onSubmit, onCancel }) => {
             options: formData.customization.options.map(o => ({
               name: o.name,
               priceModifier: 0,
-              isAvailable: true
+              isAvailable: o.isAvailable !== false
             }))
           }]
         : []
@@ -133,6 +137,21 @@ const ItemForm = ({ item, locations, onSubmit, onCancel }) => {
           className="mt-1 block w-full rounded-md border border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm px-3 py-2"
           rows={3}
         />
+      </div>
+
+      {/* Toggle de disponibilidad del plato */}
+      <div className={`flex items-center justify-between p-3 rounded-lg border ${formData.isAvailable ? 'bg-green-50 border-green-200' : 'bg-red-50 border-red-200'}`}>
+        <div>
+          <span className="text-sm font-medium text-gray-700">Disponible para takeaway</span>
+          <p className="text-xs text-gray-500">{formData.isAvailable ? 'Los clientes pueden pedir este plato' : 'Este plato no aparecerá como disponible'}</p>
+        </div>
+        <button
+          type="button"
+          onClick={() => setFormData({ ...formData, isAvailable: !formData.isAvailable })}
+          className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${formData.isAvailable ? 'bg-green-500' : 'bg-gray-300'}`}
+        >
+          <span className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${formData.isAvailable ? 'translate-x-6' : 'translate-x-1'}`} />
+        </button>
       </div>
 
       <div className="space-y-4">
@@ -241,15 +260,32 @@ const ItemForm = ({ item, locations, onSubmit, onCancel }) => {
               {formData.customization.options.length > 0 && (
                 <ul className="space-y-1 mb-2">
                   {formData.customization.options.map((opt, idx) => (
-                    <li key={idx} className="flex items-center justify-between bg-white px-3 py-2 rounded-md border border-gray-200">
-                      <span className="text-sm text-gray-800">{opt.name}</span>
-                      <button
-                        type="button"
-                        onClick={() => handleRemoveOption(idx)}
-                        className="text-red-400 hover:text-red-600 transition-colors"
-                      >
-                        <MdDelete size={18} />
-                      </button>
+                    <li key={idx} className={`flex items-center justify-between px-3 py-2 rounded-md border ${opt.isAvailable !== false ? 'bg-white border-gray-200' : 'bg-red-50 border-red-200'}`}>
+                      <span className={`text-sm ${opt.isAvailable !== false ? 'text-gray-800' : 'text-gray-400 line-through'}`}>{opt.name}</span>
+                      <div className="flex items-center gap-2">
+                        <button
+                          type="button"
+                          onClick={() => {
+                            const newOptions = [...formData.customization.options];
+                            newOptions[idx] = { ...newOptions[idx], isAvailable: !newOptions[idx].isAvailable };
+                            setFormData({
+                              ...formData,
+                              customization: { ...formData.customization, options: newOptions }
+                            });
+                          }}
+                          className={`relative inline-flex h-5 w-9 items-center rounded-full transition-colors ${opt.isAvailable !== false ? 'bg-green-500' : 'bg-gray-300'}`}
+                          title={opt.isAvailable !== false ? 'Disponible' : 'No disponible'}
+                        >
+                          <span className={`inline-block h-3 w-3 transform rounded-full bg-white transition-transform ${opt.isAvailable !== false ? 'translate-x-5' : 'translate-x-1'}`} />
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => handleRemoveOption(idx)}
+                          className="text-red-400 hover:text-red-600 transition-colors"
+                        >
+                          <MdDelete size={18} />
+                        </button>
+                      </div>
                     </li>
                   ))}
                 </ul>

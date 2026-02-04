@@ -6,7 +6,7 @@ const ProductModal = ({ item, locationId, onClose, onAddToCart }) => {
     const customization = item.customizations?.[0];
 
     const [selectedOption, setSelectedOption] = useState(
-        customization?.options?.find(o => o.isDefault)?.name || ''
+        customization?.options?.find(o => o.isDefault && o.isAvailable !== false)?.name || ''
     );
     const [quantity, setQuantity] = useState(1);
 
@@ -76,32 +76,45 @@ const ProductModal = ({ item, locationId, onClose, onAddToCart }) => {
                                 )}
                             </div>
                             <div className="space-y-2">
-                                {customization.options
-                                    ?.filter(opt => opt.isAvailable !== false)
-                                    .map((opt) => (
+                                {customization.options?.map((opt) => {
+                                    const optAvailable = opt.isAvailable !== false;
+                                    return (
                                         <label
                                             key={opt.name}
-                                            className={`flex items-center gap-3 p-3 rounded-xl border-2 cursor-pointer transition-all ${
-                                                selectedOption === opt.name
-                                                    ? 'border-orange-500 bg-orange-50'
-                                                    : 'border-gray-100 hover:border-gray-200 bg-white'
+                                            className={`flex items-center justify-between p-3 rounded-xl border-2 transition-all ${
+                                                !optAvailable
+                                                    ? 'border-gray-100 bg-gray-50 cursor-not-allowed opacity-50'
+                                                    : selectedOption === opt.name
+                                                        ? 'border-orange-500 bg-orange-50 cursor-pointer'
+                                                        : 'border-gray-100 hover:border-gray-200 bg-white cursor-pointer'
                                             }`}
                                         >
-                                            <input
-                                                type="radio"
-                                                name="customization"
-                                                value={opt.name}
-                                                checked={selectedOption === opt.name}
-                                                onChange={() => setSelectedOption(opt.name)}
-                                                className="w-4 h-4 text-orange-600 focus:ring-orange-500"
-                                            />
-                                            <span className={`text-sm font-medium ${
-                                                selectedOption === opt.name ? 'text-orange-700' : 'text-gray-700'
-                                            }`}>
-                                                {opt.name}
-                                            </span>
+                                            <div className="flex items-center gap-3">
+                                                <input
+                                                    type="radio"
+                                                    name="customization"
+                                                    value={opt.name}
+                                                    checked={selectedOption === opt.name}
+                                                    onChange={() => optAvailable && setSelectedOption(opt.name)}
+                                                    disabled={!optAvailable}
+                                                    className="w-4 h-4 text-orange-600 focus:ring-orange-500 disabled:opacity-30"
+                                                />
+                                                <span className={`text-sm font-medium ${
+                                                    !optAvailable
+                                                        ? 'text-gray-400 line-through'
+                                                        : selectedOption === opt.name ? 'text-orange-700' : 'text-gray-700'
+                                                }`}>
+                                                    {opt.name}
+                                                </span>
+                                            </div>
+                                            {!optAvailable && (
+                                                <span className="text-[10px] font-bold text-red-500 uppercase">
+                                                    No disponible
+                                                </span>
+                                            )}
                                         </label>
-                                    ))}
+                                    );
+                                })}
                             </div>
                         </div>
                     )}
