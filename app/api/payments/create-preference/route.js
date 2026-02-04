@@ -112,7 +112,9 @@ export async function POST(req) {
                 auto_return: 'approved',
                 notification_url: `${cleanBaseUrl}/api/payments/webhook`,
                 binary_mode: true,
-                installments: 1,
+                payment_methods: {
+                    installments: 1
+                },
                 metadata: {
                     customerData: JSON.stringify(customerData),
                     items: JSON.stringify(items),
