@@ -3,10 +3,11 @@ import React, { useState, useCallback } from 'react';
 import { useFetch } from '../hooks/useFetch';
 import CategoryDisplay from './categories/CategoryDisplay';
 import { CategoryNav } from './navigation';
+import TakeawayNav from './navigation/TakeawayNav';
 import BrandsSection from './brands/BrandsSection';
 import Image from 'next/image';
 
-import Promotion from './promo/Promotions'
+// import Promotion from './promo/Promotions' // TODO: Comentado temporalmente para takeaway
 import { FullScreenError } from './Error'
 import { MainFooter } from './footer';
 import { LocationsSection } from './location';
@@ -110,25 +111,47 @@ const MenuDisplay = ({ locationId }) => {
         </button>
       )}
 
-      <header className="fixed top-0 left-0 right-0 z-50">
-        <CategoryNav categories={activeCategories} />
-      </header>
+      {/* Navegación condicional: TakeawayNav para takeaway, CategoryNav para local */}
+      {isTakeaway ? (
+        <header className="fixed top-0 left-0 right-0 z-50">
+          <TakeawayNav categories={activeCategories} />
+        </header>
+      ) : (
+        <header className="fixed top-0 left-0 right-0 z-50">
+          <CategoryNav categories={activeCategories} />
+        </header>
+      )}
 
-      <main className="mt-4 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 main-container-menu pb-32">
-        <motion.div
-          className="mb-8"
-          initial={{ opacity: 0, y: -20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.6, ease: "easeOut" }}
-        >
-          <Image className='m-auto' src="/assets/miselaneous/logosinbg.webp" alt="logo" width={200} height={100} />
-          <p className="text-center text-xl mb-8 italic text-menu px-4">
-            Bienvenido a nuestro menú digital. Explorá nuestras deliciosas opciones y disfrutá de una experiencia.<br />
-            <span className="text-orange-600 font-bold block mt-2">Sede: {locationId}</span>
-            <span className='text-sm font-bold block mt-2 text-gray-500'>"Comés como en casa, pero sin lavar los platos!"</span>
-          </p>
-        </motion.div>
-        <Promotion />
+      <main className={`max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pb-32 ${isTakeaway ? 'mt-40 md:mt-44' : 'mt-4'}`}>
+        {/* Header con logo y slogan - diferente para takeaway vs local */}
+        {isTakeaway ? (
+          <motion.div
+            className="mb-6 pt-4"
+            initial={{ opacity: 0, y: -20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.6, ease: "easeOut" }}
+          >
+            <p className="text-center text-sm font-medium text-gray-500 italic">
+              "Comés como en casa, pero sin lavar los platos!"
+            </p>
+          </motion.div>
+        ) : (
+          <motion.div
+            className="mb-8"
+            initial={{ opacity: 0, y: -20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.6, ease: "easeOut" }}
+          >
+            <Image className='m-auto' src="/logo.png" alt="logo.png" width={200} height={100} />
+            <p className="text-center text-xl mb-8 italic text-menu px-4">
+              Bienvenido a nuestro menú digital. Explorá nuestras deliciosas opciones y disfrutá de una experiencia.<br />
+              <span className="text-orange-600 font-bold block mt-2">Sede: {locationId}</span>
+              <span className='text-sm font-bold block mt-2 text-gray-500'>"Comés como en casa, pero sin lavar los platos!"</span>
+            </p>
+          </motion.div>
+        )}
+        {/* TODO: Promotions comentado temporalmente para takeaway - se le dará más sentido después */}
+        {/* {!isTakeaway && <Promotion />} */}
         {isTakeaway && !isStoreOpen && (
           <div className="bg-red-50 border border-red-200 rounded-2xl p-8 text-center my-8">
             <MdSchedule className="mx-auto h-10 w-10 text-red-400 mb-3" />

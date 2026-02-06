@@ -1,12 +1,13 @@
 'use client';
 
-import React, { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import useCartStore from '@/store/cartStore';
 import useActiveOrderStore from '@/store/activeOrderStore';
+import useCustomerPersistence from '@/hooks/useCustomerPersistence';
 import API_URI from '@/utils/getApiUri';
 import axios from 'axios';
-import { MdArrowBack, MdPayment, MdAdd, MdRemove, MdDelete, MdShoppingBag } from 'react-icons/md';
+import { MdArrowBack, MdPayment, MdAdd, MdRemove, MdDelete, MdShoppingBag, MdPerson } from 'react-icons/md';
 
 const CheckoutPage = () => {
     const { locationId } = useParams();
@@ -27,6 +28,22 @@ const CheckoutPage = () => {
         deliveryMethod: 'Retiro en Sucursal',
         notes: ''
     });
+    const [rememberData, setRememberData] = useState(false);
+    const { savedData, hasSavedData, isLoaded, saveCustomerData } = useCustomerPersistence();
+
+    // Prellenar formulario con datos guardados
+    useEffect(() => {
+        if (isLoaded && savedData) {
+            setFormData(prev => ({
+                ...prev,
+                name: savedData.name || prev.name,
+                lastname: savedData.lastname || prev.lastname,
+                phone: savedData.phone || prev.phone,
+                email: savedData.email || prev.email
+            }));
+            setRememberData(true); // Mantener checkbox marcado si ya había datos
+        }
+    }, [isLoaded, savedData]);
 
     // Bloquear si hay un pedido activo pendiente de retiro
     if (hasActiveOrder() && activeOrder?.orderNumber) {
@@ -127,6 +144,16 @@ const CheckoutPage = () => {
                     createdAt: new Date().toISOString()
                 });
 
+                // Guardar datos del cliente si el usuario optó por recordarlos
+                if (rememberData) {
+                    saveCustomerData({
+                        name: formData.name,
+                        lastname: formData.lastname,
+                        phone: formData.phone,
+                        email: formData.email
+                    });
+                }
+
                 clearCart(locationId);
                 window.location.href = response.data.init_point;
             } else {
@@ -214,6 +241,23 @@ const CheckoutPage = () => {
                 </div>
 
                 <form onSubmit={handleSubmitOrder} className="space-y-6">
+                    {/* Mensaje de bienvenida cuando hay datos guardados */}
+                    {isLoaded && hasSavedData && (
+                        <div className="bg-gradient-to-r from-green-50 to-emerald-50 border border-green-200 rounded-2xl p-4 flex items-center gap-3">
+                            <div className="w-10 h-10 bg-green-100 rounded-full flex items-center justify-center flex-shrink-0">
+                                <MdPerson className="text-green-600 text-xl" />
+                            </div>
+                            <div>
+                                <p className="text-green-800 font-medium">
+                                    ¡Bienvenido de nuevo{savedData?.name ? `, ${savedData.name}` : ''}!
+                                </p>
+                                <p className="text-green-600 text-sm">
+                                    Tus datos se recordaron de tu compra anterior.
+                                </p>
+                            </div>
+                        </div>
+                    )}
+
                     <div className="bg-white rounded-2xl shadow-sm p-6">
                         <h2 className="font-bold text-gray-900 mb-4 border-b pb-2">Tus Datos</h2>
                         <div className="grid grid-cols-2 gap-4">
@@ -252,6 +296,21 @@ const CheckoutPage = () => {
                                     value={formData.email}
                                     onChange={e => setFormData({ ...formData, email: e.target.value })}
                                 />
+                            </div>
+
+                            {/* Checkbox para recordar datos */}
+                            <div className="col-span-2 mt-2">
+                                <label className="flex items-start gap-3 cursor-pointer group">
+                                    <input
+                                        type="checkbox"
+                                        checked={rememberData}
+                                        onChange={e => setRememberData(e.target.checked)}
+                                        className="w-5 h-5 mt-0.5 rounded border-gray-300 text-orange-600 focus:ring-orange-500 cursor-pointer"
+                                    />
+                                    <span className="text-sm text-gray-600 group-hover:text-gray-800 transition-colors">
+                                        Recordar mis datos para próximas compras en este dispositivo
+                                    </span>
+                                </label>
                             </div>
                         </div>
                     </div>

@@ -1,5 +1,6 @@
+'use client'
 import React, { useState, useEffect } from 'react';
-import { MdAdd, MdDelete } from 'react-icons/md';
+import { MdAdd, MdDelete, MdCloudUpload } from 'react-icons/md';
 
 const ItemForm = ({ item, locations, onSubmit, onCancel }) => {
   const [formData, setFormData] = useState({
@@ -8,6 +9,7 @@ const ItemForm = ({ item, locations, onSubmit, onCancel }) => {
     locations: {},
     isAvailable: true,
     hasCustomizations: false,
+    image: '',
     customization: {
       name: 'Guarnición',
       required: false,
@@ -16,6 +18,9 @@ const ItemForm = ({ item, locations, onSubmit, onCancel }) => {
   });
 
   const [newOption, setNewOption] = useState('');
+  const [uploading, setUploading] = useState(false);
+  const [imageFile, setImageFile] = useState(null);
+  const [previewUrl, setPreviewUrl] = useState('');
 
   useEffect(() => {
     const existingCustomization = item?.customizations?.[0];
@@ -25,6 +30,7 @@ const ItemForm = ({ item, locations, onSubmit, onCancel }) => {
         name: item.name || '',
         description: item.description || '',
         isAvailable: item.isAvailable !== false,
+        image: item.image || '',
         locations: locations.reduce((acc, loc) => ({
           ...acc,
           [loc.nameId]: {
@@ -41,6 +47,9 @@ const ItemForm = ({ item, locations, onSubmit, onCancel }) => {
             }
           : { name: 'Guarnición', required: false, options: [] }
       });
+      if (item.image) {
+        setPreviewUrl(item.image);
+      }
     } else {
       setFormData({
         name: '',
@@ -54,14 +63,75 @@ const ItemForm = ({ item, locations, onSubmit, onCancel }) => {
         }), {}),
         isAvailable: true,
         hasCustomizations: false,
+        image: '',
         customization: {
           name: 'Guarnición',
           required: false,
           options: []
         }
       });
+      setPreviewUrl('');
     }
   }, [item, locations]);
+
+  const handleFileChange = (e) => {
+    const file = e.target.files[0];
+    if (file) {
+      setImageFile(file);
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setPreviewUrl(reader.result);
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
+  const handleUploadToCloudinary = async () => {
+    if (!imageFile) {
+      alert('Por favor seleccioná una imagen primero');
+      return;
+    }
+
+    setUploading(true);
+
+    try {
+      const uploadFormData = new FormData();
+      uploadFormData.append('file', imageFile);
+
+      const response = await fetch('/api/upload', {
+        method: 'POST',
+        body: uploadFormData,
+      });
+
+      const data = await response.json();
+
+      if (data.success) {
+        setFormData(prev => ({
+          ...prev,
+          image: data.url
+        }));
+        setPreviewUrl(data.url);
+        setImageFile(null);
+        alert('Imagen subida exitosamente');
+      } else {
+        alert('Error al subir la imagen');
+      }
+    } catch (error) {
+      console.error('Error uploading:', error);
+      alert('Error al subir la imagen');
+    } finally {
+      setUploading(false);
+    }
+  };
+
+  const handleRemoveImage = () => {
+    setFormData(prev => ({
+      ...prev,
+      image: ''
+    }));
+    setPreviewUrl('');
+    setImageFile(null);
+  };
 
   const handleAddOption = () => {
     const trimmed = newOption.trim();
@@ -95,6 +165,7 @@ const ItemForm = ({ item, locations, onSubmit, onCancel }) => {
       name: formData.name,
       description: formData.description,
       isAvailable: formData.isAvailable,
+      image: formData.image,
       prices: Object.entries(formData.locations).reduce((acc, [locationId, data]) => ({
         ...acc,
         [locationId]: data.price
@@ -137,6 +208,73 @@ const ItemForm = ({ item, locations, onSubmit, onCancel }) => {
           className="mt-1 block w-full rounded-md border border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm px-3 py-2"
           rows={3}
         />
+      </div>
+
+      {/* Sección de imagen del producto */}
+      <div className="border-t pt-4 space-y-3">
+        <h4 className="text-sm font-medium text-gray-700">Imagen del producto (opcional - para takeaway)</h4>
+
+        {previewUrl ? (
+          <div className="space-y-3">
+            <div className="relative rounded-lg overflow-hidden border-2 border-gray-200 bg-gray-50 w-fit">
+              <img
+                src={previewUrl}
+                alt="Preview"
+                className="w-40 h-40 object-cover"
+              />
+              <button
+                type="button"
+                onClick={handleRemoveImage}
+                className="absolute top-2 right-2 bg-red-600 text-white p-1.5 rounded-full hover:bg-red-700 transition-colors shadow-lg"
+                title="Eliminar imagen"
+              >
+                <MdDelete size={16} />
+              </button>
+            </div>
+
+            {imageFile && (
+              <button
+                type="button"
+                onClick={handleUploadToCloudinary}
+                disabled={uploading}
+                className="px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors font-medium text-sm"
+              >
+                {uploading ? 'Subiendo...' : 'Confirmar imagen'}
+              </button>
+            )}
+          </div>
+        ) : (
+          <div className="space-y-3">
+            <div className="flex items-center justify-center w-full">
+              <label className="flex flex-col items-center justify-center w-full h-32 border-2 border-dashed border-gray-300 rounded-lg cursor-pointer hover:border-indigo-500 hover:bg-indigo-50 transition-all">
+                <div className="flex flex-col items-center justify-center pt-4 pb-4">
+                  <MdCloudUpload className="h-8 w-8 text-gray-400 mb-2" />
+                  <p className="text-sm font-medium text-gray-700">
+                    Click para seleccionar imagen
+                  </p>
+                  <p className="text-xs text-gray-500">PNG, JPG, WEBP (MAX. 5MB)</p>
+                </div>
+                <input
+                  type="file"
+                  className="hidden"
+                  accept="image/*"
+                  onChange={handleFileChange}
+                />
+              </label>
+            </div>
+
+            {imageFile && (
+              <button
+                type="button"
+                onClick={handleUploadToCloudinary}
+                disabled={uploading}
+                className="w-full px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors font-medium"
+              >
+                {uploading ? 'Subiendo...' : 'Subir a Cloudinary'}
+              </button>
+            )}
+          </div>
+        )}
       </div>
 
       {/* Toggle de disponibilidad del plato */}

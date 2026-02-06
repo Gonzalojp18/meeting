@@ -46,6 +46,146 @@ const Category = ({ category, locationId, isTakeaway = false }) => {
         );
     };
 
+    // Renderizado para modo takeaway - nuevo diseño
+    if (isTakeaway) {
+        return (
+            <div className="mb-8">
+                {/* Header de categoría estilo referencia */}
+                <motion.div
+                    id={`category-${category._id}`}
+                    className="bg-[#8fa9bc] py-3 px-4 mb-4 scroll-mt-48"
+                    initial={{ opacity: 0, x: -20 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    transition={{ duration: 0.4 }}
+                >
+                    <h2 className="text-white text-lg font-bold tracking-wide uppercase">
+                        {category.name}
+                    </h2>
+                </motion.div>
+
+                {/* Grid de productos */}
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 px-2">
+                    {(category.items || []).map((item, index) => {
+                        const quantity = getItemQuantity(item._id);
+                        const itemHasCustomizations = hasCustomizations(item);
+                        const isAvailable = item.isAvailable !== false;
+                        const itemPrice = item.prices[locationId] || item.prices;
+
+                        return (
+                            <motion.div
+                                key={item._id}
+                                className={`bg-white rounded-xl border border-gray-200 overflow-hidden shadow-sm hover:shadow-md transition-shadow ${!isAvailable ? 'opacity-50' : ''}`}
+                                initial={{ opacity: 0, y: 20 }}
+                                animate={{ opacity: 1, y: 0 }}
+                                transition={{ duration: 0.3, delay: index * 0.05 }}
+                            >
+                                <div className="flex p-3 gap-3">
+                                    {/* Imagen del producto */}
+                                    <div className="flex-shrink-0">
+                                        {item.image ? (
+                                            <img
+                                                src={item.image}
+                                                alt={item.name}
+                                                className="w-28 h-28 md:w-32 md:h-32 object-cover rounded-lg"
+                                            />
+                                        ) : (
+                                            <div className="w-28 h-28 md:w-32 md:h-32 bg-gradient-to-br from-gray-100 to-gray-200 rounded-lg flex items-center justify-center">
+                                                <span className="text-3xl text-gray-400">🍽️</span>
+                                            </div>
+                                        )}
+                                    </div>
+
+                                    {/* Contenido */}
+                                    <div className="flex-1 flex flex-col min-w-0">
+                                        <h3 className="text-sm md:text-base font-bold text-gray-900 uppercase tracking-wide leading-tight mb-1">
+                                            {item.name}
+                                        </h3>
+                                        <p className="text-xs md:text-sm text-gray-500 line-clamp-3 flex-1 leading-relaxed">
+                                            {item.description}
+                                        </p>
+
+                                        {/* Precio y botón */}
+                                        <div className="flex items-center justify-between mt-2 pt-2">
+                                            <span className="text-base md:text-lg font-bold text-gray-800">
+                                                {itemPrice > 0 ? `$${itemPrice.toLocaleString()}` : ''}
+                                            </span>
+
+                                            {/* Controles */}
+                                            {isAvailable ? (
+                                                <>
+                                                    {/* Sin customizaciones y sin cantidad */}
+                                                    {!itemHasCustomizations && quantity === 0 && (
+                                                        <button
+                                                            onClick={() => addItem({ ...item, price: itemPrice }, locationId)}
+                                                            className="w-9 h-9 bg-gray-200 text-gray-600 rounded-full flex items-center justify-center hover:bg-gray-300 transition-colors"
+                                                        >
+                                                            <MdAdd size={22} />
+                                                        </button>
+                                                    )}
+
+                                                    {/* Sin customizaciones y con cantidad */}
+                                                    {!itemHasCustomizations && quantity > 0 && (
+                                                        <div className="flex items-center gap-2">
+                                                            <button
+                                                                onClick={() => removeItem(item._id, locationId)}
+                                                                className="w-7 h-7 bg-gray-200 text-gray-600 rounded-full flex items-center justify-center hover:bg-gray-300 transition-colors"
+                                                            >
+                                                                <MdRemove size={18} />
+                                                            </button>
+                                                            <span className="font-bold text-sm min-w-[20px] text-center">{quantity}</span>
+                                                            <button
+                                                                onClick={() => addItem({ ...item, price: itemPrice }, locationId)}
+                                                                className="w-7 h-7 bg-gray-200 text-gray-600 rounded-full flex items-center justify-center hover:bg-gray-300 transition-colors"
+                                                            >
+                                                                <MdAdd size={18} />
+                                                            </button>
+                                                        </div>
+                                                    )}
+
+                                                    {/* Con customizaciones */}
+                                                    {itemHasCustomizations && (
+                                                        <div className="flex items-center gap-2">
+                                                            {quantity > 0 && (
+                                                                <span className="text-xs font-bold text-orange-600 bg-orange-50 px-2 py-1 rounded-full">
+                                                                    {quantity}
+                                                                </span>
+                                                            )}
+                                                            <button
+                                                                onClick={() => setModalItem(item)}
+                                                                className="w-9 h-9 bg-gray-200 text-gray-600 rounded-full flex items-center justify-center hover:bg-gray-300 transition-colors"
+                                                            >
+                                                                <MdAdd size={22} />
+                                                            </button>
+                                                        </div>
+                                                    )}
+                                                </>
+                                            ) : (
+                                                <span className="text-xs font-medium text-red-500 bg-red-50 px-2 py-1 rounded-full">
+                                                    No disponible
+                                                </span>
+                                            )}
+                                        </div>
+                                    </div>
+                                </div>
+                            </motion.div>
+                        );
+                    })}
+                </div>
+
+                {/* Modal de personalización */}
+                {modalItem && (
+                    <ProductModal
+                        item={modalItem}
+                        locationId={locationId}
+                        onClose={() => setModalItem(null)}
+                        onAddToCart={handleAddToCart}
+                    />
+                )}
+            </div>
+        );
+    }
+
+    // Renderizado para modo local - diseño original
     const renderTitle = () => (
         <motion.div
             id={`category-${category._id}`}

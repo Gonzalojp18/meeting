@@ -1,62 +1,37 @@
 import React from 'react';
-import BrandItem from './BrandItem';
+import Image from 'next/image';
 
 const BrandsSection = () => {
   const brands = [
-    {
-      id: 1,
-      name: 'Pepsi',
-      imageUrl: '/assets/marcas/pepsi.webp'
-    },
-    {
-      id: 2,
-      name: '7UP',
-      imageUrl: '/assets/marcas/7up.webp'
-    },
-    {
-      id: 3,
-      name: 'Gatorade',
-      imageUrl: '/assets/marcas/gatorade.webp'
-    },
-    {
-      id: 4,
-      name: 'Paso de los Toros',
-      imageUrl: '/assets/marcas/toros.webp'
-    },
-    {
-      id: 5,
-      name: 'Stella Artois',
-      imageUrl: '/assets/marcas/stella.webp'
-    },
-    {
-      id: 6,
-      name: 'Corona',
-      imageUrl: '/assets/marcas/corona.webp'
-    },
+    { id: 1, name: 'Pepsi', imageUrl: '/assets/marcas/pepsi.webp' },
+    { id: 2, name: '7UP', imageUrl: '/assets/marcas/7up.webp' },
+    { id: 3, name: 'Gatorade', imageUrl: '/assets/marcas/gatorade.webp' },
+    { id: 4, name: 'Paso de los Toros', imageUrl: '/assets/marcas/toros.webp' },
+    { id: 5, name: 'Stella Artois', imageUrl: '/assets/marcas/stella.webp' },
+    { id: 6, name: 'Corona', imageUrl: '/assets/marcas/corona.webp' },
   ];
 
   return (
-    <section className="bg-gradient-to-b from-gray-50 to-white py-16">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="text-center mb-12">
-          <h2 className="text-3xl font-bold text-gray-900 sm:text-4xl">
-            Nuestras Marcas
-          </h2>
-          <p className="mt-3 text-xl text-gray-500 sm:mt-4">
-            Trabajamos con las mejores marcas para ofrecerte calidad premium
-          </p>
-        </div>
-
-        <div className="grid grid-cols-2 gap-4 md:grid-cols-3 lg:grid-cols-5">
+    <section className="py-8 border-t border-gray-200">
+      <div className="max-w-4xl mx-auto px-4">
+        <p className="text-center text-xs text-gray-400 mb-4 uppercase tracking-wider">
+          Trabajamos con
+        </p>
+        <div className="flex flex-wrap items-center justify-center gap-6 md:gap-10">
           {brands.map((brand) => (
-            <BrandItem key={brand.id} brand={brand} />
+            <div
+              key={brand.id}
+              className="relative w-16 h-12 md:w-20 md:h-14 grayscale hover:grayscale-0 opacity-60 hover:opacity-100 transition-all duration-300"
+            >
+              <Image
+                src={brand.imageUrl}
+                alt={brand.name}
+                fill
+                className="object-contain"
+                sizes="80px"
+              />
+            </div>
           ))}
-        </div>
-
-        <div className="mt-12 text-center">
-          <p className="text-sm text-gray-500">
-            * Todas las marcas mostradas son propiedad de sus respectivos dueños
-          </p>
         </div>
       </div>
     </section>
