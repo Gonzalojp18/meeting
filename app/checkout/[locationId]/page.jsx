@@ -3,14 +3,16 @@
 import React, { useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import useCartStore from '@/store/cartStore';
+import useActiveOrderStore from '@/store/activeOrderStore';
 import API_URI from '@/utils/getApiUri';
 import axios from 'axios';
-import { MdArrowBack, MdPayment, MdAdd, MdRemove, MdDelete } from 'react-icons/md';
+import { MdArrowBack, MdPayment, MdAdd, MdRemove, MdDelete, MdShoppingBag } from 'react-icons/md';
 
 const CheckoutPage = () => {
     const { locationId } = useParams();
     const router = useRouter();
     const { items, getCartTotal, clearCart, addItem, removeItem, deleteItem } = useCartStore();
+    const { activeOrder, hasActiveOrder, setActiveOrder } = useActiveOrderStore();
 
     const locationItems = items.filter(i => i.locationId === locationId);
     const total = getCartTotal(locationId);
@@ -25,6 +27,35 @@ const CheckoutPage = () => {
         deliveryMethod: 'Retiro en Sucursal',
         notes: ''
     });
+
+    // Bloquear si hay un pedido activo pendiente de retiro
+    if (hasActiveOrder() && activeOrder?.orderNumber) {
+        return (
+            <div className="min-h-screen bg-gray-50 flex flex-col items-center justify-center p-4">
+                <div className="bg-white rounded-2xl shadow-lg p-8 max-w-md w-full text-center">
+                    <div className="w-16 h-16 bg-amber-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                        <MdShoppingBag className="text-amber-600 text-3xl" />
+                    </div>
+                    <h2 className="text-xl font-bold text-gray-800 mb-2">Ya tienes un pedido en curso</h2>
+                    <p className="text-gray-600 mb-6">
+                        Debes retirar tu pedido <strong>#{activeOrder.orderNumber?.replace('ORD-', '')}</strong> antes de realizar una nueva compra.
+                    </p>
+                    <button
+                        onClick={() => router.push(`/tracking/${activeOrder.orderNumber}`)}
+                        className="w-full bg-orange-600 text-white py-4 rounded-xl font-bold hover:bg-orange-700 transition"
+                    >
+                        Ver mi pedido
+                    </button>
+                    <button
+                        onClick={() => router.push(`/menu/${locationId}`)}
+                        className="w-full mt-3 text-gray-500 py-2"
+                    >
+                        Volver al menú
+                    </button>
+                </div>
+            </div>
+        );
+    }
 
     if (locationItems.length === 0 && !submitting) {
         return (
@@ -75,8 +106,29 @@ const CheckoutPage = () => {
 
             // Redirigir a MercadoPago
             if (response.data.init_point) {
-                window.location.href = response.data.init_point;
+                // Guardar el pedido en el store ANTES de redirigir
+                setActiveOrder({
+                    orderNumber: null, // Aún no lo tenemos
+                    orderId: null,
+                    paymentId: null,
+                    preferenceId: response.data.preference_id || null,
+                    locationId,
+                    status: 'pending_payment',
+                    customerData: {
+                        name: customerData.name,
+                        lastname: customerData.lastname,
+                        phone: customerData.phone,
+                        email: customerData.email
+                    },
+                    items: orderItems,
+                    total,
+                    deliveryMethod: customerData.deliveryMethod,
+                    notes: customerData.notes,
+                    createdAt: new Date().toISOString()
+                });
+
                 clearCart(locationId);
+                window.location.href = response.data.init_point;
             } else {
                 throw new Error('No se recibió URL de pago');
             }

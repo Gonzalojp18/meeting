@@ -35,9 +35,9 @@ const DAILY_PROMOTIONS = {
             background: "bg-white",
             textColor: "text-black",
             buttonClass: "bg-[#4E5F55] text-white hover:bg-gray-900",
-            iconBackground: "bg-gray-100",
+            iconBackground: "bg-gray-500",
             border: "border-4 border-black",
-            accentColor: "text-orange-200"
+            accentColor: "text-orange-500"
         }
     },
     4: { // Thursday - Gris medio sofisticado

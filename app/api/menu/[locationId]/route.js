@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import dbConnect from '@/utils/dbConnect';
 import Menu from '@/models/Menu';
 import Settings from '@/models/Settings';
+import { DEFAULT_TAKEAWAY_HOURS } from '@/utils/constants';
 
 // @desc Get Menu by Location
 // @route GET /api/menu/:locationId
@@ -32,7 +33,7 @@ export async function GET(req, { params }) {
         }));
     };
 
-    const takeawayHours = await Settings.getValue('takeawayHours') || { open: '08:30', close: '20:30' };
+    const takeawayHours = await Settings.getValue('takeawayHours') || DEFAULT_TAKEAWAY_HOURS;
 
     const filteredMenu = {
       categories: (menu.categories || []).map(category => ({

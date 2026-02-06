@@ -2,8 +2,7 @@ import { NextResponse } from 'next/server';
 import dbConnect from '@/utils/dbConnect';
 import Settings from '@/models/Settings';
 import jwt from 'jsonwebtoken';
-
-const DEFAULT_HOURS = { open: '08:30', close: '20:30' };
+import { DEFAULT_TAKEAWAY_HOURS } from '@/utils/constants';
 
 // @desc Obtener horarios de takeaway
 // @route GET /api/settings/takeaway-hours
@@ -14,10 +13,10 @@ export async function GET() {
 
     const hours = await Settings.getValue('takeawayHours');
 
-    return NextResponse.json(hours || DEFAULT_HOURS);
+    return NextResponse.json(hours || DEFAULT_TAKEAWAY_HOURS);
   } catch (error) {
     console.error('GET /api/settings/takeaway-hours error:', error);
-    return NextResponse.json(DEFAULT_HOURS);
+    return NextResponse.json(DEFAULT_TAKEAWAY_HOURS);
   }
 }
 

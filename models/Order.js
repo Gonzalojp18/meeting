@@ -153,6 +153,13 @@ const orderSchema = new mongoose.Schema(
     cancelledAt: Date,
     cancellationReason: String,
 
+    // Confirmación de retiro por cliente
+    customerPickupConfirmed: {
+      type: Boolean,
+      default: false,
+    },
+    customerPickupAt: Date,
+
     // Soft Delete flag
     isDeleted: {
       type: Boolean,

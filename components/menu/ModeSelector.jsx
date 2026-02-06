@@ -3,21 +3,14 @@
 import { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { MdRestaurant, MdDeliveryDining } from 'react-icons/md';
-
-const getCurrentTime = () => {
-    const now = new Date();
-    const hours = now.getHours().toString().padStart(2, '0');
-    const minutes = now.getMinutes().toString().padStart(2, '0');
-    return `${hours}:${minutes}`;
-};
+import { DEFAULT_TAKEAWAY_HOURS, isWithinTakeawayHours } from '@/utils/constants';
 
 const ModeSelector = ({ locationId, onModeSelect, takeawayHours }) => {
     const [isOpen, setIsOpen] = useState(false);
     const onModeSelectRef = useRef(onModeSelect);
 
-    const globalHours = takeawayHours || { open: '08:30', close: '20:30' };
-    const now = getCurrentTime();
-    const isTakeawayAvailable = now >= globalHours.open && now <= globalHours.close;
+    const globalHours = takeawayHours || DEFAULT_TAKEAWAY_HOURS;
+    const isTakeawayAvailable = isWithinTakeawayHours(globalHours);
 
     // Mantener la ref actualizada
     useEffect(() => {
@@ -28,11 +21,17 @@ const ModeSelector = ({ locationId, onModeSelect, takeawayHours }) => {
         // Verificar si ya hay un modo seleccionado para esta ubicación
         const savedMode = localStorage.getItem(`menuMode_${locationId}`);
         if (savedMode) {
-            onModeSelectRef.current(savedMode);
+            // Si el modo guardado es 'takeaway' pero está fuera de horario, forzar 'local'
+            if (savedMode === 'takeaway' && !isTakeawayAvailable) {
+                localStorage.setItem(`menuMode_${locationId}`, 'local');
+                onModeSelectRef.current('local');
+            } else {
+                onModeSelectRef.current(savedMode);
+            }
         } else {
             setIsOpen(true);
         }
-    }, [locationId]);
+    }, [locationId, isTakeawayAvailable]);
 
     const handleSelectMode = (mode) => {
         localStorage.setItem(`menuMode_${locationId}`, mode);

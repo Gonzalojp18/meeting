@@ -17,7 +17,9 @@ import {
     MdExpandMore,
     MdExpandLess,
     MdTimer,
-    MdPrint
+    MdPrint,
+    MdSearch,
+    MdVerified
 } from 'react-icons/md';
 
 const ORDER_STATUSES = {
@@ -45,6 +47,7 @@ const CashierPanel = ({ standalone = true }) => {
     const [selectedLocation, setSelectedLocation] = useState(null);
     const [expandedOrder, setExpandedOrder] = useState(null);
     const [filterStatus, setFilterStatus] = useState('all');
+    const [searchPhone, setSearchPhone] = useState('');
 
     const token = session?.user?.token;
     const userLocations = session?.user?.assignedLocations || [];
@@ -119,6 +122,25 @@ const CashierPanel = ({ standalone = true }) => {
         }
     };
 
+    const handleForcePickup = async (orderId) => {
+        if (!confirm('¿Confirmar que el cliente ya retiró su pedido?')) return;
+
+        try {
+            await axios.patch(
+                `${API_URI}/api/orders/${orderId}/customer-pickup`,
+                { forcedByStaff: true },
+                {
+                    headers: { Authorization: `Bearer ${token}` },
+                    withCredentials: true
+                }
+            );
+            refetchOrders();
+        } catch (error) {
+            console.error('Error confirming pickup:', error);
+            alert('Error al confirmar el retiro');
+        }
+    };
+
     const getNextStatus = (currentStatus) => {
         const flow = ['pending', 'confirmed', 'preparing', 'ready', 'completed'];
         const currentIndex = flow.indexOf(currentStatus);
@@ -129,9 +151,14 @@ const CashierPanel = ({ standalone = true }) => {
     };
 
     const filteredOrders = orders?.filter(order => {
-        if (filterStatus === 'all') return true;
-        if (filterStatus === 'active') return !['completed', 'cancelled'].includes(order.status);
-        return order.status === filterStatus;
+        // Filtro por estado
+        if (filterStatus !== 'all') {
+            if (filterStatus === 'active' && ['completed', 'cancelled'].includes(order.status)) return false;
+            if (filterStatus !== 'active' && order.status !== filterStatus) return false;
+        }
+        // Filtro por teléfono
+        if (searchPhone && !order.customer?.phone?.includes(searchPhone)) return false;
+        return true;
     }) || [];
 
     // Obtener el color de la sede actual
@@ -216,6 +243,28 @@ const CashierPanel = ({ standalone = true }) => {
             {/* Filtros */}
             <div className={`bg-white shadow-sm border-b ${standalone ? 'sticky top-[72px] z-40' : ''}`}>
                 <div className="max-w-7xl mx-auto px-4 py-3 lg:py-4">
+                    {/* Barra de búsqueda por teléfono */}
+                    <div className="mb-3">
+                        <div className="relative max-w-xs">
+                            <MdSearch className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={20} />
+                            <input
+                                type="text"
+                                placeholder="Buscar por teléfono..."
+                                value={searchPhone}
+                                onChange={(e) => setSearchPhone(e.target.value)}
+                                className="w-full pl-10 pr-4 py-2 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-orange-500 focus:border-orange-500"
+                            />
+                            {searchPhone && (
+                                <button
+                                    onClick={() => setSearchPhone('')}
+                                    className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                                >
+                                    ×
+                                </button>
+                            )}
+                        </div>
+                    </div>
+
                     <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
                         <div className="flex items-center gap-2 min-w-0">
                             <span className="text-xs font-bold text-gray-400 uppercase tracking-widest hidden sm:inline-block">Filtrar:</span>
@@ -401,8 +450,21 @@ const CashierPanel = ({ standalone = true }) => {
                                                 {order.notes && <p><strong>Notas:</strong> {order.notes}</p>}
                                             </div>
 
+                                            {/* Badge de confirmación de retiro por cliente */}
+                                            {order.customerPickupConfirmed && (
+                                                <div className="mb-4 flex items-center gap-2 bg-green-50 text-green-700 px-3 py-2 rounded-lg border border-green-200">
+                                                    <MdVerified size={18} />
+                                                    <span className="text-sm font-medium">Cliente confirmó retiro</span>
+                                                    {order.customerPickupAt && (
+                                                        <span className="text-xs text-green-600 ml-auto">
+                                                            {new Date(order.customerPickupAt).toLocaleTimeString('es-AR', { hour: '2-digit', minute: '2-digit' })}
+                                                        </span>
+                                                    )}
+                                                </div>
+                                            )}
+
                                             {/* Acciones */}
-                                            <div className="flex gap-2">
+                                            <div className="flex flex-wrap gap-2">
                                                 {nextStatus && order.status !== 'cancelled' && (
                                                     <button
                                                         onClick={() => handleUpdateStatus(order._id, nextStatus)}
@@ -427,6 +489,18 @@ const CashierPanel = ({ standalone = true }) => {
                                                     <MdPrint size={18} />
                                                     Ticket
                                                 </button>
+
+                                                {/* Botón de override para marcar retiro (solo si está ready y no confirmado) */}
+                                                {order.status === 'ready' && !order.customerPickupConfirmed && (
+                                                    <button
+                                                        onClick={() => handleForcePickup(order._id)}
+                                                        className="w-full mt-2 inline-flex items-center justify-center gap-1 bg-teal-100 text-teal-700 py-2 px-3 rounded-lg font-medium hover:bg-teal-200 transition-colors border border-teal-200"
+                                                        title="Confirmar retiro manualmente"
+                                                    >
+                                                        <MdVerified size={18} />
+                                                        Marcar como Retirado (Override)
+                                                    </button>
+                                                )}
                                             </div>
                                         </div>
                                     )}

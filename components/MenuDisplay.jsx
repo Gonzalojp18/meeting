@@ -1,5 +1,5 @@
 'use client'
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useCallback } from 'react';
 import { useFetch } from '../hooks/useFetch';
 import CategoryDisplay from './categories/CategoryDisplay';
 import { CategoryNav } from './navigation';
@@ -19,12 +19,26 @@ import useCartStore from '../store/cartStore';
 import { MdShoppingCart, MdSwapHoriz, MdSchedule } from 'react-icons/md';
 import Link from 'next/link';
 import ModeSelector from './menu/ModeSelector';
+import ActiveOrderBanner from './order/ActiveOrderBanner';
+import { DEFAULT_TAKEAWAY_HOURS, isWithinTakeawayHours } from '../utils/constants';
 
-const getCurrentTime = () => {
-  const now = new Date();
-  const hours = now.getHours().toString().padStart(2, '0');
-  const minutes = now.getMinutes().toString().padStart(2, '0');
-  return `${hours}:${minutes}`;
+// Obtener hora actual en formato HH:MM (hora local de Argentina)
+const getCurrentTimeArgentina = () => {
+  return new Date().toLocaleTimeString('en-GB', {
+    hour: '2-digit',
+    minute: '2-digit',
+    hour12: false,
+    timeZone: 'America/Argentina/Buenos_Aires'
+  });
+};
+
+// Verifica si una hora está dentro de un rango (maneja horarios que cruzan medianoche)
+const isTimeInRange = (currentTime, openTime, closeTime) => {
+  if (closeTime < openTime) {
+    // Horario cruza medianoche (ej: 20:00 - 02:00)
+    return currentTime >= openTime || currentTime <= closeTime;
+  }
+  return currentTime >= openTime && currentTime <= closeTime;
 };
 
 const MenuDisplay = ({ locationId }) => {
@@ -56,9 +70,9 @@ const MenuDisplay = ({ locationId }) => {
 
   // Defensa: verificar que data y categories existan
   const categories = data?.categories || [];
-  const globalHours = data?.takeawayHours || { open: '08:30', close: '20:30' };
-  const now = getCurrentTime();
-  const isStoreOpen = now >= globalHours.open && now <= globalHours.close;
+  const globalHours = data?.takeawayHours || DEFAULT_TAKEAWAY_HOURS;
+  const now = getCurrentTimeArgentina();
+  const isStoreOpen = isTimeInRange(now, globalHours.open, globalHours.close);
 
   // Filtrar categorías activas y que apliquen a esta sede
   const activeCategories = categories.filter(category => {
@@ -67,11 +81,11 @@ const MenuDisplay = ({ locationId }) => {
     // Si no tiene locations definidas (array vacío), aplica a todas las sedes
     if (category.locations?.length > 0 && !category.locations.includes(locationId)) return false;
 
-    // Filtro por horario solo en modo takeaway
+    // Filtro por horario solo en modo takeaway y si la tienda está abierta
     if (isTakeaway && isStoreOpen) {
       const catFrom = category.schedule?.availableFrom || globalHours.open;
       const catTo = category.schedule?.availableTo || globalHours.close;
-      if (now < catFrom || now > catTo) return false;
+      if (!isTimeInRange(now, catFrom, catTo)) return false;
     }
 
     return true;
@@ -81,6 +95,9 @@ const MenuDisplay = ({ locationId }) => {
     <div className='min-h-screen bg-gray-100 relative'>
       {/* Modal selector de modo */}
       <ModeSelector locationId={locationId} onModeSelect={handleModeSelect} takeawayHours={globalHours} />
+
+      {/* Banner de pedido activo */}
+      <ActiveOrderBanner />
 
       {/* Indicador de modo actual */}
       {menuMode && (

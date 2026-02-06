@@ -2,12 +2,13 @@
 import React, { useState, useEffect } from 'react';
 import { useSession } from 'next-auth/react';
 import { MdSchedule, MdCheckCircle, MdError } from 'react-icons/md';
+import { DEFAULT_TAKEAWAY_HOURS } from '@/utils/constants';
 
 const TakeawaySettings = () => {
   const { data: session } = useSession();
   const token = session?.user?.token;
 
-  const [hours, setHours] = useState({ open: '08:30', close: '20:30' });
+  const [hours, setHours] = useState(DEFAULT_TAKEAWAY_HOURS);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState(null);
@@ -18,11 +19,17 @@ const TakeawaySettings = () => {
 
   const fetchHours = async () => {
     try {
-      const res = await fetch('/api/settings/takeaway-hours');
+      const res = await fetch('/api/settings/takeaway-hours', {
+        cache: 'no-store' // Evitar cache para siempre obtener datos frescos
+      });
       const data = await res.json();
-      setHours({ open: data.open || '08:30', close: data.close || '20:30' });
+      setHours({
+        open: data.open || DEFAULT_TAKEAWAY_HOURS.open,
+        close: data.close || DEFAULT_TAKEAWAY_HOURS.close
+      });
     } catch (error) {
       console.error('Error fetching takeaway hours:', error);
+      setHours(DEFAULT_TAKEAWAY_HOURS);
     } finally {
       setLoading(false);
     }

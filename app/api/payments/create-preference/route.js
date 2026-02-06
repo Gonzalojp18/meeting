@@ -3,6 +3,7 @@ import { MercadoPagoConfig, Preference } from 'mercadopago';
 import { getMPCredentials } from '@/utils/getMPCredentials';
 import dbConnect from '@/utils/dbConnect';
 import Settings from '@/models/Settings';
+import { DEFAULT_TAKEAWAY_HOURS, isWithinTakeawayHours } from '@/utils/constants';
 
 export async function POST(req) {
     try {
@@ -46,15 +47,9 @@ export async function POST(req) {
 
         // Validar horario de takeaway
         await dbConnect();
-        const takeawayHours = await Settings.getValue('takeawayHours') || { open: '08:30', close: '20:30' };
-        const now = new Date().toLocaleTimeString('en-GB', {
-            hour: '2-digit',
-            minute: '2-digit',
-            hour12: false,
-            timeZone: 'America/Argentina/Buenos_Aires'
-        });
+        const takeawayHours = await Settings.getValue('takeawayHours') || DEFAULT_TAKEAWAY_HOURS;
 
-        if (now < takeawayHours.open || now > takeawayHours.close) {
+        if (!isWithinTakeawayHours(takeawayHours)) {
             return NextResponse.json(
                 { error: `Fuera del horario de takeaway. Nuestro horario es de ${takeawayHours.open}hs a ${takeawayHours.close}hs` },
                 { status: 400 }
