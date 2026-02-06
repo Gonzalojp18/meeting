@@ -1,9 +1,10 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { useSession, signOut } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
 import { useFetch } from '../../hooks/useFetch';
+import { useOrderNotification } from '../../hooks/useOrderNotification';
 import API_URI from '../../utils/getApiUri';
 import axios from 'axios';
 import {
@@ -19,7 +20,9 @@ import {
     MdTimer,
     MdPrint,
     MdSearch,
-    MdVerified
+    MdVerified,
+    MdNotifications,
+    MdNotificationsOff
 } from 'react-icons/md';
 
 const ORDER_STATUSES = {
@@ -48,6 +51,7 @@ const CashierPanel = ({ standalone = true }) => {
     const [expandedOrder, setExpandedOrder] = useState(null);
     const [filterStatus, setFilterStatus] = useState('all');
     const [searchPhone, setSearchPhone] = useState('');
+    const [soundEnabled, setSoundEnabled] = useState(true);
 
     const token = session?.user?.token;
     const userLocations = session?.user?.assignedLocations || [];
@@ -78,6 +82,9 @@ const CashierPanel = ({ standalone = true }) => {
         selectedLocation ? `${API_URI}/api/orders?locationId=${selectedLocation}` : null,
         token
     );
+
+    // Notificación sonora para nuevos pedidos
+    const { testSound } = useOrderNotification(orders, soundEnabled);
 
     useEffect(() => {
         if (status === 'unauthenticated') {
@@ -229,6 +236,18 @@ const CashierPanel = ({ standalone = true }) => {
                             </button>
 
                             <button
+                                onClick={() => setSoundEnabled(!soundEnabled)}
+                                className={`p-2 rounded-lg transition-colors ${
+                                    soundEnabled
+                                        ? 'bg-green-600 hover:bg-green-700'
+                                        : 'bg-gray-700 hover:bg-gray-600'
+                                }`}
+                                title={soundEnabled ? 'Sonido activado - Click para silenciar' : 'Sonido desactivado - Click para activar'}
+                            >
+                                {soundEnabled ? <MdNotifications size={24} /> : <MdNotificationsOff size={24} />}
+                            </button>
+
+                            <button
                                 onClick={handleLogout}
                                 className="flex items-center gap-2 bg-red-600 px-4 py-2 rounded-lg hover:bg-red-700 transition-colors"
                             >
@@ -316,13 +335,26 @@ const CashierPanel = ({ standalone = true }) => {
                             )}
 
                             {!standalone && (
-                                <button
-                                    onClick={refetchOrders}
-                                    className="p-2 bg-gray-50 text-gray-600 rounded-xl border border-gray-200 hover:bg-orange-50 hover:text-orange-600 hover:border-orange-200 transition-all shadow-sm group flex-shrink-0"
-                                    title="Actualizar pedidos"
-                                >
-                                    <MdRefresh className={`${ordersLoading ? 'animate-spin' : 'group-hover:rotate-180 transition-transform duration-500'}`} size={20} />
-                                </button>
+                                <>
+                                    <button
+                                        onClick={() => setSoundEnabled(!soundEnabled)}
+                                        className={`p-2 rounded-xl border transition-all shadow-sm flex-shrink-0 ${
+                                            soundEnabled
+                                                ? 'bg-green-50 text-green-600 border-green-200 hover:bg-green-100'
+                                                : 'bg-gray-50 text-gray-400 border-gray-200 hover:bg-gray-100'
+                                        }`}
+                                        title={soundEnabled ? 'Sonido activado' : 'Sonido desactivado'}
+                                    >
+                                        {soundEnabled ? <MdNotifications size={20} /> : <MdNotificationsOff size={20} />}
+                                    </button>
+                                    <button
+                                        onClick={refetchOrders}
+                                        className="p-2 bg-gray-50 text-gray-600 rounded-xl border border-gray-200 hover:bg-orange-50 hover:text-orange-600 hover:border-orange-200 transition-all shadow-sm group flex-shrink-0"
+                                        title="Actualizar pedidos"
+                                    >
+                                        <MdRefresh className={`${ordersLoading ? 'animate-spin' : 'group-hover:rotate-180 transition-transform duration-500'}`} size={20} />
+                                    </button>
+                                </>
                             )}
                         </div>
                     </div>
