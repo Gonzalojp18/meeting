@@ -232,10 +232,14 @@ const AdminPanel = () => {
     tabs.push({ id: 'settings', label: 'Ajustes', icon: MdSettings });
   }
 
-  // Ambos Roles tienen acceso a la operatividad de Caja e Impresoras
+  // Ambos roles tienen acceso a Caja
   tabs.push({ id: 'caja', label: 'Caja', icon: MdPointOfSale });
-  tabs.push({ id: 'printers', label: 'Impresoras', icon: MdPrint });
-  tabs.push({ id: 'history', label: 'Historial', icon: MdHistory });
+
+  // Solo Staff (caja) tiene acceso a Impresoras e Historial (más operativo)
+  if (isStaff) {
+    tabs.push({ id: 'printers', label: 'Impresoras', icon: MdPrint });
+    tabs.push({ id: 'history', label: 'Historial', icon: MdHistory });
+  }
 
   return (
     <div className="min-h-screen bg-gray-50">
