@@ -1,7 +1,7 @@
 'use client';
 import React, { useState, useEffect } from 'react';
 import { useSession } from 'next-auth/react';
-import { MdSecurity, MdVisibility, MdVisibilityOff, MdCheckCircle, MdError, MdOpenInNew, MdDelete, MdInfoOutline } from 'react-icons/md';
+import { MdSecurity, MdVisibility, MdVisibilityOff, MdCheckCircle, MdError, MdOpenInNew, MdDelete, MdInfoOutline, MdLock, MdWarning } from 'react-icons/md';
 
 const MercadoPagoSettings = () => {
   const { data: session } = useSession();
@@ -9,13 +9,17 @@ const MercadoPagoSettings = () => {
 
   const [publicKey, setPublicKey] = useState('');
   const [accessToken, setAccessToken] = useState('');
+  const [currentPassword, setCurrentPassword] = useState('');
   const [showAccessToken, setShowAccessToken] = useState(false);
   const [showPublicKey, setShowPublicKey] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
   const [status, setStatus] = useState({ configured: false, mode: null, publicKey: '', accessToken: '' });
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState(null);
   const [isEditing, setIsEditing] = useState(false);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [deletePassword, setDeletePassword] = useState('');
 
   const getAuthHeaders = () => {
     if (!token) return {};
@@ -47,6 +51,12 @@ const MercadoPagoSettings = () => {
 
   const handleSave = async (e) => {
     e.preventDefault();
+
+    if (!currentPassword) {
+      setMessage({ type: 'error', text: 'Debes ingresar tu contraseña actual para guardar los cambios.' });
+      return;
+    }
+
     setSaving(true);
     setMessage(null);
 
@@ -57,7 +67,7 @@ const MercadoPagoSettings = () => {
           'Content-Type': 'application/json',
           ...getAuthHeaders(),
         },
-        body: JSON.stringify({ publicKey, accessToken }),
+        body: JSON.stringify({ publicKey, accessToken, currentPassword }),
       });
 
       const data = await res.json();
@@ -66,6 +76,7 @@ const MercadoPagoSettings = () => {
         setMessage({ type: 'success', text: data.message });
         setPublicKey('');
         setAccessToken('');
+        setCurrentPassword('');
         setIsEditing(false);
         fetchStatus();
       } else {
@@ -79,18 +90,31 @@ const MercadoPagoSettings = () => {
   };
 
   const handleDelete = async () => {
-    if (!confirm('¿Eliminar las credenciales de Mercado Pago? Los pagos dejarán de funcionar.')) return;
+    if (!deletePassword) {
+      setMessage({ type: 'error', text: 'Debes ingresar tu contraseña para confirmar la eliminación.' });
+      return;
+    }
 
     try {
       const res = await fetch('/api/settings/mercadopago', {
         method: 'DELETE',
-        headers: getAuthHeaders(),
+        headers: {
+          'Content-Type': 'application/json',
+          ...getAuthHeaders(),
+        },
+        body: JSON.stringify({ currentPassword: deletePassword }),
       });
+
+      const data = await res.json();
 
       if (res.ok) {
         setMessage({ type: 'success', text: 'Credenciales eliminadas' });
         setStatus({ configured: false, mode: null, publicKey: '', accessToken: '' });
         setIsEditing(true);
+        setShowDeleteConfirm(false);
+        setDeletePassword('');
+      } else {
+        setMessage({ type: 'error', text: data.error });
       }
     } catch (error) {
       setMessage({ type: 'error', text: 'Error al eliminar' });
@@ -137,7 +161,7 @@ const MercadoPagoSettings = () => {
                 Cambiar
               </button>
               <button
-                onClick={handleDelete}
+                onClick={() => setShowDeleteConfirm(true)}
                 className="p-1.5 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
                 title="Eliminar credenciales"
               >
@@ -154,6 +178,64 @@ const MercadoPagoSettings = () => {
             <div className="bg-gray-50 rounded-lg p-3">
               <p className="text-gray-500 text-xs mb-1">Access Token</p>
               <p className="font-mono text-gray-700">{status.accessToken}</p>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Modal de confirmación de eliminación */}
+      {showDeleteConfirm && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
+          <div className="bg-white rounded-xl shadow-2xl p-6 m-4 max-w-md w-full">
+            <div className="flex items-center gap-3 mb-4">
+              <div className="p-2 bg-red-100 rounded-full">
+                <MdWarning className="h-6 w-6 text-red-600" />
+              </div>
+              <div>
+                <h3 className="text-lg font-bold text-gray-900">Eliminar credenciales</h3>
+                <p className="text-sm text-gray-500">Los pagos dejarán de funcionar</p>
+              </div>
+            </div>
+
+            <div className="mb-4">
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                <MdLock className="inline h-4 w-4 mr-1" />
+                Confirma con tu contraseña
+              </label>
+              <input
+                type="password"
+                value={deletePassword}
+                onChange={(e) => setDeletePassword(e.target.value)}
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-red-500"
+                placeholder="Ingresa tu contraseña actual"
+                autoFocus
+              />
+            </div>
+
+            {message && message.type === 'error' && (
+              <div className="flex items-center gap-2 p-3 rounded-lg text-sm bg-red-50 text-red-700 mb-4">
+                <MdError className="h-4 w-4 flex-shrink-0" />
+                {message.text}
+              </div>
+            )}
+
+            <div className="flex gap-2 justify-end">
+              <button
+                onClick={() => {
+                  setShowDeleteConfirm(false);
+                  setDeletePassword('');
+                  setMessage(null);
+                }}
+                className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50"
+              >
+                Cancelar
+              </button>
+              <button
+                onClick={handleDelete}
+                className="px-4 py-2 text-sm font-medium text-white bg-red-600 rounded-lg hover:bg-red-700"
+              >
+                Eliminar
+              </button>
             </div>
           </div>
         </div>
@@ -186,6 +268,19 @@ const MercadoPagoSettings = () => {
                 </ol>
                 <p className="text-xs text-blue-600 mt-2">
                   Las credenciales se almacenan encriptadas en la base de datos.
+                </p>
+              </div>
+            </div>
+          </div>
+
+          {/* Aviso de seguridad */}
+          <div className="bg-amber-50 border border-amber-200 rounded-lg p-4">
+            <div className="flex gap-3">
+              <MdLock className="h-5 w-5 text-amber-600 flex-shrink-0 mt-0.5" />
+              <div className="text-sm text-amber-800">
+                <p className="font-medium">Operación sensible</p>
+                <p className="text-amber-700 text-xs mt-1">
+                  Cambiar las credenciales de pago redirige todos los pagos futuros. Por seguridad, deberás confirmar con tu contraseña.
                 </p>
               </div>
             </div>
@@ -239,6 +334,34 @@ const MercadoPagoSettings = () => {
             </div>
           </div>
 
+          {/* Contraseña actual */}
+          <div className="border-t pt-4">
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              <MdLock className="inline h-4 w-4 mr-1" />
+              Tu contraseña actual *
+            </label>
+            <div className="relative">
+              <input
+                type={showPassword ? 'text' : 'password'}
+                value={currentPassword}
+                onChange={(e) => setCurrentPassword(e.target.value)}
+                required
+                className="w-full px-3 py-2 pr-10 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                placeholder="Confirma con tu contraseña"
+              />
+              <button
+                type="button"
+                onClick={() => setShowPassword(!showPassword)}
+                className="absolute right-2 top-1/2 -translate-y-1/2 p-1 text-gray-400 hover:text-gray-600"
+              >
+                {showPassword ? <MdVisibilityOff className="h-4 w-4" /> : <MdVisibility className="h-4 w-4" />}
+              </button>
+            </div>
+            <p className="text-xs text-gray-500 mt-1">
+              Requerida para confirmar cambios en credenciales de pago
+            </p>
+          </div>
+
           {/* Mensaje */}
           {message && (
             <div className={`flex items-center gap-2 p-3 rounded-lg text-sm ${message.type === 'success' ? 'bg-green-50 text-green-700' : 'bg-red-50 text-red-700'
@@ -261,6 +384,7 @@ const MercadoPagoSettings = () => {
                   setIsEditing(false);
                   setPublicKey('');
                   setAccessToken('');
+                  setCurrentPassword('');
                   setMessage(null);
                 }}
                 className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"

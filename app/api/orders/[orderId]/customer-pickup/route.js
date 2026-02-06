@@ -2,6 +2,13 @@ import { NextResponse } from 'next/server';
 import dbConnect from '@/utils/dbConnect';
 import Order from '@/models/Order';
 import { auth } from '@/auth';
+import mongoose from 'mongoose';
+
+// Validar formato de MongoDB ObjectId
+function isValidObjectId(id) {
+    return mongoose.Types.ObjectId.isValid(id) &&
+           (new mongoose.Types.ObjectId(id)).toString() === id;
+}
 
 // PATCH /api/orders/[orderId]/customer-pickup
 // Endpoint para confirmar que el pedido fue retirado
@@ -18,6 +25,11 @@ export async function PATCH(req, { params }) {
 
         if (!orderId) {
             return NextResponse.json({ error: 'orderId es requerido' }, { status: 400 });
+        }
+
+        // Validar formato de ObjectId para prevenir inyección NoSQL
+        if (!isValidObjectId(orderId)) {
+            return NextResponse.json({ error: 'ID de pedido inválido' }, { status: 400 });
         }
 
         // Si es override de staff, verificar autenticación
