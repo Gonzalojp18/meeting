@@ -4,12 +4,17 @@ import User from '@/models/User';
 import { auth } from '@/auth';
 import bcrypt from 'bcryptjs';
 
+// Roles permitidos para gestionar usuarios
+const ALLOWED_ROLES = ['admin', 'manager'];
+// Roles válidos del sistema
+const VALID_ROLES = ['admin', 'manager', 'staff'];
+
 export async function GET() {
     try {
         await dbConnect();
         const session = await auth();
 
-        if (!session || session.user.role !== 'admin') {
+        if (!session || !ALLOWED_ROLES.includes(session.user.role)) {
             return NextResponse.json({ error: 'No autorizado' }, { status: 401 });
         }
 
@@ -26,11 +31,24 @@ export async function POST(req) {
         await dbConnect();
         const session = await auth();
 
-        if (!session || session.user.role !== 'admin') {
+        if (!session || !ALLOWED_ROLES.includes(session.user.role)) {
             return NextResponse.json({ error: 'No autorizado' }, { status: 401 });
         }
 
         const { name, email, password, role, assignedLocations } = await req.json();
+
+        // Validar que el rol sea válido
+        if (!VALID_ROLES.includes(role)) {
+            return NextResponse.json({ error: 'Rol inválido' }, { status: 400 });
+        }
+
+        // SEGURIDAD: Manager solo puede crear usuarios con rol 'staff'
+        if (session.user.role === 'manager' && role !== 'staff') {
+            console.warn(`[SECURITY] Manager ${session.user.id} intentó crear usuario con rol ${role}`);
+            return NextResponse.json({
+                error: 'Solo puedes crear usuarios con rol de Staff'
+            }, { status: 403 });
+        }
 
         const userExists = await User.findOne({ email });
         if (userExists) {
@@ -45,6 +63,8 @@ export async function POST(req) {
             role,
             assignedLocations
         });
+
+        console.log(`[USER CREATED] ${session.user.role} ${session.user.id} creó usuario "${name}" (${role})`);
 
         return NextResponse.json({
             _id: newUser._id,

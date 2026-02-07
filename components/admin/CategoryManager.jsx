@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { MdEdit, MdDelete, MdAdd, MdMoreVert, MdDragIndicator, MdCloudUpload, MdCategory, MdImage } from 'react-icons/md';
+import { useSession } from 'next-auth/react';
 
 const CategoryManager = ({
   categories,
@@ -8,6 +9,8 @@ const CategoryManager = ({
   onUpdateCategory,
   onDeleteCategory
 }) => {
+  const { data: session } = useSession();
+  const token = session?.user?.token;
   const [isAdding, setIsAdding] = useState(false);
   const [editingCategory, setEditingCategory] = useState(null);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(null);
@@ -41,6 +44,9 @@ const CategoryManager = ({
 
       const response = await fetch('/api/upload', {
         method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+        },
         body: uploadData,
       });
 

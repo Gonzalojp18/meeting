@@ -4,12 +4,17 @@ import User from '@/models/User';
 import { auth } from '@/auth';
 import bcrypt from 'bcryptjs';
 
+// Roles permitidos para gestionar usuarios
+const ALLOWED_ROLES = ['admin', 'manager'];
+// Roles válidos del sistema
+const VALID_ROLES = ['admin', 'manager', 'staff'];
+
 export async function PUT(req, { params }) {
     try {
         await dbConnect();
         const session = await auth();
 
-        if (!session || session.user.role !== 'admin') {
+        if (!session || !ALLOWED_ROLES.includes(session.user.role)) {
             return NextResponse.json({ error: 'No autorizado' }, { status: 401 });
         }
 
@@ -19,6 +24,27 @@ export async function PUT(req, { params }) {
         const user = await User.findById(userId);
         if (!user) {
             return NextResponse.json({ error: 'Usuario no encontrado' }, { status: 404 });
+        }
+
+        // SEGURIDAD: Manager solo puede editar usuarios con rol 'staff'
+        if (session.user.role === 'manager') {
+            if (user.role !== 'staff') {
+                console.warn(`[SECURITY] Manager ${session.user.id} intentó editar usuario ${user.role}`);
+                return NextResponse.json({
+                    error: 'Solo puedes editar usuarios con rol de Staff'
+                }, { status: 403 });
+            }
+            // Manager no puede cambiar rol a admin o manager
+            if (role && role !== 'staff') {
+                return NextResponse.json({
+                    error: 'Solo puedes asignar rol de Staff'
+                }, { status: 403 });
+            }
+        }
+
+        // Validar que el rol sea válido
+        if (role && !VALID_ROLES.includes(role)) {
+            return NextResponse.json({ error: 'Rol inválido' }, { status: 400 });
         }
 
         user.name = name || user.name;
@@ -31,6 +57,8 @@ export async function PUT(req, { params }) {
         }
 
         await user.save();
+
+        console.log(`[USER UPDATED] ${session.user.role} ${session.user.id} actualizó usuario "${user.name}"`);
 
         return NextResponse.json({
             _id: user._id,
@@ -50,18 +78,34 @@ export async function DELETE(req, { params }) {
         await dbConnect();
         const session = await auth();
 
-        if (!session || session.user.role !== 'admin') {
+        if (!session || !ALLOWED_ROLES.includes(session.user.role)) {
             return NextResponse.json({ error: 'No autorizado' }, { status: 401 });
         }
 
         const { userId } = await params;
 
         // Prevent deleting yourself
-        if (userId === session.user._id) {
+        if (userId === session.user.id) {
             return NextResponse.json({ error: 'No puedes eliminarte a ti mismo' }, { status: 400 });
         }
 
+        const user = await User.findById(userId);
+        if (!user) {
+            return NextResponse.json({ error: 'Usuario no encontrado' }, { status: 404 });
+        }
+
+        // SEGURIDAD: Manager solo puede eliminar usuarios con rol 'staff'
+        if (session.user.role === 'manager' && user.role !== 'staff') {
+            console.warn(`[SECURITY] Manager ${session.user.id} intentó eliminar usuario ${user.role}`);
+            return NextResponse.json({
+                error: 'Solo puedes eliminar usuarios con rol de Staff'
+            }, { status: 403 });
+        }
+
         await User.findByIdAndDelete(userId);
+
+        console.log(`[USER DELETED] ${session.user.role} ${session.user.id} eliminó usuario "${user.name}"`);
+
         return NextResponse.json({ message: 'Usuario eliminado' });
     } catch (error) {
         console.error('Error deleting user:', error);

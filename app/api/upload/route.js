@@ -2,12 +2,21 @@ import { NextResponse } from 'next/server';
 import { v2 as cloudinary } from 'cloudinary';
 import { auth } from '@/auth';
 
-// Configurar Cloudinary
-cloudinary.config({
-  cloud_name: process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME,
-  api_key: process.env.CLOUDINARY_API_KEY,
-  api_secret: process.env.CLOUDINARY_API_SECRET,
-});
+// Verificar credenciales de Cloudinary al iniciar
+const CLOUDINARY_CLOUD_NAME = process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME;
+const CLOUDINARY_API_KEY = process.env.CLOUDINARY_API_KEY;
+const CLOUDINARY_API_SECRET = process.env.CLOUDINARY_API_SECRET;
+
+const isCloudinaryConfigured = CLOUDINARY_CLOUD_NAME && CLOUDINARY_API_KEY && CLOUDINARY_API_SECRET;
+
+// Configurar Cloudinary solo si hay credenciales
+if (isCloudinaryConfigured) {
+  cloudinary.config({
+    cloud_name: CLOUDINARY_CLOUD_NAME,
+    api_key: CLOUDINARY_API_KEY,
+    api_secret: CLOUDINARY_API_SECRET,
+  });
+}
 
 // Configuración de seguridad
 const ALLOWED_MIME_TYPES = [
@@ -70,6 +79,19 @@ function sanitizeFileName(fileName) {
 
 export async function POST(req) {
   try {
+    // 0. CONFIGURACIÓN: Verificar que Cloudinary esté configurado
+    if (!isCloudinaryConfigured) {
+      console.error('[UPLOAD ERROR] Cloudinary no configurado. Variables requeridas:',
+        '\n  - NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME:', CLOUDINARY_CLOUD_NAME ? '✓' : '✗ FALTA',
+        '\n  - CLOUDINARY_API_KEY:', CLOUDINARY_API_KEY ? '✓' : '✗ FALTA',
+        '\n  - CLOUDINARY_API_SECRET:', CLOUDINARY_API_SECRET ? '✓' : '✗ FALTA'
+      );
+      return NextResponse.json(
+        { error: 'Servicio de imágenes no configurado. Contacta al administrador.' },
+        { status: 503 }
+      );
+    }
+
     // 1. AUTENTICACIÓN: Verificar sesión
     const session = await auth();
 
@@ -142,16 +164,22 @@ export async function POST(req) {
     // 9. Sanitizar nombre del archivo para el log
     const safeName = sanitizeFileName(fileName);
 
-    // 10. Subir a Cloudinary
+    // 10. Subir a Cloudinary con timeout
     const uploadResponse = await new Promise((resolve, reject) => {
+      const timeout = setTimeout(() => {
+        reject(new Error('Timeout: Cloudinary no respondió en 30 segundos'));
+      }, 30000);
+
       const uploadStream = cloudinary.uploader.upload_stream(
         {
           folder: 'categories',
           resource_type: 'image',
           allowed_formats: ['jpg', 'jpeg', 'png', 'webp', 'gif'],
           max_bytes: MAX_FILE_SIZE,
+          timeout: 30000,
         },
         (error, result) => {
+          clearTimeout(timeout);
           if (error) reject(error);
           else resolve(result);
         }
@@ -169,6 +197,32 @@ export async function POST(req) {
 
   } catch (error) {
     console.error('[UPLOAD ERROR]:', error);
+
+    // Errores específicos de Cloudinary
+    if (error.http_code === 401 || error.message?.includes('Invalid')) {
+      console.error('[UPLOAD] Credenciales de Cloudinary inválidas');
+      return NextResponse.json(
+        { error: 'Error de configuración del servicio de imágenes.' },
+        { status: 503 }
+      );
+    }
+
+    if (error.http_code === 502 || error.name === 'UnexpectedResponse') {
+      console.error('[UPLOAD] Error de conexión con Cloudinary. Verifica las credenciales.');
+      return NextResponse.json(
+        { error: 'Error de conexión con el servicio de imágenes. Verifica la configuración.' },
+        { status: 503 }
+      );
+    }
+
+    if (error.message?.includes('Timeout')) {
+      console.error('[UPLOAD] Timeout al conectar con Cloudinary');
+      return NextResponse.json(
+        { error: 'El servicio de imágenes no responde. Intenta de nuevo.' },
+        { status: 504 }
+      );
+    }
+
     return NextResponse.json(
       { error: 'Error al subir la imagen.' },
       { status: 500 }

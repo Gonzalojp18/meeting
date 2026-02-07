@@ -1,8 +1,11 @@
 'use client'
 import React, { useState, useEffect } from 'react';
 import { MdAdd, MdDelete, MdCloudUpload } from 'react-icons/md';
+import { useSession } from 'next-auth/react';
 
 const ItemForm = ({ item, locations, onSubmit, onCancel }) => {
+  const { data: session } = useSession();
+  const token = session?.user?.token;
   const [formData, setFormData] = useState({
     name: '',
     description: '',
@@ -100,6 +103,9 @@ const ItemForm = ({ item, locations, onSubmit, onCancel }) => {
 
       const response = await fetch('/api/upload', {
         method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+        },
         body: uploadFormData,
       });
 

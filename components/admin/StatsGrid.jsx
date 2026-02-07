@@ -8,25 +8,28 @@ import {
     MdStore
 } from 'react-icons/md';
 
-const StatsGrid = ({ summary, deliveryStats = [] }) => {
+const StatsGrid = ({ summary = {}, deliveryStats = [] }) => {
+    // Proteger contra summary undefined
+    const safeSum = summary || {};
+
     const stats = [
         {
             label: 'Ventas Totales',
-            value: `$${(summary.totalRevenue || 0).toLocaleString('es-AR')}`,
+            value: `$${(safeSum.totalRevenue || 0).toLocaleString('es-AR')}`,
             icon: MdAttachMoney,
             color: 'bg-green-100 text-green-600',
             borderColor: 'border-green-200'
         },
         {
             label: 'Total Pedidos',
-            value: summary.orderCount || 0,
+            value: safeSum.orderCount || 0,
             icon: MdShoppingCart,
             color: 'bg-blue-100 text-blue-600',
             borderColor: 'border-blue-200'
         },
         {
             label: 'Ticket Promedio',
-            value: `$${(summary.avgTicket || 0).toLocaleString('es-AR', { maximumFractionDigits: 0 })}`,
+            value: `$${(safeSum.avgTicket || 0).toLocaleString('es-AR', { maximumFractionDigits: 0 })}`,
             icon: MdTrendingUp,
             color: 'bg-purple-100 text-purple-600',
             borderColor: 'border-purple-200'

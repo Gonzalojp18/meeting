@@ -13,6 +13,7 @@ import ReportFilters from './admin/ReportFilters';
 import SalesReportExport from './admin/SalesReportExport';
 import PrinterManagement from './admin/PrinterManagement';
 import TicketHistory from './admin/TicketHistory';
+import StaffAvailability from './admin/StaffAvailability';
 import { useFetch } from '../hooks/useFetch';
 import axios from 'axios';
 import { handleAxiosError } from '../utils/handleAxiosError';
@@ -51,6 +52,8 @@ const AdminPanel = () => {
 
   const isStaff = session?.user?.role === 'staff';
   const isAdmin = session?.user?.role === 'admin';
+  const isManager = session?.user?.role === 'manager';
+  const hasFullAccess = isAdmin || isManager; // Manager tiene casi los mismos accesos que admin
 
   const [activeTab, setActiveTab] = useState(isStaff ? 'caja' : 'dashboard');
   const [searchTerm, setSearchTerm] = useState('');
@@ -222,7 +225,8 @@ const AdminPanel = () => {
   // ========== CONFIGURACIÓN DE TABS DINÁMICA ==========
   const tabs = [];
 
-  if (isAdmin) {
+  // Admin y Manager tienen acceso completo (excepto MP Settings para manager)
+  if (hasFullAccess) {
     tabs.push({ id: 'dashboard', label: 'Dashboard', icon: MdDashboard });
     tabs.push({ id: 'products', label: 'Productos', icon: MdRestaurantMenu });
     tabs.push({ id: 'categories', label: 'Categorías', icon: MdCategory });
@@ -232,11 +236,12 @@ const AdminPanel = () => {
     tabs.push({ id: 'settings', label: 'Ajustes', icon: MdSettings });
   }
 
-  // Ambos roles tienen acceso a Caja
+  // Todos los roles tienen acceso a Caja
   tabs.push({ id: 'caja', label: 'Caja', icon: MdPointOfSale });
 
-  // Solo Staff (caja) tiene acceso a Impresoras e Historial (más operativo)
+  // Staff tiene acceso a Impresoras, Historial, y control de disponibilidad
   if (isStaff) {
+    tabs.push({ id: 'availability', label: 'Disponibilidad', icon: MdRestaurantMenu });
     tabs.push({ id: 'printers', label: 'Impresoras', icon: MdPrint });
     tabs.push({ id: 'history', label: 'Historial', icon: MdHistory });
   }
@@ -439,8 +444,8 @@ const AdminPanel = () => {
       {/* ========== MAIN CONTENT ========== */}
       <main className="max-w-[1400px] mx-auto px-4 lg:px-6 py-6 pb-24 lg:pb-6">
 
-        {/* ========== DASHBOARD TAB (Solo Admin) ========== */}
-        {activeTab === 'dashboard' && isAdmin && (
+        {/* ========== DASHBOARD TAB (Admin y Manager) ========== */}
+        {activeTab === 'dashboard' && hasFullAccess && (
           <div className="space-y-6 animate-fadeIn">
             {/* Welcome header */}
             <div className="bg-gradient-to-r from-gray-800 via-gray-900 to-black rounded-2xl p-6 lg:p-8 text-white shadow-xl shadow-gray-900/10 border border-gray-700 relative overflow-hidden">
@@ -486,7 +491,7 @@ const AdminPanel = () => {
                 ))}
               </div>
             ) : (
-              statsData && <StatsGrid summary={statsData.summary} deliveryStats={statsData.deliveryStats} />
+              <StatsGrid summary={statsData?.summary} deliveryStats={statsData?.deliveryStats} />
             )}
 
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
@@ -779,7 +784,15 @@ const AdminPanel = () => {
                 </div>
               </div>
               <div className="p-6 lg:p-8 space-y-8">
-                <MercadoPagoSettings />
+                {/* MercadoPago Settings: SOLO para admin */}
+                {isAdmin && <MercadoPagoSettings />}
+                {isManager && (
+                  <div className="bg-gray-50 border border-gray-200 rounded-lg p-4 text-center text-gray-500">
+                    <MdSettings className="h-8 w-8 mx-auto mb-2 text-gray-400" />
+                    <p className="font-medium">Credenciales de Mercado Pago</p>
+                    <p className="text-sm">Solo el administrador puede modificar las credenciales de pago</p>
+                  </div>
+                )}
                 <TakeawaySettings />
               </div>
             </div>
@@ -803,6 +816,17 @@ const AdminPanel = () => {
               </div>
               <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden min-h-[600px]">
                 <CashierPanel standalone={false} />
+              </div>
+            </div>
+          )
+        }
+
+        {/* ========== DISPONIBILIDAD TAB (Solo Staff) ========== */}
+        {
+          activeTab === 'availability' && isStaff && (
+            <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
+              <div className="p-6 lg:p-8">
+                <StaffAvailability />
               </div>
             </div>
           )

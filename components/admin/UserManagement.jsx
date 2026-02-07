@@ -11,9 +11,11 @@ const UserManagement = ({ locations }) => {
     const { data: session, status } = useSession();
     const token = session?.user?.token;
     const isAdmin = session?.user?.role === 'admin';
+    const isManager = session?.user?.role === 'manager';
+    const canManageUsers = isAdmin || isManager;
 
-    // Solo hacer fetch cuando la sesión esté lista y el usuario sea admin
-    const shouldFetch = status === 'authenticated' && isAdmin;
+    // Solo hacer fetch cuando la sesión esté lista y el usuario tenga permisos
+    const shouldFetch = status === 'authenticated' && canManageUsers;
     const { data: users, loading, error, refetch } = useFetch(
         shouldFetch ? `${API_URI}/api/admin/users` : null,
         token
@@ -97,13 +99,30 @@ const UserManagement = ({ locations }) => {
 
     if (status === 'loading' || loading) return <div className="p-8 text-center text-gray-500">Cargando usuarios...</div>;
 
-    if (!isAdmin) {
+    if (!canManageUsers) {
         return (
             <div className="p-8 text-center text-red-500">
-                No tienes permisos para acceder a esta sección. Se requiere rol de administrador.
+                No tienes permisos para acceder a esta sección. Se requiere rol de administrador o manager.
             </div>
         );
     }
+
+    // Roles disponibles según el rol del usuario actual
+    const getAvailableRoles = () => {
+        if (isAdmin) {
+            return [
+                { value: 'admin', label: 'Administrador / Owner' },
+                { value: 'manager', label: 'Manager' },
+                { value: 'staff', label: 'Staff / Caja' }
+            ];
+        }
+        // Manager solo puede crear staff
+        return [
+            { value: 'staff', label: 'Staff / Caja' }
+        ];
+    };
+
+    const availableRoles = getAvailableRoles();
 
     return (
         <div className="bg-white shadow sm:rounded-lg p-6">
@@ -135,9 +154,14 @@ const UserManagement = ({ locations }) => {
                                 <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{user.name}</td>
                                 <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{user.email}</td>
                                 <td className="px-6 py-4 whitespace-nowrap">
-                                    <span className={`px-2 py-1 text-xs font-bold rounded-full ${user.role === 'admin' ? 'bg-purple-100 text-purple-700' : 'bg-gray-100 text-gray-700'
+                                    <span className={`px-2 py-1 text-xs font-bold rounded-full ${
+                                        user.role === 'admin'
+                                            ? 'bg-purple-100 text-purple-700'
+                                            : user.role === 'manager'
+                                                ? 'bg-blue-100 text-blue-700'
+                                                : 'bg-gray-100 text-gray-700'
                                         }`}>
-                                        {user.role}
+                                        {user.role === 'admin' ? 'Admin' : user.role === 'manager' ? 'Manager' : 'Staff'}
                                     </span>
                                 </td>
                                 <td className="px-6 py-4 text-sm text-gray-500">
@@ -160,12 +184,19 @@ const UserManagement = ({ locations }) => {
                                     )}
                                 </td>
                                 <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                                    <button onClick={() => handleOpenModal(user)} className="text-orange-600 hover:text-orange-900 mr-4">
-                                        <MdEdit size={20} />
-                                    </button>
-                                    <button onClick={() => handleDelete(user._id)} className="text-red-600 hover:text-red-900">
-                                        <MdDelete size={20} />
-                                    </button>
+                                    {/* Manager no puede editar/eliminar admin o managers */}
+                                    {(isAdmin || (isManager && user.role === 'staff')) ? (
+                                        <>
+                                            <button onClick={() => handleOpenModal(user)} className="text-orange-600 hover:text-orange-900 mr-4">
+                                                <MdEdit size={20} />
+                                            </button>
+                                            <button onClick={() => handleDelete(user._id)} className="text-red-600 hover:text-red-900">
+                                                <MdDelete size={20} />
+                                            </button>
+                                        </>
+                                    ) : (
+                                        <span className="text-gray-400 text-xs italic">Sin permisos</span>
+                                    )}
                                 </td>
                             </tr>
                         ))}
@@ -215,9 +246,15 @@ const UserManagement = ({ locations }) => {
                                     value={formData.role}
                                     onChange={e => setFormData({ ...formData, role: e.target.value })}
                                 >
-                                    <option value="admin">Administrador / Owner</option>
-                                    <option value="staff">Staff / Caja</option>
+                                    {availableRoles.map(role => (
+                                        <option key={role.value} value={role.value}>{role.label}</option>
+                                    ))}
                                 </select>
+                                {isManager && (
+                                    <p className="text-xs text-gray-500 mt-1">
+                                        Como manager, solo puedes crear usuarios con rol de Staff
+                                    </p>
+                                )}
                             </div>
                             {/* Solo mostrar sedes si el rol es staff */}
                             {formData.role === 'staff' && (
