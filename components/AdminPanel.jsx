@@ -14,6 +14,7 @@ import SalesReportExport from './admin/SalesReportExport';
 import PrinterManagement from './admin/PrinterManagement';
 import TicketHistory from './admin/TicketHistory';
 import StaffAvailability from './admin/StaffAvailability';
+import AuditLogViewer from './admin/AuditLogViewer';
 import { useFetch } from '../hooks/useFetch';
 import axios from 'axios';
 import { handleAxiosError } from '../utils/handleAxiosError';
@@ -43,6 +44,7 @@ import {
   MdLocationOn,
   MdPrint,
   MdHistory,
+  MdSecurity,
 } from 'react-icons/md';
 import CashierPanel from './cashier/CashierPanel';
 
@@ -234,6 +236,11 @@ const AdminPanel = () => {
     tabs.push({ id: 'users', label: 'Usuarios', icon: MdPeople });
     tabs.push({ id: 'reports', label: 'Reportes', icon: MdDescription });
     tabs.push({ id: 'settings', label: 'Ajustes', icon: MdSettings });
+  }
+
+  // Solo admin tiene acceso a Auditoría
+  if (isAdmin) {
+    tabs.push({ id: 'audit', label: 'Auditoría', icon: MdSecurity });
   }
 
   // Todos los roles tienen acceso a Caja
@@ -871,6 +878,28 @@ const AdminPanel = () => {
               </div>
               <div className="p-6 lg:p-8">
                 <TicketHistory locations={locations} />
+              </div>
+            </div>
+          )
+        }
+
+        {/* ========== AUDITORÍA TAB (Solo Admin) ========== */}
+        {
+          activeTab === 'audit' && isAdmin && (
+            <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
+              <div className="bg-gradient-to-r from-slate-50 to-slate-100 border-b border-slate-200 p-6">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <h2 className="text-xl font-bold text-slate-900 mb-1">Registro de Auditoría</h2>
+                    <p className="text-sm text-slate-700">Historial de acciones y cambios realizados por los usuarios</p>
+                  </div>
+                  <div className="p-4 bg-slate-700 rounded-xl shadow-lg">
+                    <MdSecurity className="h-8 w-8 text-white" />
+                  </div>
+                </div>
+              </div>
+              <div className="p-6 lg:p-8">
+                <AuditLogViewer />
               </div>
             </div>
           )

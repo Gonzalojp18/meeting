@@ -3,6 +3,7 @@ import dbConnect from '@/utils/dbConnect';
 import User from '@/models/User';
 import { auth } from '@/auth';
 import bcrypt from 'bcryptjs';
+import { logUserUpdated, logUserDeleted } from '@/utils/auditLogger';
 
 // Roles permitidos para gestionar usuarios
 const ALLOWED_ROLES = ['admin', 'manager'];
@@ -60,6 +61,9 @@ export async function PUT(req, { params }) {
 
         console.log(`[USER UPDATED] ${session.user.role} ${session.user.id} actualizó usuario "${user.name}"`);
 
+        // Registrar en audit log
+        await logUserUpdated(session, user, { name, email, role, assignedLocations });
+
         return NextResponse.json({
             _id: user._id,
             name: user.name,
@@ -105,6 +109,9 @@ export async function DELETE(req, { params }) {
         await User.findByIdAndDelete(userId);
 
         console.log(`[USER DELETED] ${session.user.role} ${session.user.id} eliminó usuario "${user.name}"`);
+
+        // Registrar en audit log
+        await logUserDeleted(session, user);
 
         return NextResponse.json({ message: 'Usuario eliminado' });
     } catch (error) {

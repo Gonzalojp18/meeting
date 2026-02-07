@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import dbConnect from '@/utils/dbConnect';
 import Menu from '@/models/Menu';
 import jwt from 'jsonwebtoken';
+import { logAuditFromJWT } from '@/utils/auditLoggerJWT';
 
 // @desc Update Item in Menu
 // @route PUT /api/menu/category/:categoryId/item/:itemId
@@ -45,6 +46,15 @@ export async function PUT(req, { params }) {
 
     Object.assign(item, updatedItem);
     await menu.save();
+
+    // Registrar en audit log
+    await logAuditFromJWT(req, {
+      action: 'UPDATE',
+      entity: 'dish',
+      entityId: itemId,
+      entityName: item.name || updatedItem.name,
+      details: `Actualizó el plato "${item.name || updatedItem.name}" en la categoría "${category.name}"`
+    });
 
     return NextResponse.json({ msg: 'Item was successfully updated' });
   } catch (error) {
@@ -92,8 +102,18 @@ export async function DELETE(req, { params }) {
       return NextResponse.json({ error: 'Item not found' }, { status: 404 });
     }
 
+    const deletedItem = category.items[itemIndex];
     category.items.splice(itemIndex, 1);
     await menu.save();
+
+    // Registrar en audit log
+    await logAuditFromJWT(req, {
+      action: 'DELETE',
+      entity: 'dish',
+      entityId: itemId,
+      entityName: deletedItem.name,
+      details: `Eliminó el plato "${deletedItem.name}" de la categoría "${category.name}"`
+    });
 
     return NextResponse.json({ msg: `Item with the id ${itemId} was successfully deleted` });
   } catch (error) {

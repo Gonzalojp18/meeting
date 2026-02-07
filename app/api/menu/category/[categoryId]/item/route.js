@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import dbConnect from '@/utils/dbConnect';
 import Menu from '@/models/Menu';
 import jwt from 'jsonwebtoken';
+import { logAuditFromJWT } from '@/utils/auditLoggerJWT';
 
 // @desc Add Item to Category
 // @route POST /api/menu/category/:categoryId/item
@@ -39,6 +40,16 @@ export async function POST(req, { params }) {
 
     category.items.push(newItem);
     await menu.save();
+
+    // Registrar en audit log
+    const createdItem = category.items[category.items.length - 1];
+    await logAuditFromJWT(req, {
+      action: 'CREATE',
+      entity: 'dish',
+      entityId: createdItem._id?.toString(),
+      entityName: newItem.name,
+      details: `Creó el plato "${newItem.name}" en la categoría "${category.name}"`
+    });
 
     return NextResponse.json({ data: newItem }, { status: 201 });
   } catch (error) {

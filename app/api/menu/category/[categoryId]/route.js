@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import dbConnect from '@/utils/dbConnect';
 import Menu from '@/models/Menu';
 import jwt from 'jsonwebtoken';
+import { logAuditFromJWT } from '@/utils/auditLoggerJWT';
 
 // @desc Update Category
 // @route PUT /api/menu/category/:categoryId
@@ -52,9 +53,18 @@ export async function PUT(req, { params }) {
 
     await menu.save();
 
-    return NextResponse.json({ 
+    // Registrar en audit log
+    await logAuditFromJWT(req, {
+      action: 'UPDATE',
+      entity: 'category',
+      entityId: categoryId,
+      entityName: category.name,
+      details: `Actualizó la categoría "${category.name}"`
+    });
+
+    return NextResponse.json({
       message: 'Category updated successfully',
-      data: category 
+      data: category
     });
   } catch (error) {
     console.error('PUT /api/menu/category/[categoryId] error:', error);
@@ -100,7 +110,16 @@ export async function DELETE(req, { params }) {
 
     await menu.save();
 
-    return NextResponse.json({ 
+    // Registrar en audit log
+    await logAuditFromJWT(req, {
+      action: 'DELETE',
+      entity: 'category',
+      entityId: categoryId,
+      entityName: category.name,
+      details: `Eliminó (desactivó) la categoría "${category.name}"`
+    });
+
+    return NextResponse.json({
       message: 'Category deactivated successfully'
     });
   } catch (error) {

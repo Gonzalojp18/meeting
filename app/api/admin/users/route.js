@@ -3,6 +3,7 @@ import dbConnect from '@/utils/dbConnect';
 import User from '@/models/User';
 import { auth } from '@/auth';
 import bcrypt from 'bcryptjs';
+import { logUserCreated } from '@/utils/auditLogger';
 
 // Roles permitidos para gestionar usuarios
 const ALLOWED_ROLES = ['admin', 'manager'];
@@ -65,6 +66,9 @@ export async function POST(req) {
         });
 
         console.log(`[USER CREATED] ${session.user.role} ${session.user.id} creó usuario "${name}" (${role})`);
+
+        // Registrar en audit log
+        await logUserCreated(session, newUser);
 
         return NextResponse.json({
             _id: newUser._id,

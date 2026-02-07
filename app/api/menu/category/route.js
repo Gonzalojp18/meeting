@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import dbConnect from '@/utils/dbConnect';
 import Menu from '@/models/Menu';
 import jwt from 'jsonwebtoken';
+import { logAuditFromJWT } from '@/utils/auditLoggerJWT';
 
 // @desc Create Category
 // @route POST /api/menu/category
@@ -43,9 +44,20 @@ export async function POST(req) {
 
     await menu.save();
 
-    return NextResponse.json({ 
+    const createdCategory = menu.categories[menu.categories.length - 1];
+
+    // Registrar en audit log
+    await logAuditFromJWT(req, {
+      action: 'CREATE',
+      entity: 'category',
+      entityId: createdCategory._id?.toString(),
+      entityName: newCategory.name,
+      details: `Creó la categoría "${newCategory.name}"`
+    });
+
+    return NextResponse.json({
       message: 'Category created successfully',
-      data: menu.categories[menu.categories.length - 1] 
+      data: menu.categories[menu.categories.length - 1]
     }, { status: 201 });
   } catch (error) {
     console.error('POST /api/menu/category error:', error);
