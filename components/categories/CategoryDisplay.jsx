@@ -11,7 +11,7 @@ const styles = {
     featured: featuredStyles,
 };
 
-const Category = ({ category, locationId, isTakeaway = false }) => {
+const Category = ({ category, locationId, isTakeaway = false, displayOnly = false }) => {
     const { items: cartItems, addItem, removeItem } = useCartStore();
     const style = styles[category.style || 'default'];
     const [modalItem, setModalItem] = useState(null);
@@ -53,7 +53,7 @@ const Category = ({ category, locationId, isTakeaway = false }) => {
                 {/* Header de categoría estilo referencia */}
                 <motion.div
                     id={`category-${category._id}`}
-                    className="bg-[#8fa9bc] py-3 px-4 mb-4 scroll-mt-48"
+                    className="bg-gradient-to-r from-orange-500 to-orange-600 py-3 px-4 mb-4 scroll-mt-48"
                     initial={{ opacity: 0, x: -20 }}
                     animate={{ opacity: 1, x: 0 }}
                     transition={{ duration: 0.4 }}
@@ -69,7 +69,7 @@ const Category = ({ category, locationId, isTakeaway = false }) => {
                         const quantity = getItemQuantity(item._id);
                         const itemHasCustomizations = hasCustomizations(item);
                         const isAvailable = item.isAvailable !== false;
-                        const itemPrice = item.prices[locationId] || item.prices;
+                        const itemPrice = item.prices?.[locationId] || item.prices || 0;
 
                         return (
                             <motion.div
@@ -110,14 +110,14 @@ const Category = ({ category, locationId, isTakeaway = false }) => {
                                                 {itemPrice > 0 ? `$${itemPrice.toLocaleString()}` : ''}
                                             </span>
 
-                                            {/* Controles */}
-                                            {isAvailable ? (
+                                            {/* Controles - Solo si no es displayOnly */}
+                                            {!displayOnly && isAvailable ? (
                                                 <>
                                                     {/* Sin customizaciones y sin cantidad */}
                                                     {!itemHasCustomizations && quantity === 0 && (
                                                         <button
                                                             onClick={() => addItem({ ...item, price: itemPrice }, locationId)}
-                                                            className="w-9 h-9 bg-gray-200 text-gray-600 rounded-full flex items-center justify-center hover:bg-gray-300 transition-colors"
+                                                            className="w-9 h-9 bg-orange-100 text-orange-600 rounded-full flex items-center justify-center hover:bg-orange-200 transition-colors"
                                                         >
                                                             <MdAdd size={22} />
                                                         </button>
@@ -128,14 +128,14 @@ const Category = ({ category, locationId, isTakeaway = false }) => {
                                                         <div className="flex items-center gap-2">
                                                             <button
                                                                 onClick={() => removeItem(item._id, locationId)}
-                                                                className="w-7 h-7 bg-gray-200 text-gray-600 rounded-full flex items-center justify-center hover:bg-gray-300 transition-colors"
+                                                                className="w-7 h-7 bg-orange-100 text-orange-600 rounded-full flex items-center justify-center hover:bg-orange-200 transition-colors"
                                                             >
                                                                 <MdRemove size={18} />
                                                             </button>
                                                             <span className="font-bold text-sm min-w-[20px] text-center">{quantity}</span>
                                                             <button
                                                                 onClick={() => addItem({ ...item, price: itemPrice }, locationId)}
-                                                                className="w-7 h-7 bg-gray-200 text-gray-600 rounded-full flex items-center justify-center hover:bg-gray-300 transition-colors"
+                                                                className="w-7 h-7 bg-orange-100 text-orange-600 rounded-full flex items-center justify-center hover:bg-orange-200 transition-colors"
                                                             >
                                                                 <MdAdd size={18} />
                                                             </button>
@@ -152,18 +152,18 @@ const Category = ({ category, locationId, isTakeaway = false }) => {
                                                             )}
                                                             <button
                                                                 onClick={() => setModalItem(item)}
-                                                                className="w-9 h-9 bg-gray-200 text-gray-600 rounded-full flex items-center justify-center hover:bg-gray-300 transition-colors"
+                                                                className="w-9 h-9 bg-orange-100 text-orange-600 rounded-full flex items-center justify-center hover:bg-orange-200 transition-colors"
                                                             >
                                                                 <MdAdd size={22} />
                                                             </button>
                                                         </div>
                                                     )}
                                                 </>
-                                            ) : (
+                                            ) : !displayOnly && !isAvailable ? (
                                                 <span className="text-xs font-medium text-red-500 bg-red-50 px-2 py-1 rounded-full">
                                                     No disponible
                                                 </span>
-                                            )}
+                                            ) : null}
                                         </div>
                                     </div>
                                 </div>
@@ -241,7 +241,7 @@ const Category = ({ category, locationId, isTakeaway = false }) => {
                                             </button>
                                             <span className="font-bold text-sm">{quantity}</span>
                                             <button
-                                                onClick={() => addItem({ ...item, price: item.prices[locationId] || item.prices }, locationId)}
+                                                onClick={() => addItem({ ...item, price: item.prices?.[locationId] || item.prices || 0 }, locationId)}
                                                 className="p-1 bg-gray-100 rounded-full text-gray-600 hover:bg-orange-100 hover:text-orange-600 transition-colors"
                                             >
                                                 <MdAdd size={18} />
@@ -260,12 +260,12 @@ const Category = ({ category, locationId, isTakeaway = false }) => {
                                 </div>
                                 <div className="text-right flex flex-col items-end gap-2">
                                     <p className={style.price}>
-                                        {item.prices[locationId] > 0 ? `$${item.prices[locationId].toLocaleString()}` : item.prices > 0 ? `$${item.prices.toLocaleString()}` : ''}
+                                        {item.prices?.[locationId] > 0 ? `$${item.prices[locationId].toLocaleString()}` : (typeof item.prices === 'number' && item.prices > 0) ? `$${item.prices.toLocaleString()}` : ''}
                                     </p>
                                     {/* Botón agregar - Items SIN customizations, disponibles */}
                                     {isTakeaway && isAvailable && !itemHasCustomizations && quantity === 0 && (
                                         <button
-                                            onClick={() => addItem({ ...item, price: item.prices[locationId] || item.prices }, locationId)}
+                                            onClick={() => addItem({ ...item, price: item.prices?.[locationId] || item.prices || 0 }, locationId)}
                                             className="bg-orange-500 text-white p-2 rounded-full hover:bg-orange-600 transition-all shadow-md active:scale-95"
                                         >
                                             <MdAdd size={20} />

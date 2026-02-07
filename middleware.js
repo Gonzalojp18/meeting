@@ -123,7 +123,7 @@ export default async function middleware(request) {
                             { status: 403 }
                         );
                     }
-                    return NextResponse.redirect(new URL('/menu/harrods', request.url));
+                    return NextResponse.redirect(new URL('/', request.url));
                 }
             }
 
@@ -150,23 +150,10 @@ export default async function middleware(request) {
         }
     }
 
-    // Ruta raíz - redirigir según autenticación
+    // Ruta raíz - dejar que app/page.jsx maneje la lógica
+    // (muestra AdminPanel para staff/admin/manager, PublicHomePage para el resto)
     if (pathname === '/') {
-        try {
-            const session = await auth();
-            if (session) {
-                // Usuario autenticado con rol de staff/admin/manager - ir al panel admin
-                // El AdminPanel maneja internamente qué tabs mostrar según el rol
-                const role = session.user?.role;
-                if (role === 'admin' || role === 'manager' || role === 'staff') {
-                    return NextResponse.redirect(new URL('/admin', request.url));
-                }
-            }
-            // No autenticado o sin rol específico - ir al menú
-            return NextResponse.redirect(new URL('/menu/harrods', request.url));
-        } catch {
-            return NextResponse.redirect(new URL('/menu/harrods', request.url));
-        }
+        return NextResponse.next();
     }
 
     // Redirigir /login si ya está autenticado

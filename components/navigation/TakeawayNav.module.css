@@ -64,7 +64,7 @@
   width: 70px;
   height: 70px;
   border-radius: 50%;
-  border: 3px solid #b8c5d1;
+  border: 3px solid #fdba74;
   padding: 3px;
   background: #fff;
   transition: all 0.3s ease;
@@ -72,8 +72,8 @@
 }
 
 .categoryItem.active .imageWrapper {
-  border-color: #6b9ac4;
-  box-shadow: 0 0 0 2px rgba(107, 154, 196, 0.3);
+  border-color: #f97316;
+  box-shadow: 0 0 0 2px rgba(249, 115, 22, 0.3);
 }
 
 .categoryImage {
@@ -87,7 +87,7 @@
   width: 100%;
   height: 100%;
   border-radius: 50%;
-  background: linear-gradient(135deg, #e8f0f5 0%, #d1dde6 100%);
+  background: linear-gradient(135deg, #fff7ed 0%, #fed7aa 100%);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -96,7 +96,7 @@
 .placeholderImage span {
   font-size: 1.5rem;
   font-weight: 700;
-  color: #6b9ac4;
+  color: #f97316;
   text-transform: uppercase;
 }
 
@@ -134,7 +134,7 @@
 }
 
 .activeDot {
-  background: #6b9ac4;
+  background: #f97316;
   width: 8px;
   height: 8px;
 }

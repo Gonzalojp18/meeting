@@ -63,6 +63,9 @@ const MenuDisplay = ({ locationId }) => {
 
   const isTakeaway = menuMode === 'takeaway';
 
+  // location3 es solo para mostrar el menú, sin funcionalidad de compra
+  const isDisplayOnly = locationId === 'location3';
+
   if (loading) return <div className="min-h-screen flex items-center justify-center">
     <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-orange-500"></div>
   </div>;
@@ -161,8 +164,8 @@ const MenuDisplay = ({ locationId }) => {
             </p>
           </div>
         )}
-        {(!isTakeaway || isStoreOpen) && activeCategories.map((category) => (
-          <CategoryDisplay key={category._id} category={category} locationId={locationId} isTakeaway={isTakeaway} />
+        {(!isTakeaway || isStoreOpen || isDisplayOnly) && activeCategories.map((category) => (
+          <CategoryDisplay key={category._id} category={category} locationId={locationId} isTakeaway={isTakeaway || isDisplayOnly} displayOnly={isDisplayOnly} />
         ))}
         <BrandsSection />
         <WeatherWidget />
@@ -170,8 +173,8 @@ const MenuDisplay = ({ locationId }) => {
         <MainFooter />
       </main>
 
-      {/* Floating Cart Button - Solo en modo Takeaway y dentro de horario */}
-      {isTakeaway && isStoreOpen && cartCount > 0 && (
+      {/* Floating Cart Button - Solo en modo Takeaway, dentro de horario y NO displayOnly */}
+      {isTakeaway && isStoreOpen && !isDisplayOnly && cartCount > 0 && (
         <Link
           href={`/checkout/${locationId}`}
           className="fixed bottom-[15%] left-1/2 -translate-x-1/2 z-50 bg-orange-600 text-white px-6 py-2 rounded-full shadow-2xl flex items-center gap-4 hover:bg-orange-700 transition-all hover:scale-105 active:scale-95 w-[90%] max-w-md animate-in fade-in slide-in-from-bottom-4 duration-300"
