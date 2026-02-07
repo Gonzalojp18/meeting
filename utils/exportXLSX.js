@@ -18,6 +18,14 @@ const paymentLabels = {
     refunded: 'Reembolsado'
 };
 
+const refundLabels = {
+    none: '-',
+    pending: 'Pendiente',
+    processing: 'Procesando',
+    completed: 'Completado',
+    failed: 'Fallido'
+};
+
 export function exportSalesReportXLSX(orders, { startDate, endDate, locationName }) {
     const data = orders.map(order => ({
         'Numero Pedido': order.orderNumber || '-',
@@ -35,6 +43,11 @@ export function exportSalesReportXLSX(orders, { startDate, endDate, locationName
         'Estado Pedido': statusLabels[order.status] || order.status,
         'Estado Pago': paymentLabels[order.paymentStatus] || order.paymentStatus,
         'Metodo Pago': order.paymentMethod || '-',
+        'Motivo Cancelacion': order.cancellationReason || '',
+        'Fecha Cancelacion': order.cancelledAt ? format(new Date(order.cancelledAt), 'dd/MM/yyyy HH:mm', { locale: es }) : '',
+        'Estado Reembolso': refundLabels[order.refund?.status] || '-',
+        'ID Reembolso MP': order.refund?.mercadoPagoRefundId || '',
+        'Monto Reembolsado': order.refund?.amount || 0,
         'Notas': order.notes || ''
     }));
 
@@ -56,6 +69,11 @@ export function exportSalesReportXLSX(orders, { startDate, endDate, locationName
         { wch: 14 },  // Estado Pedido
         { wch: 14 },  // Estado Pago
         { wch: 16 },  // Metodo Pago
+        { wch: 25 },  // Motivo Cancelacion
+        { wch: 20 },  // Fecha Cancelacion
+        { wch: 16 },  // Estado Reembolso
+        { wch: 20 },  // ID Reembolso MP
+        { wch: 16 },  // Monto Reembolsado
         { wch: 30 },  // Notas
     ];
 

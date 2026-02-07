@@ -29,7 +29,8 @@ export async function GET(req) {
 
         const matchQuery = {
             createdAt: { $gte: start, $lte: end },
-            status: { $nin: ['cancelled'] } // Excluir cancelados de las métricas de venta
+            canBeCounted: true, // ⬅️ Solo pedidos válidos (excluye cancelados/reembolsados)
+            status: { $nin: ['cancelled'] } // Seguridad adicional
         };
 
         if (locationId) {
@@ -74,10 +75,44 @@ export async function GET(req) {
                     revenue: { $sum: '$total' }
                 }
             }
+        ])
+
+        // 4. Estadísticas de cancelaciones (nuevas métricas)
+        const cancellationQuery = {
+            createdAt: { $gte: start, $lte: end },
+            status: 'cancelled'
+        };
+
+        if (locationId) {
+            cancellationQuery['location.locationId'] = locationId;
+        }
+
+        const cancellationStats = await Order.aggregate([
+            { $match: cancellationQuery },
+            {
+                $group: {
+                    _id: null,
+                    cancelledCount: { $sum: 1 },
+                    refundedAmount: { $sum: '$total' }
+                }
+            }
         ]);
 
+        const cancellations = cancellationStats[0] || { cancelledCount: 0, refundedAmount: 0 };
+
+        // Calcular tasa de cancelación
+        const totalOrdersIncludingCancelled = (generalStats[0]?.orderCount || 0) + cancellations.cancelledCount;
+        const cancellationRate = totalOrdersIncludingCancelled > 0
+            ? ((cancellations.cancelledCount / totalOrdersIncludingCancelled) * 100).toFixed(2)
+            : '0.00';
+
         return NextResponse.json({
-            summary: generalStats[0] || { totalRevenue: 0, orderCount: 0, avgTicket: 0 },
+            summary: {
+                ...(generalStats[0] || { totalRevenue: 0, orderCount: 0, avgTicket: 0 }),
+                cancelledOrders: cancellations.cancelledCount,
+                refundedAmount: cancellations.refundedAmount,
+                cancellationRate: `${cancellationRate}%`
+            },
             topDishes,
             deliveryStats
         });

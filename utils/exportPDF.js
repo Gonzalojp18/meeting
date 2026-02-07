@@ -43,15 +43,16 @@ export function exportSalesReportPDF(orders, { startDate, endDate, locationName 
     );
 
     // --- Resumen ---
-    const totalRevenue = orders.reduce((sum, o) => sum + (o.total || 0), 0);
+    const totalRevenue = orders.reduce((sum, o) => sum + (o.canBeCounted ? (o.total || 0) : 0), 0);
+    const totalRefunded = orders.reduce((sum, o) => sum + (o.refund?.status === 'completed' ? (o.refund.amount || 0) : 0), 0);
     const completed = orders.filter(o => o.status === 'completed').length;
     const cancelled = orders.filter(o => o.status === 'cancelled').length;
-    const pending = orders.length - completed - cancelled;
+    const pending = orders.filter(o => o.status === 'pending' || o.status === 'confirmed' || o.status === 'preparing' || o.status === 'ready').length;
 
-    doc.setFontSize(10);
+    doc.setFontSize(9);
     doc.setTextColor(31, 41, 55);
     doc.text(
-        `Total Pedidos: ${orders.length}   |   Ventas: $${totalRevenue.toLocaleString('es-AR')}   |   Completados: ${completed}   |   Cancelados: ${cancelled}   |   Otros: ${pending}`,
+        `Total Pedidos: ${orders.length}   |   Ventas: $${totalRevenue.toLocaleString('es-AR')}   |   Reembolsado: $${totalRefunded.toLocaleString('es-AR')}   |   Completados: ${completed}   |   Cancelados: ${cancelled}`,
         14,
         44
     );
@@ -71,7 +72,7 @@ export function exportSalesReportPDF(orders, { startDate, endDate, locationName 
         `$${(order.deliveryFee || 0).toLocaleString('es-AR')}`,
         `$${(order.total || 0).toLocaleString('es-AR')}`,
         statusLabels[order.status] || order.status,
-        paymentLabels[order.paymentStatus] || order.paymentStatus
+        order.refund?.status === 'completed' ? 'Reembolsado' : (paymentLabels[order.paymentStatus] || order.paymentStatus)
     ]);
 
     autoTable(doc, {

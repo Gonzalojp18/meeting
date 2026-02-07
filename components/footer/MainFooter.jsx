@@ -66,7 +66,7 @@ const MainFooter = () => {
                                     <path d="M18 8.118l-8 4-8-4V14a2 2 0 002 2h12a2 2 0 002-2V8.118z" />
                                 </svg>
                                 <a href="mailto:contacto@restaurante.com" className="text-gray-400 hover:text-white">
-                                meetingrestobarclub@gmail.com
+                                    meetingrestobarclub@gmail.com
                                 </a>
                             </div>
                             <div className="flex items-center">
@@ -77,7 +77,7 @@ const MainFooter = () => {
                             </div>
                             <div className="flex items-center mx-auto">
                                 {/* Social Media Section */}
-                                    <SocialLinks />
+                                <SocialLinks />
                             </div>
                         </div>
                     </div>
@@ -95,7 +95,7 @@ const MainFooter = () => {
 
                     <br />
 
-                    © Copyright - Desarrollado y gestionado por Click and Think. Encontrános en <a href="https://www.clickthinkai.com">www.clickthinkai.com</a>
+                    © Copyright - Desarrollado y gestionado por Click and Think. Encontrános en <a href="https://www.instagram.com/clickandthinkai/" target="_blank">www.clickthinkai.com</a>
                 </div>
             </div>
         </footer>

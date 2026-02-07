@@ -160,6 +160,38 @@ const orderSchema = new mongoose.Schema(
     },
     customerPickupAt: Date,
 
+    // Información de reembolso/cancelación
+    refund: {
+      status: {
+        type: String,
+        enum: ['none', 'pending', 'processing', 'completed', 'failed'],
+        default: 'none'
+      },
+      requestedAt: Date,
+      requestedBy: { // Cliente que solicitó
+        name: String,
+        phone: String,
+        email: String
+      },
+      processedAt: Date,
+      processedBy: { // Admin/Manager que procesó
+        userId: mongoose.Schema.Types.ObjectId,
+        userName: String,
+        userRole: String
+      },
+      mercadoPagoRefundId: String,
+      amount: Number,
+      reason: String,
+      notes: String, // Notas internas del admin
+      errorMessage: String // Para capturar errores de MP
+    },
+
+    // Flag para excluir de métricas (cancelados/reembolsados)
+    canBeCounted: {
+      type: Boolean,
+      default: true
+    },
+
     // Soft Delete flag
     isDeleted: {
       type: Boolean,
@@ -187,7 +219,12 @@ const orderSchema = new mongoose.Schema(
   },
   {
     timestamps: true,
-  },
+  }
 );
+
+// Índices para consultas eficientes
+orderSchema.index({ 'refund.status': 1, createdAt: -1 });
+orderSchema.index({ canBeCounted: 1, createdAt: -1 });
+orderSchema.index({ status: 1, 'location.locationId': 1 });
 
 export default mongoose.models.Order || mongoose.model("Order", orderSchema);

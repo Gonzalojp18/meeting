@@ -15,6 +15,7 @@ import PrinterManagement from './admin/PrinterManagement';
 import TicketHistory from './admin/TicketHistory';
 import StaffAvailability from './admin/StaffAvailability';
 import AuditLogViewer from './admin/AuditLogViewer';
+import RefundManagement from './admin/RefundManagement';
 import { useFetch } from '../hooks/useFetch';
 import axios from 'axios';
 import { handleAxiosError } from '../utils/handleAxiosError';
@@ -235,6 +236,7 @@ const AdminPanel = () => {
     tabs.push({ id: 'promotions', label: 'Promociones', icon: MdLocalOffer });
     tabs.push({ id: 'users', label: 'Usuarios', icon: MdPeople });
     tabs.push({ id: 'reports', label: 'Reportes', icon: MdDescription });
+    tabs.push({ id: 'refunds', label: 'Reembolsos', icon: MdAttachMoney });
     tabs.push({ id: 'settings', label: 'Ajustes', icon: MdSettings });
   }
 
@@ -882,6 +884,13 @@ const AdminPanel = () => {
             </div>
           )
         }
+
+        {/* ========== REEMBOLSOS TAB (Admin y Manager) ========== */}
+        {activeTab === 'refunds' && hasFullAccess && (
+          <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6 lg:p-8 animate-fadeIn">
+            <RefundManagement />
+          </div>
+        )}
 
         {/* ========== AUDITORÍA TAB (Solo Admin) ========== */}
         {
