@@ -1,5 +1,5 @@
 'use client';
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { MdPrint, MdSearch, MdAdd, MdDelete, MdCheckCircle, MdError, MdRefresh, MdDns, MdClose } from 'react-icons/md';
 
 const PrinterManagement = ({ locations = [] }) => {
@@ -18,6 +18,18 @@ const PrinterManagement = ({ locations = [] }) => {
     const [formData, setFormData] = useState({
         name: '', uid: '', ip: '', port: 9100, paperWidth: 80, roles: ['kitchen'], locationId: ''
     });
+
+    const formRef = useRef(null);
+
+    // Scroll automático al formulario cuando se abre (editar o crear)
+    useEffect(() => {
+        if ((isAdding || editingPrinter) && formRef.current) {
+            // Timeout para asegurar que el renderizado y la animación inicial no interfieran
+            setTimeout(() => {
+                formRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            }, 100);
+        }
+    }, [isAdding, editingPrinter]);
 
     useEffect(() => {
         if (locations.length > 0) {
@@ -337,7 +349,7 @@ const PrinterManagement = ({ locations = [] }) => {
 
             {/* Formulario (Vincular o Editar Roles) */}
             {(isAdding || editingPrinter) && (
-                <form onSubmit={handleSave} className="bg-white p-6 rounded-2xl border border-indigo-100 shadow-xl shadow-indigo-50 space-y-5 animate-in zoom-in-95 duration-200">
+                <form ref={formRef} onSubmit={handleSave} className="bg-white p-6 rounded-2xl border border-indigo-100 shadow-xl shadow-indigo-50 space-y-5 animate-in zoom-in-95 duration-200">
                     <div className="flex items-center justify-between border-b pb-4 mb-4">
                         <h3 className="font-bold text-gray-800 flex items-center gap-2">
                             <MdCheckCircle className="text-emerald-500" />

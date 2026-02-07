@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { MdEdit, MdDelete, MdAdd, MdMoreVert, MdDragIndicator, MdCloudUpload, MdCategory, MdImage } from 'react-icons/md';
 import { useSession } from 'next-auth/react';
 
@@ -23,6 +23,15 @@ const CategoryManager = ({
     locations: [],
     schedule: { availableFrom: '', availableTo: '' }
   });
+
+  const formRef = useRef(null);
+
+  useEffect(() => {
+    if (isAdding && formRef.current) {
+      // Scroll suave hacia el formulario cuando se abre para editar o crear
+      formRef.current.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }
+  }, [isAdding, editingCategory]);
 
   const getInitialFormData = () => ({
     name: '',
@@ -148,7 +157,7 @@ const CategoryManager = ({
 
       {/* ========== FORM ========== */}
       {isAdding && (
-        <div className="mb-6 p-6 bg-gradient-to-br from-purple-50 to-purple-100/50 rounded-2xl border-2 border-purple-200 shadow-lg">
+        <div ref={formRef} className="mb-6 p-6 bg-gradient-to-br from-purple-50 to-purple-100/50 rounded-2xl border-2 border-purple-200 shadow-lg">
           <div className="flex items-center gap-3 mb-5">
             <div className="p-2.5 bg-purple-500 rounded-xl">
               <MdCategory className="h-6 w-6 text-white" />
