@@ -1,20 +1,24 @@
 'use client';
-import { MdRestaurant, MdDeliveryDining } from 'react-icons/md';
-import { motion } from 'framer-motion';
+import { useState } from 'react';
+import { MdRestaurant, MdDeliveryDining, MdSchedule } from 'react-icons/md';
+import { motion, AnimatePresence } from 'framer-motion';
 
 const ModeToggle = ({ currentMode, onModeChange, isTakeawayAvailable, takeawayHours }) => {
     const isLocal = currentMode === 'local';
+    const [showUnavailableToast, setShowUnavailableToast] = useState(false);
 
     const handleToggle = () => {
         if (isLocal && !isTakeawayAvailable) {
-            // No permitir cambiar a takeaway si está fuera de horario
+            // Mostrar toast de horario no disponible
+            setShowUnavailableToast(true);
+            setTimeout(() => setShowUnavailableToast(false), 3000);
             return;
         }
         onModeChange(isLocal ? 'takeaway' : 'local');
     };
 
     return (
-        <div className="flex items-center gap-2">
+        <div className="relative flex items-center gap-2">
             {/* Toggle Container */}
             <button
                 onClick={handleToggle}
@@ -55,12 +59,29 @@ const ModeToggle = ({ currentMode, onModeChange, isTakeawayAvailable, takeawayHo
                 </div>
             </button>
 
-            {/* Horario indicator */}
-            {!isTakeawayAvailable && (
-                <span className="text-[10px] text-gray-400 font-medium hidden sm:block">
-                    {takeawayHours?.open}-{takeawayHours?.close}hs
-                </span>
-            )}
+            {/* Toast de horario no disponible */}
+            <AnimatePresence>
+                {showUnavailableToast && (
+                    <motion.div
+                        initial={{ opacity: 0, y: -10, scale: 0.9 }}
+                        animate={{ opacity: 1, y: 0, scale: 1 }}
+                        exit={{ opacity: 0, y: -10, scale: 0.9 }}
+                        className="absolute top-full mt-3 right-0 bg-gray-900 text-white rounded-xl px-4 py-3 shadow-xl min-w-[200px] z-50"
+                    >
+                        <div className="flex items-center gap-2">
+                            <MdSchedule className="w-5 h-5 text-orange-400 flex-shrink-0" />
+                            <div>
+                                <p className="text-sm font-semibold">Takeaway cerrado</p>
+                                <p className="text-xs text-gray-300">
+                                    Horario: {takeawayHours?.open}hs - {takeawayHours?.close}hs
+                                </p>
+                            </div>
+                        </div>
+                        {/* Arrow/Triangle pointing up */}
+                        <div className="absolute -top-2 right-4 w-0 h-0 border-l-8 border-r-8 border-b-8 border-l-transparent border-r-transparent border-b-gray-900" />
+                    </motion.div>
+                )}
+            </AnimatePresence>
         </div>
     );
 };

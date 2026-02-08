@@ -1,5 +1,5 @@
 'use client'
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useEffect } from 'react';
 import { useFetch } from '../hooks/useFetch';
 import CategoryDisplay from './categories/CategoryDisplay';
 import { CategoryNav } from './navigation';
@@ -43,9 +43,11 @@ const isTimeInRange = (currentTime, openTime, closeTime) => {
   return currentTime >= openTime && currentTime <= closeTime;
 };
 
+
 const MenuDisplay = ({ locationId }) => {
   const router = useRouter();
   const [menuMode, setMenuMode] = useState(null); // 'local' | 'takeaway'
+  const [isStoreOpen, setIsStoreOpen] = useState(true); // Default to true to avoid flash
 
   const { data, loading, error } = useFetch(`${API_URI}/api/menu/${locationId}`)
   const { items: cartItems, getCartCount, getCartTotal } = useCartStore();
@@ -69,22 +71,54 @@ const MenuDisplay = ({ locationId }) => {
     localStorage.setItem(`menuMode_${locationId}`, newMode);
   }, [locationId]);
 
+  // Calcular horas de takeaway
+  const globalHours = data?.takeawayHours || DEFAULT_TAKEAWAY_HOURS;
+
+  // Calcular hora solo en el cliente para evitar hydration mismatch
+  useEffect(() => {
+    const checkStoreHours = () => {
+      const now = getCurrentTimeArgentina();
+      setIsStoreOpen(isTimeInRange(now, globalHours.open, globalHours.close));
+    };
+    checkStoreHours();
+    // Actualizar cada minuto
+    const interval = setInterval(checkStoreHours, 60000);
+    return () => clearInterval(interval);
+  }, [globalHours.open, globalHours.close]);
+
   const isTakeaway = menuMode === 'takeaway';
 
   // location3 es solo para mostrar el menú, sin funcionalidad de compra
   const isDisplayOnly = locationId === 'location3';
 
-  if (loading) return <div className="min-h-screen flex items-center justify-center">
-    <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-orange-500"></div>
-  </div>;
+  // Renderizar ModeSelector siempre para que pueda setear el modo
+  // Sin esto, el componente se queda en loading infinito
+  if (loading) return (
+    <>
+      <ModeSelector locationId={locationId} onModeSelect={handleModeSelect} takeawayHours={globalHours} isDisplayOnly={isDisplayOnly} />
+      <div className="min-h-screen flex items-center justify-center bg-gray-100">
+        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-orange-500"></div>
+      </div>
+    </>
+  );
 
-  if (error) return <FullScreenError message='404' buttonText='Regresar al inicio' onButtonClick={() => router.push('/')} />;
+  // Esperar a que se seleccione el modo (el ModeSelector ya está montado arriba o en el return principal)
+  if (!menuMode) return (
+    <>
+      <ModeSelector locationId={locationId} onModeSelect={handleModeSelect} takeawayHours={globalHours} isDisplayOnly={isDisplayOnly} />
+      <div className="min-h-screen flex items-center justify-center bg-gray-100">
+        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-orange-500"></div>
+      </div>
+    </>
+  );
+
+  if (error) return <FullScreenError message='404' buttonText='Regresar al inicio' onClick={() => router.push('/')} />;
 
   // Defensa: verificar que data y categories existan
   const categories = data?.categories || [];
-  const globalHours = data?.takeawayHours || DEFAULT_TAKEAWAY_HOURS;
-  const now = getCurrentTimeArgentina();
-  const isStoreOpen = isTimeInRange(now, globalHours.open, globalHours.close);
+
+  // Obtener hora actual para filtrar categorías
+  const now = typeof window !== 'undefined' ? getCurrentTimeArgentina() : globalHours.open;
 
   // Filtrar categorías activas y que apliquen a esta sede
   const activeCategories = categories.filter(category => {
@@ -113,7 +147,7 @@ const MenuDisplay = ({ locationId }) => {
 
       {/* Toggle de modo - siempre visible (oculto para displayOnly) */}
       {menuMode && !isDisplayOnly && (
-        <div className="fixed top-[10%] right-4 z-40 bg-white/95 backdrop-blur-sm shadow-lg rounded-full p-1.5 border border-gray-100">
+        <div className="fixed top-4 right-4 z-40 bg-white/95 backdrop-blur-sm shadow-lg rounded-full p-1.5 border border-gray-100">
           <ModeToggle
             currentMode={menuMode}
             onModeChange={handleToggleMode}
@@ -156,7 +190,6 @@ const MenuDisplay = ({ locationId }) => {
             <Image className='m-auto' src="/logo.png" alt="logo.png" width={200} height={300} />
             <p className="text-center text-xl mb-8 italic text-menu px-4">
               Bienvenido a nuestro menú digital. Explorá nuestras deliciosas opciones y disfrutá de una experiencia.<br />
-              <span className="text-orange-600 font-bold block mt-2">Sede: {locationId}</span>
               <span className='text-sm font-bold block mt-2 text-gray-500'>"Comés como en casa, pero sin lavar los platos!"</span>
             </p>
           </motion.div>

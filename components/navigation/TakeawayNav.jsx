@@ -70,8 +70,9 @@ const TakeawayNav = ({ categories = [] }) => {
               src="/logo.png"
               alt="Logo"
               className={styles.logo}
-              width={140}
-              height={50}
+              width={400}
+              height={300}
+              priority
             />
           </Link>
         </div>
