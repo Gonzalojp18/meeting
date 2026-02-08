@@ -3,10 +3,10 @@ import { useState, useEffect, useCallback } from 'react';
 import Image from 'next/image';
 
 const images = [
+    '/home/mmodelo.PNG',
     '/home/almuerzo.png',
     '/home/cafe.PNG',
     '/home/jugos.PNG',
-    '/home/mmodelo.PNG',
     '/home/sald.PNG',
     '/home/sand.PNG',
     '/home/wrap.PNG',
@@ -29,36 +29,32 @@ const HomeCarousel = () => {
             {images.map((src, index) => (
                 <div
                     key={src}
-                    className={`absolute inset-0 transition-opacity duration-700 ease-in-out ${index === currentIndex ? 'opacity-100' : 'opacity-0'
+                    className={`absolute inset-0 transition-opacity duration-1000 ease-in-out ${index === currentIndex ? 'opacity-100' : 'opacity-0'
                         }`}
                 >
                     <Image
                         src={src}
                         alt={`Slide ${index + 1}`}
                         fill
-                        className="object-cover object-center"
+                        sizes="100vw"
+                        quality={90}
+                        className="object-cover"
                         priority={index === 0}
                     />
+                    {/* Overlay de sombra desde arriba */}
+                    <div
+                        className="absolute inset-0 bg-gradient-to-b from-white/40 via-white/20 to-transparent pointer-events-none"
+                    />
                 </div>
+
+
             ))}
 
-            {/* Gradient overlay for better button visibility */}
-            <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-transparent to-transparent" />
+            {/* Soft overlay - efecto suave como en la referencia */}
+            <div className="absolute inset-0 bg-gradient-to-b from-white/30 via-transparent to-black/50 pointer-events-none" />
 
-            {/* Dots indicator */}
-            <div className="absolute bottom-4 left-1/2 -translate-x-1/2 flex gap-2 z-10">
-                {images.map((_, index) => (
-                    <button
-                        key={index}
-                        onClick={() => setCurrentIndex(index)}
-                        className={`w-2 h-2 rounded-full transition-all ${index === currentIndex
-                            ? 'bg-white w-6'
-                            : 'bg-white/50 hover:bg-white/75'
-                            }`}
-                        aria-label={`Go to slide ${index + 1}`}
-                    />
-                ))}
-            </div>
+            {/* Vignette effect */}
+            <div className="absolute inset-0 shadow-[inset_0_0_150px_rgba(0,0,0,0.3)] pointer-events-none" />
         </div>
     );
 };

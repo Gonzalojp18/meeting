@@ -145,7 +145,7 @@ const MenuDisplay = ({ locationId }) => {
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.6, ease: "easeOut" }}
           >
-            <Image className='m-auto' src="/logo.png" alt="logo.png" width={200} height={100} />
+            <Image className='m-auto' src="/logo.png" alt="logo.png" width={600} height={400} />
             <p className="text-center text-xl mb-8 italic text-menu px-4">
               Bienvenido a nuestro menú digital. Explorá nuestras deliciosas opciones y disfrutá de una experiencia.<br />
               <span className="text-orange-600 font-bold block mt-2">Sede: {locationId}</span>
