@@ -12,7 +12,7 @@ export default function PublicHomePage() {
                 <HomeCarousel />
 
                 {/* Action Buttons - estilo frosted glass como la referencia */}
-                <div className="absolute bottom-28 left-1/2 -translate-x-1/2 z-20 w-full max-w-md px-4">
+                <div className="absolute bottom-[20%] left-1/2 -translate-x-1/2 z-20 w-full max-w-md px-4">
                     <div className="flex gap-3 justify-center">
                         {/* TakeAway Button - Frosted glass style */}
                         <Link
