@@ -1,5 +1,6 @@
 'use client';
 import Link from 'next/link';
+import Image from 'next/image';
 import HomeCarousel from './HomeCarousel';
 import BottomNav from '../navigation/BottomNav';
 import { MdStorefront, MdRestaurantMenu } from 'react-icons/md';
@@ -10,6 +11,20 @@ export default function PublicHomePage() {
             {/* Carousel - ocupa todo menos el nav (64px) */}
             <div className="flex-1 relative overflow-hidden">
                 <HomeCarousel />
+
+                {/* Logo - positioned at top center */}
+                <div className="absolute top-6 left-1/2 -translate-x-1/2 z-20">
+                    <div className="rounded-2xl">
+                        <Image
+                            src="/logo.png"
+                            alt="Meeting Restobar"
+                            width={200}
+                            height={100}
+                            className="object-cover"
+                            priority
+                        />
+                    </div>
+                </div>
 
                 {/* Action Buttons - estilo frosted glass como la referencia */}
                 <div className="absolute bottom-[15%] left-1/2 -translate-x-1/2 z-20 w-full max-w-md px-4">
