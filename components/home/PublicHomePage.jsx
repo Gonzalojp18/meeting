@@ -13,13 +13,13 @@ export default function PublicHomePage() {
                 <HomeCarousel />
 
                 {/* Logo - positioned at top center */}
-                <div className="absolute top-6 left-1/2 -translate-x-1/2 z-20">
+                <div className="absolute top-6 left-1/2 -translate-x-1/2 z-20 overflow-hidden">
                     <div className="rounded-2xl">
                         <Image
                             src="/logo.png"
                             alt="Meeting Restobar"
-                            width={200}
-                            height={100}
+                            width={300}
+                            height={200}
                             className="object-cover"
                             priority
                         />
