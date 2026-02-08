@@ -8,11 +8,11 @@ export default function PublicHomePage() {
     return (
         <div className="h-screen flex flex-col bg-neutral-100 overflow-hidden">
             {/* Carousel - ocupa todo menos el nav (64px) */}
-            <div className="flex-1 relative">
+            <div className="flex-1 relative overflow-hidden">
                 <HomeCarousel />
 
                 {/* Action Buttons - estilo frosted glass como la referencia */}
-                <div className="absolute bottom-[20%] left-1/2 -translate-x-1/2 z-20 w-full max-w-md px-4">
+                <div className="absolute bottom-[15%] left-1/2 -translate-x-1/2 z-20 w-full max-w-md px-4">
                     <div className="flex gap-3 justify-center">
                         {/* TakeAway Button - Frosted glass style */}
                         <Link
