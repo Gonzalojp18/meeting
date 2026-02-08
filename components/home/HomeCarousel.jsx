@@ -29,7 +29,7 @@ const HomeCarousel = () => {
             {images.map((src, index) => (
                 <div
                     key={src}
-                    className={`absolute inset-0 transition-opacity duration-1000 ease-in-out ${index === currentIndex ? 'opacity-100' : 'opacity-0'
+                    className={`absolute inset-0 overflow-hidden transition-opacity duration-1000 ease-in-out ${index === currentIndex ? 'opacity-100' : 'opacity-0'
                         }`}
                 >
                     <Image
