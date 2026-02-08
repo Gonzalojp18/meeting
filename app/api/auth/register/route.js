@@ -7,7 +7,8 @@ export async function POST(req) {
     try {
         await dbConnect();
 
-        const { name, email, password, role } = await req.json();
+        // 🔒 SECURITY: No aceptamos 'role' del cliente - solo name, email, password
+        const { name, email, password } = await req.json();
 
         if (!name || !email || !password) {
             return NextResponse.json(
@@ -16,7 +17,24 @@ export async function POST(req) {
             );
         }
 
-        const existingUser = await User.findOne({ email });
+        // 🔒 Validar formato de email
+        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+        if (!emailRegex.test(email)) {
+            return NextResponse.json(
+                { error: { message: 'Formato de email inválido' } },
+                { status: 400 }
+            );
+        }
+
+        // 🔒 Validar longitud mínima de contraseña
+        if (password.length < 8) {
+            return NextResponse.json(
+                { error: { message: 'La contraseña debe tener mínimo 8 caracteres' } },
+                { status: 400 }
+            );
+        }
+
+        const existingUser = await User.findOne({ email: email.toLowerCase().trim() });
         if (existingUser) {
             return NextResponse.json(
                 { error: { message: 'El email ya está registrado' } },
@@ -24,14 +42,15 @@ export async function POST(req) {
             );
         }
 
-        const salt = await bcrypt.genSalt(10);
+        // 🔒 Aumentar cost factor de bcrypt a 12
+        const salt = await bcrypt.genSalt(12);
         const hashedPassword = await bcrypt.hash(password, salt);
 
         const user = await User.create({
-            name,
-            email,
+            name: name.trim(),
+            email: email.toLowerCase().trim(),
             password: hashedPassword,
-            ...(role && { role })
+            role: 'user' // 🔒 SIEMPRE 'user' en registro público - admins se crean desde /api/admin/users
         });
 
         return NextResponse.json({

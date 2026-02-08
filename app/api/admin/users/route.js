@@ -51,12 +51,27 @@ export async function POST(req) {
             }, { status: 403 });
         }
 
-        const userExists = await User.findOne({ email });
+        const userExists = await User.findOne({ email: email.toLowerCase().trim() });
         if (userExists) {
             return NextResponse.json({ error: 'El usuario ya existe' }, { status: 400 });
         }
 
-        const hashedPassword = await bcrypt.hash(password, 10);
+        // 🔒 SECURITY: Validar complejidad de contraseña (VULN-012)
+        if (!password || password.length < 8) {
+            return NextResponse.json({ error: 'La contraseña debe tener mínimo 8 caracteres' }, { status: 400 });
+        }
+        if (!/[A-Z]/.test(password)) {
+            return NextResponse.json({ error: 'La contraseña debe incluir al menos una mayúscula' }, { status: 400 });
+        }
+        if (!/[a-z]/.test(password)) {
+            return NextResponse.json({ error: 'La contraseña debe incluir al menos una minúscula' }, { status: 400 });
+        }
+        if (!/[0-9]/.test(password)) {
+            return NextResponse.json({ error: 'La contraseña debe incluir al menos un número' }, { status: 400 });
+        }
+
+        // 🔒 SECURITY: Aumentar bcrypt cost factor a 12 (VULN-013)
+        const hashedPassword = await bcrypt.hash(password, 12);
         const newUser = await User.create({
             name,
             email,

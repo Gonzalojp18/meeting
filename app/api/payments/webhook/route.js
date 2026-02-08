@@ -1,14 +1,80 @@
 import { NextResponse } from 'next/server';
 import { MercadoPagoConfig, Payment, MerchantOrder } from 'mercadopago';
+import crypto from 'crypto';
 import dbConnect from '@/utils/dbConnect';
 import Order from '@/models/Order';
 import { getMPCredentials } from '@/utils/getMPCredentials';
+
+// 🔒 SECURITY: Validate MercadoPago webhook signature (VULN-002)
+function validateMPSignature(req, secret, dataId) {
+    const xSignature = req.headers.get('x-signature');
+    const xRequestId = req.headers.get('x-request-id');
+
+    // Si no hay firma, rechazar en producción, permitir en desarrollo para testing
+    if (!xSignature || !xRequestId) {
+        if (process.env.NODE_ENV === 'production') {
+            console.warn('[WEBHOOK SECURITY] Missing signature headers in production');
+            return false;
+        }
+        console.warn('[WEBHOOK SECURITY] Missing signature - allowed in development');
+        return true;
+    }
+
+    try {
+        // Parsear los componentes de la firma: ts=xxx,v1=xxx
+        const signatureParts = xSignature.split(',').reduce((acc, part) => {
+            const [key, value] = part.split('=');
+            if (key && value) {
+                acc[key.trim()] = value.trim();
+            }
+            return acc;
+        }, {});
+
+        const ts = signatureParts['ts'];
+        const v1 = signatureParts['v1'];
+
+        if (!ts || !v1) {
+            console.warn('[WEBHOOK SECURITY] Invalid signature format');
+            return false;
+        }
+
+        // Construir el manifest según documentación de MP
+        // Template: id:[data.id];request-id:[x-request-id];ts:[ts];
+        const manifest = `id:${dataId};request-id:${xRequestId};ts:${ts};`;
+
+        // Calcular HMAC-SHA256
+        const hmac = crypto.createHmac('sha256', secret);
+        hmac.update(manifest);
+        const calculatedSignature = hmac.digest('hex');
+
+        // Comparación timing-safe para prevenir timing attacks
+        const signatureBuffer = Buffer.from(v1, 'hex');
+        const calculatedBuffer = Buffer.from(calculatedSignature, 'hex');
+
+        if (signatureBuffer.length !== calculatedBuffer.length) {
+            console.warn('[WEBHOOK SECURITY] Signature length mismatch');
+            return false;
+        }
+
+        const isValid = crypto.timingSafeEqual(signatureBuffer, calculatedBuffer);
+
+        if (!isValid) {
+            console.warn('[WEBHOOK SECURITY] Signature validation failed');
+        }
+
+        return isValid;
+    } catch (error) {
+        console.error('[WEBHOOK SECURITY] Error validating signature:', error.message);
+        return false;
+    }
+}
 
 export async function POST(req) {
     try {
         const url = new URL(req.url);
         const queryId = url.searchParams.get('id');
         const queryTopic = url.searchParams.get('topic');
+        const dataId = url.searchParams.get('data.id') || queryId;
 
         // Leer body por si es un Webhook (JSON)
         let body = {};
@@ -25,8 +91,24 @@ export async function POST(req) {
         console.log(`[WEBHOOK START] Received: ${req.method} ${req.url}`);
         console.log('[WEBHOOK HOST] Host Header:', req.headers.get('host'));
         console.log(`[WEBHOOK PARAMS] Topic: ${topic}, ID: ${id}`);
-        console.log('[WEBHOOK BODY]:', JSON.stringify(body, null, 2));
+        // 🔒 No loguear el body completo en producción (puede contener datos sensibles)
+        if (process.env.NODE_ENV === 'development') {
+            console.log('[WEBHOOK BODY]:', JSON.stringify(body, null, 2));
+        }
         console.log('---------------------------------------------------');
+
+        // 🔒 SECURITY: Validar firma del webhook
+        const webhookSecret = process.env.MP_WEBHOOK_SECRET;
+        if (webhookSecret) {
+            if (!validateMPSignature(req, webhookSecret, dataId || id)) {
+                console.error('[WEBHOOK SECURITY] ❌ Invalid signature - possible attack');
+                return NextResponse.json({ error: 'Invalid signature' }, { status: 401 });
+            }
+            console.log('[WEBHOOK SECURITY] ✅ Signature validated');
+        } else if (process.env.NODE_ENV === 'production') {
+            console.error('[WEBHOOK SECURITY] ⚠️ MP_WEBHOOK_SECRET not configured in production!');
+            // En producción sin secret, aún procesamos pero logueamos warning
+        }
 
         if (!id || (topic !== 'payment' && topic !== 'merchant_order')) {
             console.log(`[WEBHOOK] Ignorado: Topic ${topic} no manejado.`);
@@ -86,7 +168,6 @@ export async function POST(req) {
         console.log(`[WEBHOOK] Procesando Pago ${paymentInfo.id}: Estado=${paymentInfo.status} (${paymentInfo.status_detail})`);
 
         // Si NO está aprobado, solo logueamos y salimos (no creamos orden)
-        // IMPORTANTE: Aquí es donde ves por qué salen rechazados los "create-preference"
         if (paymentInfo.status !== 'approved') {
             console.warn(`[WEBHOOK] Pago NO APROBADO. Razón: ${paymentInfo.status_detail}`);
             return NextResponse.json({ received: true });
@@ -95,7 +176,7 @@ export async function POST(req) {
         // --- Creación de Orden ---
         await dbConnect();
 
-        // Evitar duplicados
+        // Evitar duplicados (idempotencia)
         const existingOrder = await Order.findOne({ mercadoPagoId: paymentInfo.id.toString() });
         if (existingOrder) {
             console.log(`[WEBHOOK] La orden ${existingOrder.orderNumber} ya existe.`);
@@ -119,9 +200,17 @@ export async function POST(req) {
         const customerData = typeof customerDataRaw === 'string' ? JSON.parse(customerDataRaw) : customerDataRaw;
         const items = typeof itemsRaw === 'string' ? JSON.parse(itemsRaw) : itemsRaw;
 
-        // Generar Order Number
+        // 🔒 SECURITY: Generar Order Number de forma más segura (VULN-011 parcial)
         const orderCount = await Order.countDocuments();
-        const orderNumber = `ORD-${String(orderCount + 1).padStart(4, '0')}`;
+        const timestamp = Date.now().toString(36).toUpperCase();
+        const orderNumber = `ORD-${String(orderCount + 1).padStart(4, '0')}-${timestamp.slice(-4)}`;
+
+        // 🔒 SECURITY: Sanitizar y limitar notas (VULN-009)
+        const MAX_NOTES_LENGTH = 500;
+        const sanitizedNotes = (customerData.notes || '')
+            .toString()
+            .trim()
+            .substring(0, MAX_NOTES_LENGTH);
 
         const newOrder = new Order({
             orderNumber,
@@ -144,7 +233,7 @@ export async function POST(req) {
             status: 'pending', // Pending de "Preparación", pero pagado
             subtotal: total,
             total,
-            notes: customerData.notes || ''
+            notes: sanitizedNotes
         });
 
         await newOrder.save();
@@ -154,7 +243,11 @@ export async function POST(req) {
 
     } catch (error) {
         console.error('[WEBHOOK CRASH]:', error);
-        return NextResponse.json({ error: error.message }, { status: 500 });
+        // 🔒 SECURITY: No exponer detalles del error en producción (VULN-008)
+        const errorMessage = process.env.NODE_ENV === 'production'
+            ? 'Internal server error'
+            : error.message;
+        return NextResponse.json({ error: errorMessage }, { status: 500 });
     }
 }
 

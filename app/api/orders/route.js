@@ -74,8 +74,8 @@ export async function POST(req) {
 
         return NextResponse.json(newOrder, { status: 201 });
     } catch (error) {
-        console.error('Error creating order:', error);
-        require('fs').appendFileSync('debug-server-error.log', `[${new Date().toISOString()}] Error: ${error.message}\nStack: ${error.stack}\n`);
+        // 🔒 SECURITY: Only log to console, don't write to files (VULN-008)
+        console.error('Error creating order:', error.message);
         return NextResponse.json({ error: 'Error al crear el pedido' }, { status: 500 });
     }
 }

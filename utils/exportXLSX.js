@@ -26,29 +26,53 @@ const refundLabels = {
     failed: 'Fallido'
 };
 
+/**
+ * 🔒 SECURITY: Sanitize values to prevent CSV/Formula Injection (VULN-007)
+ * Prefixes dangerous characters with apostrophe to prevent Excel formula execution
+ * @param {any} value - Value to sanitize
+ * @returns {string} - Sanitized string safe for Excel
+ */
+function sanitizeForExcel(value) {
+    if (value === null || value === undefined) return '';
+    if (typeof value === 'number') return value;
+
+    const str = String(value).trim();
+    if (!str) return '';
+
+    // Characters that trigger formula execution in Excel
+    const dangerousChars = ['=', '+', '-', '@', '\t', '\r', '\n', '|'];
+
+    // If starts with dangerous char, prefix with apostrophe (Excel text indicator)
+    if (dangerousChars.some(char => str.startsWith(char))) {
+        return "'" + str;
+    }
+
+    return str;
+}
+
 export function exportSalesReportXLSX(orders, { startDate, endDate, locationName }) {
     const data = orders.map(order => ({
-        'Numero Pedido': order.orderNumber || '-',
+        'Numero Pedido': sanitizeForExcel(order.orderNumber || '-'),
         'Fecha': format(new Date(order.createdAt), 'dd/MM/yyyy', { locale: es }),
         'Hora': format(new Date(order.createdAt), 'HH:mm'),
-        'Cliente': `${order.customer?.name || ''} ${order.customer?.lastname || ''}`.trim(),
-        'Telefono': order.customer?.phone || '',
-        'Email': order.customer?.email || '',
-        'Sede': order.location?.locationName || '-',
-        'Metodo Entrega': order.deliveryMethod || '-',
-        'Items': (order.items || []).map(i => `${i.quantity}x ${i.name}`).join('; '),
+        'Cliente': sanitizeForExcel(`${order.customer?.name || ''} ${order.customer?.lastname || ''}`.trim()),
+        'Telefono': sanitizeForExcel(order.customer?.phone || ''),
+        'Email': sanitizeForExcel(order.customer?.email || ''),
+        'Sede': sanitizeForExcel(order.location?.locationName || '-'),
+        'Metodo Entrega': sanitizeForExcel(order.deliveryMethod || '-'),
+        'Items': sanitizeForExcel((order.items || []).map(i => `${i.quantity}x ${i.name}`).join('; ')),
         'Subtotal': order.subtotal || 0,
         'Envio': order.deliveryFee || 0,
         'Total': order.total || 0,
         'Estado Pedido': statusLabels[order.status] || order.status,
         'Estado Pago': paymentLabels[order.paymentStatus] || order.paymentStatus,
-        'Metodo Pago': order.paymentMethod || '-',
-        'Motivo Cancelacion': order.cancellationReason || '',
+        'Metodo Pago': sanitizeForExcel(order.paymentMethod || '-'),
+        'Motivo Cancelacion': sanitizeForExcel(order.cancellationReason || ''),
         'Fecha Cancelacion': order.cancelledAt ? format(new Date(order.cancelledAt), 'dd/MM/yyyy HH:mm', { locale: es }) : '',
         'Estado Reembolso': refundLabels[order.refund?.status] || '-',
-        'ID Reembolso MP': order.refund?.mercadoPagoRefundId || '',
+        'ID Reembolso MP': sanitizeForExcel(order.refund?.mercadoPagoRefundId || ''),
         'Monto Reembolsado': order.refund?.amount || 0,
-        'Notas': order.notes || ''
+        'Notas': sanitizeForExcel(order.notes || '')
     }));
 
     const ws = XLSX.utils.json_to_sheet(data);
