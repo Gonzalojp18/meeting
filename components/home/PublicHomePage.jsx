@@ -29,18 +29,21 @@ export default function PublicHomePage() {
                 {/* Action Buttons - estilo frosted glass como la referencia */}
                 <div className="absolute bottom-[15%] left-1/2 -translate-x-1/2 z-20 w-full max-w-md px-4">
                     <div className="flex gap-3 justify-center">
-                        {/* TakeAway Button - Frosted glass style */}
+                        {/* TakeAway Button - Frosted glass style with location info */}
                         <Link
-                            href="/menu/location1"
-                            className="flex-1 flex items-center justify-center gap-2 bg-orange-500/90 backdrop-blur-md text-white rounded-full py-3 px-6 shadow-lg hover:bg-orange-600/90 transition-all active:scale-[0.97] border border-white/20"
+                            href="/menu/location1?mode=takeaway"
+                            className="flex-1 flex flex-col items-center justify-center gap-1 bg-orange-500/90 backdrop-blur-md text-white rounded-full py-3 px-6 shadow-lg hover:bg-orange-600/90 transition-all active:scale-[0.97] border border-white/20"
                         >
-                            <MdStorefront className="w-5 h-5" />
-                            <span className="text-sm font-semibold tracking-wide uppercase">Takeaway</span>
+                            <div className="flex items-center gap-2">
+                                <MdStorefront className="w-5 h-5" />
+                                <span className="text-sm font-semibold tracking-wide uppercase">Takeaway</span>
+                            </div>
+                            <span className="text-[10px] font-medium opacity-90">Solo en Harrods</span>
                         </Link>
 
                         {/* Menu Button - Frosted glass light style */}
                         <Link
-                            href="/menu/location3"
+                            href="/menu/location3?mode=takeaway"
                             className="flex-1 flex items-center justify-center gap-2 bg-white/70 backdrop-blur-md text-gray-700 rounded-full py-3 px-6 shadow-lg hover:bg-white/90 transition-all active:scale-[0.97] border border-white/50"
                         >
                             <MdRestaurantMenu className="w-5 h-5 text-orange-600" />

@@ -5,7 +5,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { MdRestaurant, MdDeliveryDining } from 'react-icons/md';
 import { DEFAULT_TAKEAWAY_HOURS, isWithinTakeawayHours } from '@/utils/constants';
 
-const ModeSelector = ({ locationId, onModeSelect, takeawayHours, isDisplayOnly = false }) => {
+const ModeSelector = ({ locationId, onModeSelect, takeawayHours, isDisplayOnly = false, urlMode = null }) => {
     const [isOpen, setIsOpen] = useState(false);
     const onModeSelectRef = useRef(onModeSelect);
 
@@ -24,7 +24,20 @@ const ModeSelector = ({ locationId, onModeSelect, takeawayHours, isDisplayOnly =
             return;
         }
 
-        // Verificar si ya hay un modo seleccionado para esta ubicación
+        // Priority 1: URL mode parameter (viene desde home o link directo con parámetro)
+        if (urlMode && (urlMode === 'local' || urlMode === 'takeaway')) {
+            // Si el modo es 'takeaway' pero está fuera de horario, forzar 'local'
+            if (urlMode === 'takeaway' && !isTakeawayAvailable) {
+                localStorage.setItem(`menuMode_${locationId}`, 'local');
+                onModeSelectRef.current('local');
+            } else {
+                localStorage.setItem(`menuMode_${locationId}`, urlMode);
+                onModeSelectRef.current(urlMode);
+            }
+            return;
+        }
+
+        // Priority 2: Verificar si ya hay un modo seleccionado en localStorage
         const savedMode = localStorage.getItem(`menuMode_${locationId}`);
         if (savedMode) {
             // Si el modo guardado es 'takeaway' pero está fuera de horario, forzar 'local'
@@ -35,9 +48,10 @@ const ModeSelector = ({ locationId, onModeSelect, takeawayHours, isDisplayOnly =
                 onModeSelectRef.current(savedMode);
             }
         } else {
+            // Priority 3: Mostrar modal (solo cuando no hay URL mode ni localStorage)
             setIsOpen(true);
         }
-    }, [locationId, isTakeawayAvailable, isDisplayOnly]);
+    }, [locationId, isTakeawayAvailable, isDisplayOnly, urlMode]);
 
     const handleSelectMode = (mode) => {
         localStorage.setItem(`menuMode_${locationId}`, mode);
@@ -91,8 +105,8 @@ const ModeSelector = ({ locationId, onModeSelect, takeawayHours, isDisplayOnly =
                                     onClick={() => isTakeawayAvailable && handleSelectMode('takeaway')}
                                     disabled={!isTakeawayAvailable}
                                     className={`w-full p-6 rounded-2xl transition-all duration-300 shadow-lg ${isTakeawayAvailable
-                                            ? 'bg-gradient-to-r from-orange-500 to-orange-600 text-white hover:from-orange-600 hover:to-orange-700 hover:shadow-xl transform hover:-translate-y-1'
-                                            : 'bg-gray-200 text-gray-500 cursor-not-allowed'
+                                        ? 'bg-gradient-to-r from-orange-500 to-orange-600 text-white hover:from-orange-600 hover:to-orange-700 hover:shadow-xl transform hover:-translate-y-1'
+                                        : 'bg-gray-200 text-gray-500 cursor-not-allowed'
                                         }`}
                                 >
                                     <div className="flex items-center justify-center gap-4">

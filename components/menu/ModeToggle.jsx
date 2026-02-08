@@ -3,11 +3,19 @@ import { useState } from 'react';
 import { MdRestaurant, MdDeliveryDining, MdSchedule } from 'react-icons/md';
 import { motion, AnimatePresence } from 'framer-motion';
 
-const ModeToggle = ({ currentMode, onModeChange, isTakeawayAvailable, takeawayHours }) => {
+const ModeToggle = ({ currentMode, onModeChange, isTakeawayAvailable, takeawayHours, isDisplayOnly = false }) => {
     const isLocal = currentMode === 'local';
     const [showUnavailableToast, setShowUnavailableToast] = useState(false);
+    const [showDisplayOnlyToast, setShowDisplayOnlyToast] = useState(false);
 
     const handleToggle = () => {
+        // Si es display only (location3), mostrar toast y no permitir cambio
+        if (isDisplayOnly) {
+            setShowDisplayOnlyToast(true);
+            setTimeout(() => setShowDisplayOnlyToast(false), 2500);
+            return;
+        }
+
         if (isLocal && !isTakeawayAvailable) {
             // Mostrar toast de horario no disponible
             setShowUnavailableToast(true);
@@ -28,10 +36,10 @@ const ModeToggle = ({ currentMode, onModeChange, isTakeawayAvailable, takeawayHo
                 {/* Background slider */}
                 <motion.div
                     className={`absolute h-8 rounded-full ${isLocal ? 'w-24' : 'w-[88px]'} ${isLocal
-                            ? 'bg-gray-800'
-                            : isTakeawayAvailable
-                                ? 'bg-orange-500'
-                                : 'bg-gray-400'
+                        ? 'bg-gray-800'
+                        : isTakeawayAvailable
+                            ? 'bg-orange-500'
+                            : 'bg-gray-400'
                         }`}
                     initial={false}
                     animate={{
@@ -79,6 +87,30 @@ const ModeToggle = ({ currentMode, onModeChange, isTakeawayAvailable, takeawayHo
                         </div>
                         {/* Arrow/Triangle pointing up */}
                         <div className="absolute -top-2 right-4 w-0 h-0 border-l-8 border-r-8 border-b-8 border-l-transparent border-r-transparent border-b-gray-900" />
+                    </motion.div>
+                )}
+            </AnimatePresence>
+
+            {/* Toast de modo solo lectura (display-only) */}
+            <AnimatePresence>
+                {showDisplayOnlyToast && (
+                    <motion.div
+                        initial={{ opacity: 0, y: -10, scale: 0.9 }}
+                        animate={{ opacity: 1, y: 0, scale: 1 }}
+                        exit={{ opacity: 0, y: -10, scale: 0.9 }}
+                        className="absolute top-full mt-3 right-0 bg-blue-900 text-white rounded-xl px-4 py-3 shadow-xl min-w-[200px] z-50"
+                    >
+                        <div className="flex items-center gap-2">
+                            <MdRestaurant className="w-5 h-5 text-blue-400 flex-shrink-0" />
+                            <div>
+                                <p className="text-sm font-semibold">Menú de consulta</p>
+                                <p className="text-xs text-blue-200">
+                                    Este menú es solo para visualización
+                                </p>
+                            </div>
+                        </div>
+                        {/* Arrow/Triangle pointing up */}
+                        <div className="absolute -top-2 right-4 w-0 h-0 border-l-8 border-r-8 border-b-8 border-l-transparent border-r-transparent border-b-blue-900" />
                     </motion.div>
                 )}
             </AnimatePresence>

@@ -6,6 +6,7 @@ import { CategoryNav } from './navigation';
 import TakeawayNav from './navigation/TakeawayNav';
 import BrandsSection from './brands/BrandsSection';
 import Image from 'next/image';
+import { useSearchParams } from 'next/navigation';
 
 // import Promotion from './promo/Promotions' // TODO: Comentado temporalmente para takeaway
 import { FullScreenError } from './Error'
@@ -46,6 +47,8 @@ const isTimeInRange = (currentTime, openTime, closeTime) => {
 
 const MenuDisplay = ({ locationId }) => {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const urlMode = searchParams.get('mode'); // 'local' | 'takeaway' | null
   const [menuMode, setMenuMode] = useState(null); // 'local' | 'takeaway'
   const [isStoreOpen, setIsStoreOpen] = useState(true); // Default to true to avoid flash
 
@@ -95,7 +98,7 @@ const MenuDisplay = ({ locationId }) => {
   // Sin esto, el componente se queda en loading infinito
   if (loading) return (
     <>
-      <ModeSelector locationId={locationId} onModeSelect={handleModeSelect} takeawayHours={globalHours} isDisplayOnly={isDisplayOnly} />
+      <ModeSelector locationId={locationId} onModeSelect={handleModeSelect} takeawayHours={globalHours} isDisplayOnly={isDisplayOnly} urlMode={urlMode} />
       <div className="min-h-screen flex items-center justify-center bg-gray-100">
         <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-orange-500"></div>
       </div>
@@ -105,7 +108,7 @@ const MenuDisplay = ({ locationId }) => {
   // Esperar a que se seleccione el modo (el ModeSelector ya está montado arriba o en el return principal)
   if (!menuMode) return (
     <>
-      <ModeSelector locationId={locationId} onModeSelect={handleModeSelect} takeawayHours={globalHours} isDisplayOnly={isDisplayOnly} />
+      <ModeSelector locationId={locationId} onModeSelect={handleModeSelect} takeawayHours={globalHours} isDisplayOnly={isDisplayOnly} urlMode={urlMode} />
       <div className="min-h-screen flex items-center justify-center bg-gray-100">
         <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-orange-500"></div>
       </div>
@@ -140,19 +143,20 @@ const MenuDisplay = ({ locationId }) => {
   return (
     <div className='min-h-screen bg-gray-100 relative'>
       {/* Modal selector de modo */}
-      <ModeSelector locationId={locationId} onModeSelect={handleModeSelect} takeawayHours={globalHours} isDisplayOnly={isDisplayOnly} />
+      <ModeSelector locationId={locationId} onModeSelect={handleModeSelect} takeawayHours={globalHours} isDisplayOnly={isDisplayOnly} urlMode={urlMode} />
 
       {/* Banner de pedido activo */}
       <ActiveOrderBanner />
 
-      {/* Toggle de modo - siempre visible (oculto para displayOnly) */}
-      {menuMode && !isDisplayOnly && (
+      {/* Toggle de modo - siempre visible en todos los modos */}
+      {menuMode && (
         <div className="fixed top-4 right-4 z-40 bg-white/95 backdrop-blur-sm shadow-lg rounded-full p-1.5 border border-gray-100">
           <ModeToggle
             currentMode={menuMode}
             onModeChange={handleToggleMode}
             isTakeawayAvailable={isStoreOpen}
             takeawayHours={globalHours}
+            isDisplayOnly={isDisplayOnly}
           /></div>
       )}
 
