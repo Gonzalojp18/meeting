@@ -7,8 +7,81 @@ import useActiveOrderStore from '@/store/activeOrderStore';
 import useCustomerPersistence from '@/hooks/useCustomerPersistence';
 import API_URI from '@/utils/getApiUri';
 import axios from 'axios';
-import { MdArrowBack, MdPayment, MdAdd, MdRemove, MdDelete, MdShoppingBag, MdPerson } from 'react-icons/md';
+import { MdArrowBack, MdPayment, MdAdd, MdRemove, MdDelete, MdShoppingBag, MdClose, MdStorefront } from 'react-icons/md';
 
+// ===================== MODAL COMPONENT =====================
+const LegalModal = ({ isOpen, onClose, title, children }) => {
+    if (!isOpen) return null;
+
+    return (
+        <div
+            className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm"
+            onClick={onClose}
+        >
+            <div
+                className="bg-white rounded-2xl w-full max-w-lg max-h-[80vh] overflow-hidden shadow-2xl"
+                onClick={e => e.stopPropagation()}
+            >
+                <div className="flex items-center justify-between p-4 border-b">
+                    <h3 className="text-lg font-bold text-gray-900">{title}</h3>
+                    <button
+                        onClick={onClose}
+                        className="p-2 rounded-full hover:bg-gray-100 transition-colors"
+                        aria-label="Cerrar"
+                    >
+                        <MdClose size={20} />
+                    </button>
+                </div>
+                <div className="p-5 overflow-y-auto max-h-[60vh] text-sm text-gray-600 leading-relaxed">
+                    {children}
+                </div>
+                <div className="p-4 border-t">
+                    <button
+                        onClick={onClose}
+                        className="w-full py-3 bg-gray-900 text-white rounded-xl font-semibold hover:bg-gray-800 transition-colors"
+                    >
+                        Entendido
+                    </button>
+                </div>
+            </div>
+        </div>
+    );
+};
+
+// ===================== FLOATING INPUT =====================
+const FloatingInput = ({ label, id, type = 'text', required = false, value, onChange, placeholder, ...props }) => {
+    return (
+        <div className="relative">
+            <input
+                type={type}
+                id={id}
+                name={id}
+                required={required}
+                value={value}
+                onChange={onChange}
+                placeholder=" "
+                className="peer w-full px-4 pt-5 pb-2 bg-gray-50 border border-gray-200 rounded-xl 
+                         text-gray-900 placeholder-transparent
+                         focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent
+                         transition-all duration-200"
+                {...props}
+            />
+            <label
+                htmlFor={id}
+                className="absolute left-4 top-2 text-[10px] font-semibold uppercase tracking-wide text-gray-400
+                         peer-placeholder-shown:top-1/2 peer-placeholder-shown:-translate-y-1/2 
+                         peer-placeholder-shown:text-sm peer-placeholder-shown:font-normal peer-placeholder-shown:normal-case
+                         peer-focus:top-2 peer-focus:text-[10px] peer-focus:font-semibold peer-focus:uppercase
+                         peer-focus:text-orange-600
+                         transition-all duration-200 pointer-events-none"
+            >
+                {label}{required && ' *'}
+            </label>
+        </div>
+    );
+};
+
+// ===================== MAIN COMPONENT =====================
 const CheckoutPage = () => {
     const { locationId } = useParams();
     const router = useRouter();
@@ -25,10 +98,12 @@ const CheckoutPage = () => {
         lastname: '',
         phone: '',
         email: '',
-        deliveryMethod: 'Retiro en Sucursal',
+        deliveryMethod: 'Retiro en Sucursal', // Fixed value - only pickup available
         notes: ''
     });
     const [rememberData, setRememberData] = useState(false);
+    const [showTermsModal, setShowTermsModal] = useState(false);
+    const [showPrivacyModal, setShowPrivacyModal] = useState(false);
     const { savedData, hasSavedData, isLoaded, saveCustomerData } = useCustomerPersistence();
 
     // Prellenar formulario con datos guardados
@@ -41,31 +116,31 @@ const CheckoutPage = () => {
                 phone: savedData.phone || prev.phone,
                 email: savedData.email || prev.email
             }));
-            setRememberData(true); // Mantener checkbox marcado si ya había datos
+            setRememberData(true);
         }
     }, [isLoaded, savedData]);
 
     // Bloquear si hay un pedido activo pendiente de retiro
     if (hasActiveOrder() && activeOrder?.orderNumber) {
         return (
-            <div className="min-h-screen bg-gray-50 flex flex-col items-center justify-center p-4">
-                <div className="bg-white rounded-2xl shadow-lg p-8 max-w-md w-full text-center">
-                    <div className="w-16 h-16 bg-amber-100 rounded-full flex items-center justify-center mx-auto mb-4">
+            <div className="min-h-screen bg-gradient-to-b from-gray-50 to-gray-100 flex flex-col items-center justify-center p-4">
+                <div className="bg-white rounded-3xl shadow-xl p-8 max-w-md w-full text-center">
+                    <div className="w-16 h-16 bg-amber-100 rounded-2xl flex items-center justify-center mx-auto mb-5">
                         <MdShoppingBag className="text-amber-600 text-3xl" />
                     </div>
-                    <h2 className="text-xl font-bold text-gray-800 mb-2">Ya tienes un pedido en curso</h2>
-                    <p className="text-gray-600 mb-6">
-                        Debes retirar tu pedido <strong>#{activeOrder.orderNumber?.replace('ORD-', '')}</strong> antes de realizar una nueva compra.
+                    <h2 className="text-xl font-bold text-gray-900 mb-2">Pedido en curso</h2>
+                    <p className="text-gray-500 mb-6">
+                        Retira tu pedido <span className="font-semibold text-gray-900">#{activeOrder.orderNumber?.replace('ORD-', '')}</span> antes de realizar una nueva compra.
                     </p>
                     <button
                         onClick={() => router.push(`/tracking/${activeOrder.orderNumber}`)}
-                        className="w-full bg-orange-600 text-white py-4 rounded-xl font-bold hover:bg-orange-700 transition"
+                        className="w-full bg-gray-900 text-white py-4 rounded-2xl font-semibold hover:bg-gray-800 transition-all"
                     >
                         Ver mi pedido
                     </button>
                     <button
                         onClick={() => router.push(`/menu/${locationId}`)}
-                        className="w-full mt-3 text-gray-500 py-2"
+                        className="w-full mt-3 text-gray-400 py-2 hover:text-gray-600 transition-colors"
                     >
                         Volver al menú
                     </button>
@@ -76,14 +151,20 @@ const CheckoutPage = () => {
 
     if (locationItems.length === 0 && !submitting) {
         return (
-            <div className="min-h-screen flex flex-col items-center justify-center p-4">
-                <h2 className="text-xl font-bold mb-4">Tu carrito está vacío</h2>
-                <button
-                    onClick={() => router.push(`/menu/${locationId}`)}
-                    className="bg-orange-600 text-white px-6 py-2 rounded-lg"
-                >
-                    Volver al menú
-                </button>
+            <div className="min-h-screen bg-gradient-to-b from-gray-50 to-gray-100 flex flex-col items-center justify-center p-4">
+                <div className="text-center">
+                    <div className="w-20 h-20 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                        <MdShoppingBag className="text-gray-400 text-4xl" />
+                    </div>
+                    <h2 className="text-xl font-bold text-gray-900 mb-2">Tu carrito está vacío</h2>
+                    <p className="text-gray-500 mb-6">Agrega productos para continuar</p>
+                    <button
+                        onClick={() => router.push(`/menu/${locationId}`)}
+                        className="bg-orange-600 text-white px-8 py-3 rounded-xl font-semibold hover:bg-orange-700 transition-all"
+                    >
+                        Ver menú
+                    </button>
+                </div>
             </div>
         );
     }
@@ -94,7 +175,6 @@ const CheckoutPage = () => {
         setError(null);
 
         try {
-            // Preparar los items para el pedido
             const orderItems = locationItems.map(item => ({
                 itemId: item._id,
                 name: item.name,
@@ -103,17 +183,15 @@ const CheckoutPage = () => {
                 customizations: item.selectedCustomizations || []
             }));
 
-            // Datos del cliente (se guardarán en metadata)
             const customerData = {
                 name: formData.name,
                 lastname: formData.lastname,
                 phone: formData.phone,
                 email: formData.email,
-                deliveryMethod: formData.deliveryMethod,
+                deliveryMethod: 'Retiro en Sucursal', // Always pickup
                 notes: formData.notes
             };
 
-            // Crear preferencia de MercadoPago
             const response = await axios.post(`${API_URI}/api/payments/create-preference`, {
                 items: orderItems,
                 customerData,
@@ -121,11 +199,9 @@ const CheckoutPage = () => {
                 locationId
             });
 
-            // Redirigir a MercadoPago
             if (response.data.init_point) {
-                // Guardar el pedido en el store ANTES de redirigir
                 setActiveOrder({
-                    orderNumber: null, // Aún no lo tenemos
+                    orderNumber: null,
                     orderId: null,
                     paymentId: null,
                     preferenceId: response.data.preference_id || null,
@@ -144,7 +220,6 @@ const CheckoutPage = () => {
                     createdAt: new Date().toISOString()
                 });
 
-                // Guardar datos del cliente si el usuario optó por recordarlos
                 if (rememberData) {
                     saveCustomerData({
                         name: formData.name,
@@ -166,218 +241,282 @@ const CheckoutPage = () => {
         }
     };
 
+    const updateFormField = (field) => (e) => {
+        setFormData(prev => ({ ...prev, [field]: e.target.value }));
+    };
+
     return (
-        <div className="min-h-screen bg-gray-50 pb-12">
-            <header className="bg-white px-4 py-4 border-b sticky top-0 z-10 flex items-center gap-4">
-                <button onClick={() => router.back()} className="text-gray-600">
-                    <MdArrowBack size={24} />
-                </button>
-                <h1 className="text-lg font-bold">Finalizar Pedido</h1>
+        <div className="min-h-screen bg-gradient-to-b from-gray-50 to-gray-100">
+            {/* Header */}
+            <header className="bg-white/80 backdrop-blur-lg px-4 py-4 border-b border-gray-100 sticky top-0 z-10">
+                <div className="max-w-lg mx-auto flex items-center gap-4">
+                    <button
+                        onClick={() => router.back()}
+                        className="p-2 -ml-2 rounded-xl hover:bg-gray-100 transition-colors"
+                        aria-label="Volver"
+                    >
+                        <MdArrowBack size={22} className="text-gray-700" />
+                    </button>
+                    <h1 className="text-lg font-bold text-gray-900">Checkout</h1>
+                </div>
             </header>
 
-            <main className="max-w-xl mx-auto p-4 md:mt-6">
+            <main className="max-w-lg mx-auto p-4 pb-8">
+                {/* Error Message */}
                 {error && (
-                    <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-xl mb-4">
+                    <div className="bg-red-50 border border-red-100 text-red-600 px-4 py-3 rounded-xl mb-4 text-sm">
                         {error}
                     </div>
                 )}
-                <div className="bg-white rounded-2xl shadow-sm p-6 mb-6">
-                    <h2 className="font-bold text-gray-900 mb-4 border-b pb-2">Resumen de tu pedido</h2>
-                    <div className="space-y-4">
+
+                {/* Welcome Back Message */}
+                {isLoaded && hasSavedData && (
+                    <div className="bg-gradient-to-r from-emerald-50 to-green-50 border border-emerald-100 rounded-2xl p-4 mb-4 flex items-center gap-3">
+                        <div className="w-10 h-10 bg-emerald-100 rounded-full flex items-center justify-center flex-shrink-0">
+                            <span className="text-lg">👋</span>
+                        </div>
+                        <p className="text-emerald-700 text-sm">
+                            ¡Hola de nuevo{savedData?.name ? `, ${savedData.name}` : ''}! Tus datos están guardados.
+                        </p>
+                    </div>
+                )}
+
+                {/* Order Summary - Compact */}
+                <div className="bg-white rounded-2xl shadow-sm border border-gray-100 mb-4 overflow-hidden">
+                    <div className="p-4 border-b border-gray-100">
+                        <h2 className="font-semibold text-gray-900 text-sm uppercase tracking-wide">Tu pedido</h2>
+                    </div>
+                    <div className="divide-y divide-gray-50">
                         {locationItems.map((item) => (
-                            <div key={item.cartLineId || item._id} className="flex flex-col gap-2 pb-4 border-b border-gray-100 last:border-0 last:pb-0">
-                                <div className="flex justify-between items-start">
-                                    <div className="flex-1">
-                                        <h3 className="font-bold text-gray-800">{item.name}</h3>
+                            <div key={item.cartLineId || item._id} className="p-4">
+                                <div className="flex justify-between items-start gap-3">
+                                    <div className="flex-1 min-w-0">
+                                        <h3 className="font-semibold text-gray-900 truncate">{item.name}</h3>
                                         {item.selectedCustomizations?.length > 0 && (
-                                            <div className="mt-0.5">
-                                                {item.selectedCustomizations.map((c, idx) => (
-                                                    <p key={idx} className="text-xs text-indigo-600 font-medium">
-                                                        {c.groupName}: {c.selected}
-                                                    </p>
-                                                ))}
-                                            </div>
+                                            <p className="text-xs text-orange-600 mt-0.5">
+                                                {item.selectedCustomizations.map(c => c.selected).join(', ')}
+                                            </p>
                                         )}
-                                        <p className="text-sm text-gray-500">${item.price.toLocaleString()}</p>
                                     </div>
-                                    <div className="text-right">
-                                        <p className="font-black text-gray-900">${(item.price * item.quantity).toLocaleString()}</p>
-                                    </div>
+                                    <p className="font-bold text-gray-900 whitespace-nowrap">
+                                        ${(item.price * item.quantity).toLocaleString()}
+                                    </p>
                                 </div>
-                                <div className="flex justify-between items-center bg-gray-50 p-2 rounded-xl">
-                                    <div className="flex items-center gap-4">
+                                <div className="flex justify-between items-center mt-3">
+                                    <div className="flex items-center gap-2">
                                         <button
                                             type="button"
                                             onClick={() => removeItem(item._id, locationId, item.cartLineId || null)}
-                                            className="w-8 h-8 flex items-center justify-center bg-white rounded-lg shadow-sm text-orange-600 active:scale-95 transition-all"
+                                            className="w-8 h-8 flex items-center justify-center bg-gray-100 rounded-lg text-gray-600 hover:bg-gray-200 transition-colors"
+                                            aria-label="Reducir cantidad"
                                         >
-                                            <MdRemove size={18} />
+                                            <MdRemove size={16} />
                                         </button>
-                                        <span className="font-black text-lg min-w-[20px] text-center">{item.quantity}</span>
+                                        <span className="font-bold text-gray-900 w-6 text-center">{item.quantity}</span>
                                         <button
                                             type="button"
                                             onClick={() => addItem(item, locationId, item.selectedCustomizations || [])}
-                                            className="w-8 h-8 flex items-center justify-center bg-white rounded-lg shadow-sm text-orange-600 active:scale-95 transition-all"
+                                            className="w-8 h-8 flex items-center justify-center bg-gray-100 rounded-lg text-gray-600 hover:bg-gray-200 transition-colors"
+                                            aria-label="Aumentar cantidad"
                                         >
-                                            <MdAdd size={18} />
+                                            <MdAdd size={16} />
                                         </button>
                                     </div>
                                     <button
                                         type="button"
                                         onClick={() => deleteItem(item._id, locationId, item.cartLineId || null)}
-                                        className="text-red-400 p-2 hover:text-red-600 transition-colors"
-                                        title="Eliminar item"
+                                        className="p-2 text-gray-400 hover:text-red-500 transition-colors"
+                                        aria-label="Eliminar producto"
                                     >
-                                        <MdDelete size={20} />
+                                        <MdDelete size={18} />
                                     </button>
                                 </div>
                             </div>
                         ))}
-                        <div className="pt-4 mt-4 border-t flex justify-between items-center text-xl font-black">
-                            <span>Total</span>
-                            <span className="text-orange-600">${total.toLocaleString()}</span>
-                        </div>
+                    </div>
+                    <div className="p-4 bg-gray-50 flex justify-between items-center">
+                        <span className="font-semibold text-gray-600">Total a pagar</span>
+                        <span className="text-xl font-bold text-gray-900">${total.toLocaleString()}</span>
                     </div>
                 </div>
 
-                <form onSubmit={handleSubmitOrder} className="space-y-6">
-                    {/* Mensaje de bienvenida cuando hay datos guardados */}
-                    {isLoaded && hasSavedData && (
-                        <div className="bg-gradient-to-r from-green-50 to-emerald-50 border border-green-200 rounded-2xl p-4 flex items-center gap-3">
-                            <div className="w-10 h-10 bg-green-100 rounded-full flex items-center justify-center flex-shrink-0">
-                                <MdPerson className="text-green-600 text-xl" />
-                            </div>
-                            <div>
-                                <p className="text-green-800 font-medium">
-                                    ¡Bienvenido de nuevo{savedData?.name ? `, ${savedData.name}` : ''}!
-                                </p>
-                                <p className="text-green-600 text-sm">
-                                    Tus datos se recordaron de tu compra anterior.
-                                </p>
-                            </div>
-                        </div>
-                    )}
+                {/* Pickup Only Badge */}
+                <div className="bg-orange-50 border border-orange-100 rounded-xl p-3 mb-4 flex items-center gap-3">
+                    <div className="w-9 h-9 bg-orange-100 rounded-lg flex items-center justify-center flex-shrink-0">
+                        <MdStorefront className="text-orange-600" size={20} />
+                    </div>
+                    <div>
+                        <p className="text-sm font-semibold text-orange-900">Retiro en local</p>
+                        <p className="text-xs text-orange-600">Te avisamos cuando tu pedido esté listo</p>
+                    </div>
+                </div>
 
-                    <div className="bg-white rounded-2xl shadow-sm p-6">
-                        <h2 className="font-bold text-gray-900 mb-4 border-b pb-2">Tus Datos</h2>
-                        <div className="grid grid-cols-2 gap-4">
-                            <div className="col-span-1">
-                                <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Nombre</label>
-                                <input
-                                    type="text" required
-                                    className="w-full bg-gray-50 border-0 rounded-xl px-4 py-3 focus:ring-2 focus:ring-orange-500"
+                {/* Customer Form */}
+                <form onSubmit={handleSubmitOrder}>
+                    <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-4 mb-4">
+                        <h2 className="font-semibold text-gray-900 text-sm uppercase tracking-wide mb-4">Tus datos</h2>
+
+                        <div className="space-y-3">
+                            <div className="grid grid-cols-2 gap-3">
+                                <FloatingInput
+                                    label="Nombre"
+                                    id="name"
+                                    required
                                     value={formData.name}
-                                    onChange={e => setFormData({ ...formData, name: e.target.value })}
+                                    onChange={updateFormField('name')}
                                 />
-                            </div>
-                            <div className="col-span-1">
-                                <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Apellido (Opcional)</label>
-                                <input
-                                    type="text"
-                                    className="w-full bg-gray-50 border-0 rounded-xl px-4 py-3 focus:ring-2 focus:ring-orange-500"
+                                <FloatingInput
+                                    label="Apellido"
+                                    id="lastname"
                                     value={formData.lastname}
-                                    onChange={e => setFormData({ ...formData, lastname: e.target.value })}
-                                />
-                            </div>
-                            <div className="col-span-2">
-                                <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Teléfono / WhatsApp</label>
-                                <input
-                                    type="tel" required
-                                    className="w-full bg-gray-50 border-0 rounded-xl px-4 py-3 focus:ring-2 focus:ring-orange-500"
-                                    value={formData.phone}
-                                    onChange={e => setFormData({ ...formData, phone: e.target.value })}
-                                />
-                            </div>
-                            <div className="col-span-2">
-                                <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Email (opcional)</label>
-                                <input
-                                    type="email"
-                                    className="w-full bg-gray-50 border-0 rounded-xl px-4 py-3 focus:ring-2 focus:ring-orange-500"
-                                    value={formData.email}
-                                    onChange={e => setFormData({ ...formData, email: e.target.value })}
+                                    onChange={updateFormField('lastname')}
                                 />
                             </div>
 
-                            {/* Checkbox para recordar datos */}
-                            <div className="col-span-2 mt-2">
-                                <label className="flex items-start gap-3 cursor-pointer group">
-                                    <input
-                                        type="checkbox"
-                                        checked={rememberData}
-                                        onChange={e => setRememberData(e.target.checked)}
-                                        className="w-5 h-5 mt-0.5 rounded border-gray-300 text-orange-600 focus:ring-orange-500 cursor-pointer"
-                                    />
-                                    <span className="text-sm text-gray-600 group-hover:text-gray-800 transition-colors">
-                                        Recordar mis datos para próximas compras en este dispositivo
-                                    </span>
-                                </label>
-                            </div>
-                        </div>
-                    </div>
-
-                    <div className="bg-white rounded-2xl shadow-sm p-6">
-                        <h2 className="font-bold text-gray-900 mb-4 border-b pb-2">Método de Entrega</h2>
-                        <div className="flex gap-4">
-                            <button
-                                type="button"
-                                onClick={() => setFormData({ ...formData, deliveryMethod: 'Retiro en Sucursal' })}
-                                className={`flex-1 py-4 border-2 rounded-xl text-sm font-bold transition-all ${formData.deliveryMethod === 'Retiro en Sucursal'
-                                    ? 'border-orange-500 bg-orange-50 text-orange-600'
-                                    : 'border-gray-100 text-gray-500'
-                                    }`}
-                            >
-                                Retiro en Local
-                            </button>
-                            <button
-                                type="button"
-                                onClick={() => setFormData({ ...formData, deliveryMethod: 'A domicilio' })}
-                                className={`flex-1 py-4 border-2 rounded-xl text-sm font-bold transition-all ${formData.deliveryMethod === 'A domicilio'
-                                    ? 'border-orange-500 bg-orange-50 text-orange-600'
-                                    : 'border-gray-100 text-gray-500'
-                                    }`}
-                            >
-                                Delivery
-                            </button>
-                        </div>
-                        {formData.deliveryMethod === 'A domicilio' && (
-                            <div className="mt-4">
-                                <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Dirección de Entrega</label>
-                                <textarea
-                                    className="w-full bg-gray-50 border-0 rounded-xl px-4 py-3 focus:ring-2 focus:ring-orange-500"
-                                    placeholder="Calle, número, departamento..."
-                                />
-                            </div>
-                        )}
-                        <div className="mt-4">
-                            <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Notas del Pedido</label>
-                            <textarea
-                                className="w-full bg-gray-50 border-0 rounded-xl px-4 py-3 focus:ring-2 focus:ring-orange-500"
-                                placeholder="¿Algo que debamos saber? (Ej: sin cebolla)"
-                                value={formData.notes}
-                                onChange={e => setFormData({ ...formData, notes: e.target.value })}
+                            <FloatingInput
+                                label="Teléfono / WhatsApp"
+                                id="phone"
+                                type="tel"
+                                required
+                                value={formData.phone}
+                                onChange={updateFormField('phone')}
                             />
+
+                            <FloatingInput
+                                label="Email"
+                                id="email"
+                                type="email"
+                                value={formData.email}
+                                onChange={updateFormField('email')}
+                            />
+
+                            <div className="relative">
+                                <textarea
+                                    id="notes"
+                                    rows={2}
+                                    value={formData.notes}
+                                    onChange={updateFormField('notes')}
+                                    placeholder="Notas adicionales (ej: sin cebolla)"
+                                    className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl 
+                                             text-gray-900 placeholder-gray-400 text-sm resize-none
+                                             focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent
+                                             transition-all duration-200"
+                                />
+                            </div>
+
+                            {/* Remember checkbox */}
+                            <label className="flex items-center gap-2 cursor-pointer group py-1">
+                                <input
+                                    type="checkbox"
+                                    checked={rememberData}
+                                    onChange={e => setRememberData(e.target.checked)}
+                                    className="w-4 h-4 rounded border-gray-300 text-orange-600 focus:ring-orange-500 cursor-pointer"
+                                />
+                                <span className="text-sm text-gray-500 group-hover:text-gray-700 transition-colors">
+                                    Recordar mis datos
+                                </span>
+                            </label>
                         </div>
                     </div>
 
+                    {/* Submit Button */}
                     <button
                         type="submit"
                         disabled={submitting}
-                        className="w-full bg-[#009ee3] text-white py-5 rounded-2xl font-black text-lg shadow-xl shadow-blue-200 hover:bg-[#007eb5] transition-all active:scale-95 disabled:opacity-50 flex items-center justify-center gap-3"
+                        className="w-full bg-[#009ee3] text-white py-4 rounded-2xl font-bold text-base 
+                                 shadow-lg shadow-blue-200/50 
+                                 hover:bg-[#007eb5] active:scale-[0.98] transition-all 
+                                 disabled:opacity-50 disabled:cursor-not-allowed
+                                 flex items-center justify-center gap-3"
                     >
                         {submitting ? (
                             <>
-                                <div className="animate-spin rounded-full h-6 w-6 border-2 border-white border-t-transparent" />
-                                Redirigiendo a MercadoPago...
+                                <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                                Procesando...
                             </>
                         ) : (
                             <>
-                                <MdPayment size={24} />
-                                Pagar con MercadoPago
+                                <MdPayment size={22} />
+                                Pagar ${total.toLocaleString()}
                             </>
                         )}
                     </button>
+
+                    {/* Legal Links */}
+                    <div className="flex justify-center gap-4 mt-4 text-xs">
+                        <button
+                            type="button"
+                            onClick={() => setShowTermsModal(true)}
+                            className="text-gray-400 hover:text-gray-600 underline underline-offset-2 transition-colors"
+                        >
+                            Términos y Condiciones
+                        </button>
+                        <span className="text-gray-300">•</span>
+                        <button
+                            type="button"
+                            onClick={() => setShowPrivacyModal(true)}
+                            className="text-gray-400 hover:text-gray-600 underline underline-offset-2 transition-colors"
+                        >
+                            Políticas de Privacidad
+                        </button>
+                    </div>
                 </form>
             </main>
+
+            {/* Terms Modal */}
+            <LegalModal
+                isOpen={showTermsModal}
+                onClose={() => setShowTermsModal(false)}
+                title="Términos y Condiciones"
+            >
+                <div className="space-y-4">
+                    <h4 className="font-semibold text-gray-900">1. Aceptación de Términos</h4>
+                    <p>Al realizar un pedido a través de nuestra plataforma, aceptas estos términos y condiciones en su totalidad. Si no estás de acuerdo con alguna parte de estos términos, no debes utilizar nuestro servicio.</p>
+
+                    <h4 className="font-semibold text-gray-900">2. Pedidos y Pagos</h4>
+                    <p>Todos los pedidos están sujetos a disponibilidad. Los precios mostrados incluyen IVA. El pago se realiza a través de MercadoPago, una plataforma segura de procesamiento de pagos.</p>
+
+                    <h4 className="font-semibold text-gray-900">3. Retiro del Pedido</h4>
+                    <p>Los pedidos deben ser retirados en el local dentro del horario de atención. Recibirás una notificación cuando tu pedido esté listo para ser retirado.</p>
+
+                    <h4 className="font-semibold text-gray-900">4. Cancelaciones y Reembolsos</h4>
+                    <p>Las cancelaciones deben solicitarse antes de que el pedido entre en preparación. Los reembolsos se procesarán a través del mismo medio de pago utilizado.</p>
+
+                    <h4 className="font-semibold text-gray-900">5. Modificaciones</h4>
+                    <p>Nos reservamos el derecho de modificar estos términos en cualquier momento. Las modificaciones entrarán en vigor inmediatamente después de su publicación.</p>
+
+                    <p className="text-gray-400 text-xs mt-6">Última actualización: Febrero 2026</p>
+                </div>
+            </LegalModal>
+
+            {/* Privacy Modal */}
+            <LegalModal
+                isOpen={showPrivacyModal}
+                onClose={() => setShowPrivacyModal(false)}
+                title="Políticas de Privacidad"
+            >
+                <div className="space-y-4">
+                    <h4 className="font-semibold text-gray-900">Información que Recopilamos</h4>
+                    <p>Recopilamos la información que nos proporcionas al realizar un pedido: nombre, teléfono, email y dirección de entrega cuando corresponda.</p>
+
+                    <h4 className="font-semibold text-gray-900">Uso de la Información</h4>
+                    <p>Utilizamos tu información únicamente para procesar tus pedidos, comunicarnos contigo sobre el estado de tu orden y mejorar nuestros servicios.</p>
+
+                    <h4 className="font-semibold text-gray-900">Almacenamiento de Datos</h4>
+                    <p>Si eliges la opción &quot;Recordar mis datos&quot;, tu información se almacena localmente en tu dispositivo para facilitar futuras compras. No compartimos tus datos con terceros.</p>
+
+                    <h4 className="font-semibold text-gray-900">Procesamiento de Pagos</h4>
+                    <p>Los pagos se procesan a través de MercadoPago. No almacenamos información de tarjetas de crédito ni datos bancarios en nuestros servidores.</p>
+
+                    <h4 className="font-semibold text-gray-900">Tus Derechos</h4>
+                    <p>Tienes derecho a acceder, rectificar o eliminar tus datos personales. Para ejercer estos derechos, contáctanos directamente.</p>
+
+                    <h4 className="font-semibold text-gray-900">Contacto</h4>
+                    <p>Si tienes preguntas sobre nuestra política de privacidad, puedes contactarnos a través de nuestras redes sociales o directamente en el local.</p>
+
+                    <p className="text-gray-400 text-xs mt-6">Última actualización: Febrero 2026</p>
+                </div>
+            </LegalModal>
         </div>
     );
 };
