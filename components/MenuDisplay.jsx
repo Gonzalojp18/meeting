@@ -17,9 +17,10 @@ import WeatherWidget from './Weather/WeatherWidget'
 import { motion } from 'framer-motion';
 
 import useCartStore from '../store/cartStore';
-import { MdShoppingCart, MdSwapHoriz, MdSchedule } from 'react-icons/md';
+import { MdShoppingCart, MdSchedule } from 'react-icons/md';
 import Link from 'next/link';
 import ModeSelector from './menu/ModeSelector';
+import ModeToggle from './menu/ModeToggle';
 import ActiveOrderBanner from './order/ActiveOrderBanner';
 import { DEFAULT_TAKEAWAY_HOURS, isWithinTakeawayHours } from '../utils/constants';
 
@@ -54,12 +55,19 @@ const MenuDisplay = ({ locationId }) => {
 
   const handleModeSelect = useCallback((mode) => {
     setMenuMode(mode);
-  }, []);
+    localStorage.setItem(`menuMode_${locationId}`, mode);
+  }, [locationId]);
 
   const handleChangeMode = () => {
     localStorage.removeItem(`menuMode_${locationId}`);
     setMenuMode(null);
   };
+
+  // Handler directo para el toggle sin pasar por el modal
+  const handleToggleMode = useCallback((newMode) => {
+    setMenuMode(newMode);
+    localStorage.setItem(`menuMode_${locationId}`, newMode);
+  }, [locationId]);
 
   const isTakeaway = menuMode === 'takeaway';
 
@@ -103,15 +111,15 @@ const MenuDisplay = ({ locationId }) => {
       {/* Banner de pedido activo */}
       <ActiveOrderBanner />
 
-      {/* Indicador de modo actual - oculto para displayOnly */}
+      {/* Toggle de modo - siempre visible (oculto para displayOnly) */}
       {menuMode && !isDisplayOnly && (
-        <button
-          onClick={handleChangeMode}
-          className="fixed top-20 right-4 z-40 bg-white shadow-lg rounded-full px-4 py-2 flex items-center gap-2 text-sm font-medium text-gray-700 hover:bg-gray-50 transition-colors border"
-        >
-          <MdSwapHoriz size={18} />
-          {menuMode === 'local' ? 'Consumo Local' : 'Takeaway'}
-        </button>
+        <div className="fixed top-[10%] right-4 z-40 bg-white/95 backdrop-blur-sm shadow-lg rounded-full p-1.5 border border-gray-100">
+          <ModeToggle
+            currentMode={menuMode}
+            onModeChange={handleToggleMode}
+            isTakeawayAvailable={isStoreOpen}
+            takeawayHours={globalHours}
+          /></div>
       )}
 
       {/* Navegación condicional: TakeawayNav para takeaway, CategoryNav para local */}
@@ -145,7 +153,7 @@ const MenuDisplay = ({ locationId }) => {
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.6, ease: "easeOut" }}
           >
-            <Image className='m-auto' src="/logo.png" alt="logo.png" width={600} height={400} />
+            <Image className='m-auto' src="/logo.png" alt="logo.png" width={200} height={300} />
             <p className="text-center text-xl mb-8 italic text-menu px-4">
               Bienvenido a nuestro menú digital. Explorá nuestras deliciosas opciones y disfrutá de una experiencia.<br />
               <span className="text-orange-600 font-bold block mt-2">Sede: {locationId}</span>
