@@ -64,14 +64,14 @@ const TakeawayNav = ({ categories = [] }) => {
     <nav className={styles.takeawayNav}>
       <div className={styles.navContainer}>
         {/* Logo */}
-        <div className={styles.logoSection}>
+        <div className="rounded-2xl">
           <Link href="/">
             <Image
               src="/logo.png"
               alt="Logo"
-              className={styles.logo}
-              width={400}
-              height={300}
+              width={120}
+              height={80}
+              className="object-cover mx-auto"
               priority
             />
           </Link>
