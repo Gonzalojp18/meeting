@@ -5,7 +5,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { MdRestaurant, MdDeliveryDining } from 'react-icons/md';
 import { DEFAULT_TAKEAWAY_HOURS, isWithinTakeawayHours } from '@/utils/constants';
 
-const ModeSelector = ({ locationId, onModeSelect, takeawayHours }) => {
+const ModeSelector = ({ locationId, onModeSelect, takeawayHours, isDisplayOnly = false }) => {
     const [isOpen, setIsOpen] = useState(false);
     const onModeSelectRef = useRef(onModeSelect);
 
@@ -18,6 +18,12 @@ const ModeSelector = ({ locationId, onModeSelect, takeawayHours }) => {
     });
 
     useEffect(() => {
+        // Para location3 (display only), auto-seleccionar takeaway sin mostrar modal
+        if (isDisplayOnly) {
+            onModeSelectRef.current('takeaway');
+            return;
+        }
+
         // Verificar si ya hay un modo seleccionado para esta ubicación
         const savedMode = localStorage.getItem(`menuMode_${locationId}`);
         if (savedMode) {
@@ -31,7 +37,7 @@ const ModeSelector = ({ locationId, onModeSelect, takeawayHours }) => {
         } else {
             setIsOpen(true);
         }
-    }, [locationId, isTakeawayAvailable]);
+    }, [locationId, isTakeawayAvailable, isDisplayOnly]);
 
     const handleSelectMode = (mode) => {
         localStorage.setItem(`menuMode_${locationId}`, mode);
@@ -84,11 +90,10 @@ const ModeSelector = ({ locationId, onModeSelect, takeawayHours }) => {
                                 <button
                                     onClick={() => isTakeawayAvailable && handleSelectMode('takeaway')}
                                     disabled={!isTakeawayAvailable}
-                                    className={`w-full p-6 rounded-2xl transition-all duration-300 shadow-lg ${
-                                        isTakeawayAvailable
+                                    className={`w-full p-6 rounded-2xl transition-all duration-300 shadow-lg ${isTakeawayAvailable
                                             ? 'bg-gradient-to-r from-orange-500 to-orange-600 text-white hover:from-orange-600 hover:to-orange-700 hover:shadow-xl transform hover:-translate-y-1'
                                             : 'bg-gray-200 text-gray-500 cursor-not-allowed'
-                                    }`}
+                                        }`}
                                 >
                                     <div className="flex items-center justify-center gap-4">
                                         <MdDeliveryDining size={32} />
