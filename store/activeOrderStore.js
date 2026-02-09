@@ -1,6 +1,17 @@
 import { create } from 'zustand';
 import { persist, createJSONStorage } from 'zustand/middleware';
 
+// Tiempo de expiración: 24 horas en milisegundos
+const ORDER_EXPIRATION_MS = 24 * 60 * 60 * 1000;
+
+// Helper para verificar si una orden está expirada
+const isOrderExpired = (createdAt) => {
+    if (!createdAt) return true;
+    const orderTime = new Date(createdAt).getTime();
+    const now = Date.now();
+    return (now - orderTime) > ORDER_EXPIRATION_MS;
+};
+
 const useActiveOrderStore = create(
     persist(
         (set, get) => ({
@@ -20,7 +31,12 @@ const useActiveOrderStore = create(
             // }
 
             setActiveOrder: (order) => {
-                set({ activeOrder: order });
+                // Agregar timestamp si no existe
+                const orderWithTimestamp = {
+                    ...order,
+                    createdAt: order.createdAt || new Date().toISOString()
+                };
+                set({ activeOrder: orderWithTimestamp });
             },
 
             updateStatus: (newStatus) => {
@@ -65,16 +81,34 @@ const useActiveOrderStore = create(
                 set({ activeOrder: null });
             },
 
+            // Limpiar órdenes expiradas automáticamente
+            cleanupExpiredOrder: () => {
+                const order = get().activeOrder;
+                if (order && isOrderExpired(order.createdAt)) {
+                    console.log('[activeOrderStore] Limpiando orden expirada:', order.orderNumber);
+                    set({ activeOrder: null });
+                }
+            },
+
             hasActiveOrder: () => {
                 const order = get().activeOrder;
                 if (!order) return false;
-                // Solo consideramos "activo" si no fue retirado
-                return order.status !== 'picked_up';
+
+                // Verificar si la orden está expirada
+                if (isOrderExpired(order.createdAt)) {
+                    console.log('[activeOrderStore] Orden expirada detectada, limpiando...');
+                    get().clearActiveOrder();
+                    return false;
+                }
+
+                // Solo consideramos "activo" si no fue retirado ni completado
+                return order.status !== 'picked_up' && order.status !== 'completed';
             },
 
             isOrderReady: () => {
                 const order = get().activeOrder;
-                return order?.status === 'ready';
+                if (!order || isOrderExpired(order.createdAt)) return false;
+                return order.status === 'ready';
             },
 
             getOrderNumber: () => {
@@ -87,7 +121,14 @@ const useActiveOrderStore = create(
         }),
         {
             name: 'active-order-storage',
-            storage: createJSONStorage(() => localStorage)
+            storage: createJSONStorage(() => localStorage),
+            // Limpiar órdenes expiradas al hidratar desde localStorage
+            onRehydrateStorage: () => (state) => {
+                if (state?.activeOrder && isOrderExpired(state.activeOrder.createdAt)) {
+                    console.log('[activeOrderStore] Limpiando orden expirada al hidratar');
+                    state.activeOrder = null;
+                }
+            }
         }
     )
 );
