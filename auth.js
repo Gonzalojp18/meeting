@@ -3,6 +3,10 @@ import CredentialsProvider from 'next-auth/providers/credentials'
 import axios from 'axios'
 import API_URI from './utils/getApiUri'
 
+// Determine cookie domain for production (allows www and non-www)
+const isProduction = process.env.NODE_ENV === 'production'
+const cookieDomain = isProduction ? '.meetingrestobar.com' : undefined
+
 export const { handlers, signIn, signOut, auth } = NextAuth({
   providers: [
     CredentialsProvider({
@@ -33,6 +37,36 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
   ],
   session: {
     strategy: 'jwt'
+  },
+  cookies: {
+    sessionToken: {
+      name: isProduction ? '__Secure-authjs.session-token' : 'authjs.session-token',
+      options: {
+        httpOnly: true,
+        sameSite: 'lax',
+        path: '/',
+        secure: isProduction,
+        domain: cookieDomain
+      }
+    },
+    callbackUrl: {
+      name: isProduction ? '__Secure-authjs.callback-url' : 'authjs.callback-url',
+      options: {
+        sameSite: 'lax',
+        path: '/',
+        secure: isProduction,
+        domain: cookieDomain
+      }
+    },
+    csrfToken: {
+      name: isProduction ? '__Host-authjs.csrf-token' : 'authjs.csrf-token',
+      options: {
+        httpOnly: true,
+        sameSite: 'lax',
+        path: '/',
+        secure: isProduction
+      }
+    }
   },
   callbacks: {
     async jwt({ token, user }) {
