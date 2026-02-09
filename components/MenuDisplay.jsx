@@ -69,11 +69,13 @@ const MenuDisplay = ({ locationId }) => {
     setMenuMode(null);
   };
 
-  // Handler directo para el toggle sin pasar por el modal
+  // Handler directo para el toggle con navegación
   const handleToggleMode = useCallback((newMode) => {
     setMenuMode(newMode);
     localStorage.setItem(`menuMode_${locationId}`, newMode);
-  }, [locationId]);
+    // Navegar a la URL con el query parameter
+    router.push(`/menu/${locationId}?mode=${newMode}`);
+  }, [locationId, router]);
 
   // Calcular horas de takeaway
   const globalHours = data?.takeawayHours || DEFAULT_TAKEAWAY_HOURS;
@@ -151,7 +153,7 @@ const MenuDisplay = ({ locationId }) => {
 
       {/* Toggle de modo - siempre visible en todos los modos */}
       {menuMode && (
-        <div className="fixed top-4 md:top-[15%] right-4 z-40 bg-white/95 backdrop-blur-sm shadow-lg rounded-full p-1.5 border border-gray-100">
+        <div className={`fixed right-4 z-[60] bg-white/95 backdrop-blur-sm shadow-lg rounded-full p-1.5 border border-gray-100 ${isTakeaway ? 'top-0 md:top-[4%]' : 'top-2 md:top-[15%]'}`}>
           <ModeToggle
             currentMode={menuMode}
             onModeChange={handleToggleMode}
