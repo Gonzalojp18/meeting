@@ -2,7 +2,8 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import CategoryItems from './admin/CategoryItems';
 import CategoryManager from './admin/CategoryManager';
-import PromotionManager from './PromotionManager';
+// import PromotionManager from './PromotionManager';
+import UpsellingManager from './admin/UpsellingManager';
 import UserManagement from './admin/UserManagement';
 import MercadoPagoSettings from './admin/MercadoPagoSettings';
 import TakeawaySettings from './admin/TakeawaySettings';
@@ -46,6 +47,7 @@ import {
   MdPrint,
   MdHistory,
   MdSecurity,
+  MdAutoGraph,
 } from 'react-icons/md';
 import CashierPanel from './cashier/CashierPanel';
 
@@ -233,7 +235,7 @@ const AdminPanel = () => {
     tabs.push({ id: 'dashboard', label: 'Dashboard', icon: MdDashboard });
     tabs.push({ id: 'products', label: 'Productos', icon: MdRestaurantMenu });
     tabs.push({ id: 'categories', label: 'Categorías', icon: MdCategory });
-    tabs.push({ id: 'promotions', label: 'Promociones', icon: MdLocalOffer });
+    tabs.push({ id: 'upselling', label: 'Upselling', icon: MdAutoGraph });
     tabs.push({ id: 'users', label: 'Usuarios', icon: MdPeople });
     tabs.push({ id: 'reports', label: 'Reportes', icon: MdDescription });
     tabs.push({ id: 'refunds', label: 'Reembolsos', icon: MdAttachMoney });
@@ -680,57 +682,26 @@ const AdminPanel = () => {
             </div>
           )
         }
-
-        {/* ========== PROMOCIONES TAB ========== */}
+        {/* ========== UPSELLING TAB ========== */}
         {
-          activeTab === 'promotions' && (
+          activeTab === 'upselling' && (
             <div className="space-y-6">
               {/* Header con métrica */}
-              <div className="bg-gradient-to-r from-orange-50 to-orange-100 rounded-xl border border-orange-200 p-6">
+              <div className="bg-gradient-to-r from-emerald-50 to-teal-100 rounded-xl border border-emerald-200 p-6">
                 <div className="flex items-center justify-between">
                   <div>
-                    <h2 className="text-xl font-bold text-orange-900 mb-1">Gestión de Promociones</h2>
-                    <p className="text-sm text-orange-700">
-                      {dashboardMetrics.activePromotions} promociones activas
+                    <h2 className="text-xl font-bold text-emerald-900 mb-1">Upselling Inteligente</h2>
+                    <p className="text-sm text-emerald-700">
+                      Gestiona las sugerencias automáticas para aumentar el ticket promedio
                     </p>
                   </div>
-                  <div className="p-4 bg-orange-500 rounded-xl shadow-lg">
-                    <MdLocalOffer className="h-8 w-8 text-white" />
+                  <div className="p-4 bg-emerald-500 rounded-xl shadow-lg">
+                    <MdAutoGraph className="h-8 w-8 text-white" />
                   </div>
                 </div>
               </div>
 
-              {categories.length > 0 ? (
-                categories.map(category => (
-                  <div key={category._id} className="bg-white rounded-xl border border-gray-200 shadow-sm p-6 lg:p-8 hover:shadow-md transition-shadow">
-                    <div className="flex items-center gap-3 mb-6">
-                      <div className="p-2 bg-orange-100 rounded-lg">
-                        <MdCategory className="h-5 w-5 text-orange-600" />
-                      </div>
-                      <h3 className="text-xl font-bold text-gray-900">{category.name}</h3>
-                      <span className="ml-auto text-xs font-medium text-gray-500 bg-gray-100 px-3 py-1 rounded-full">
-                        {category.items?.length || 0} productos
-                      </span>
-                    </div>
-                    <PromotionManager category={category} />
-                  </div>
-                ))
-              ) : (
-                <div className="text-center py-20 bg-white rounded-xl border border-gray-200">
-                  <MdLocalOffer className="mx-auto h-16 w-16 text-gray-300 mb-4" />
-                  <h3 className="text-lg font-semibold text-gray-900 mb-2">No hay categorías disponibles</h3>
-                  <p className="text-sm text-gray-500 mb-6">
-                    Crea categorías primero para poder gestionar promociones
-                  </p>
-                  <button
-                    onClick={() => setActiveTab('categories')}
-                    className="inline-flex items-center gap-2 px-6 py-3 bg-orange-500 hover:bg-orange-600 text-white font-medium rounded-lg transition-colors"
-                  >
-                    <MdCategory className="h-5 w-5" />
-                    Ir a Categorías
-                  </button>
-                </div>
-              )}
+              <UpsellingManager />
             </div>
           )
         }

@@ -5,6 +5,7 @@ import { useParams, useRouter } from 'next/navigation';
 import useCartStore from '@/store/cartStore';
 import useActiveOrderStore from '@/store/activeOrderStore';
 import useCustomerPersistence from '@/hooks/useCustomerPersistence';
+import UpsellingBanner from '@/components/upselling/UpsellingBanner';
 import API_URI from '@/utils/getApiUri';
 import axios from 'axios';
 import { MdArrowBack, MdPayment, MdAdd, MdRemove, MdDelete, MdShoppingBag, MdClose, MdStorefront } from 'react-icons/md';
@@ -139,7 +140,7 @@ const CheckoutPage = () => {
                         Ver mi pedido
                     </button>
                     <button
-                        onClick={() => router.push(`/menu/${locationId}`)}
+                        onClick={() => router.push(`/menu/${locationId}?mode=takeaway`)}
                         className="w-full mt-3 text-gray-400 py-2 hover:text-gray-600 transition-colors"
                     >
                         Volver al menú
@@ -159,7 +160,7 @@ const CheckoutPage = () => {
                     <h2 className="text-xl font-bold text-gray-900 mb-2">Tu carrito está vacío</h2>
                     <p className="text-gray-500 mb-6">Agrega productos para continuar</p>
                     <button
-                        onClick={() => router.push(`/menu/${locationId}`)}
+                        onClick={() => router.push(`/menu/${locationId}?mode=takeaway`)}
                         className="bg-orange-600 text-white px-8 py-3 rounded-xl font-semibold hover:bg-orange-700 transition-all"
                     >
                         Ver menú
@@ -339,6 +340,31 @@ const CheckoutPage = () => {
                         <span className="text-xl font-bold text-gray-900">${total.toLocaleString()}</span>
                     </div>
                 </div>
+
+                {/* Upselling Suggestions */}
+                {locationItems.length > 0 && (
+                    <div className="mb-4">
+                        <UpsellingBanner
+                            cartItems={locationItems.map(item => ({
+                                itemId: item._id,
+                                itemName: item.name,
+                                categoryId: item.categoryId,
+                                quantity: item.quantity
+                            }))}
+                            locationId={locationId}
+                            displayLocation="checkout"
+                            onAddToCart={(suggestedItem) => {
+                                addItem({
+                                    _id: suggestedItem.itemId,
+                                    name: suggestedItem.name,
+                                    price: suggestedItem.price,
+                                }, locationId, []);
+                            }}
+                            variant="banner"
+                            maxSuggestions={2}
+                        />
+                    </div>
+                )}
 
                 {/* Pickup Only Badge */}
                 <div className="bg-orange-50 border border-orange-100 rounded-xl p-3 mb-4 flex items-center gap-3">

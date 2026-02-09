@@ -23,6 +23,7 @@ import Link from 'next/link';
 import ModeSelector from './menu/ModeSelector';
 import ModeToggle from './menu/ModeToggle';
 import ActiveOrderBanner from './order/ActiveOrderBanner';
+import UpsellingBanner from './upselling/UpsellingBanner';
 import { DEFAULT_TAKEAWAY_HOURS, isWithinTakeawayHours } from '../utils/constants';
 
 // Obtener hora actual en formato HH:MM (hora local de Argentina)
@@ -53,7 +54,7 @@ const MenuDisplay = ({ locationId }) => {
   const [isStoreOpen, setIsStoreOpen] = useState(true); // Default to true to avoid flash
 
   const { data, loading, error } = useFetch(`${API_URI}/api/menu/${locationId}`)
-  const { items: cartItems, getCartCount, getCartTotal } = useCartStore();
+  const { items: cartItems, getCartCount, getCartTotal, addItem } = useCartStore();
 
   const cartCount = getCartCount(locationId);
   const cartTotal = getCartTotal(locationId);
@@ -150,7 +151,7 @@ const MenuDisplay = ({ locationId }) => {
 
       {/* Toggle de modo - siempre visible en todos los modos */}
       {menuMode && (
-        <div className="fixed top-4 right-4 z-40 bg-white/95 backdrop-blur-sm shadow-lg rounded-full p-1.5 border border-gray-100">
+        <div className="fixed top-4 md:top-20 right-4 z-40 bg-white/95 backdrop-blur-sm shadow-lg rounded-full p-1.5 border border-gray-100">
           <ModeToggle
             currentMode={menuMode}
             onModeChange={handleToggleMode}
@@ -180,7 +181,7 @@ const MenuDisplay = ({ locationId }) => {
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.6, ease: "easeOut" }}
           >
-            <p className="text-center text-sm font-medium text-gray-500 italic">
+            <p className="text-center mt-6 text-sm font-medium text-gray-500 italic">
               "Comés como en casa, pero sin lavar los platos!"
             </p>
           </motion.div>
@@ -212,6 +213,12 @@ const MenuDisplay = ({ locationId }) => {
         {(!isTakeaway || isStoreOpen || isDisplayOnly) && activeCategories.map((category) => (
           <CategoryDisplay key={category._id} category={category} locationId={locationId} isTakeaway={isTakeaway || isDisplayOnly} displayOnly={isDisplayOnly} />
         ))}
+
+        {/* 
+          Upselling ahora se muestra de forma contextual dentro de cada card de producto
+          cuando el item está en el carrito (ver CategoryDisplay.jsx -> UpsellingMicroMessage)
+        */}
+
         <BrandsSection />
         <WeatherWidget />
         <LocationsSection />

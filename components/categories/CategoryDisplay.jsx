@@ -1,9 +1,11 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { defaultStyles, compactStyles, featuredStyles } from "./styleCategory";
 import { motion } from 'framer-motion';
 import useCartStore from '../../store/cartStore';
 import { MdAdd, MdRemove } from 'react-icons/md';
 import ProductModal from './ProductModal';
+import UpsellingMicroMessage from '../upselling/UpsellingMicroMessage';
+import { useProductUpselling } from '../../hooks/useProductUpselling';
 
 const styles = {
     default: defaultStyles,
@@ -15,6 +17,20 @@ const Category = ({ category, locationId, isTakeaway = false, displayOnly = fals
     const { items: cartItems, addItem, removeItem } = useCartStore();
     const style = styles[category.style || 'default'];
     const [modalItem, setModalItem] = useState(null);
+
+    // Get cart item IDs for this category to fetch upsellings
+    const cartItemIdsInCategory = useMemo(() => {
+        const categoryItemIds = (category.items || []).map(i => i._id);
+        return cartItems
+            .filter(ci => categoryItemIds.includes(ci._id) && ci.locationId === locationId)
+            .map(ci => ci._id);
+    }, [cartItems, category.items, locationId]);
+
+    // Fetch upsellings for products in cart
+    const { upsellings: productUpsellings, dismissUpselling } = useProductUpselling(
+        isTakeaway && !displayOnly ? cartItemIdsInCategory : [],
+        locationId
+    );
 
     const hasCustomizations = (item) => item.customizations?.length > 0;
 
@@ -103,6 +119,16 @@ const Category = ({ category, locationId, isTakeaway = false, displayOnly = fals
                                         <p className="text-xs md:text-sm text-gray-500 line-clamp-3 flex-1 leading-relaxed">
                                             {item.description}
                                         </p>
+
+                                        {/* Micro-mensaje de upselling - Solo si está en carrito */}
+                                        {!displayOnly && quantity > 0 && productUpsellings[item._id] && (
+                                            <UpsellingMicroMessage
+                                                upselling={productUpsellings[item._id]}
+                                                onAdd={(suggestedItem) => addItem(suggestedItem, locationId)}
+                                                onDismiss={() => dismissUpselling(item._id)}
+                                                locationId={locationId}
+                                            />
+                                        )}
 
                                         {/* Precio y botón */}
                                         <div className="flex items-center justify-between mt-2 pt-2">

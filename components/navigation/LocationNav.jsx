@@ -26,7 +26,8 @@ const LocationNav = ({ adminView = false, locations = [] }) => {
 
     setIsOpen(false);
 
-    router.push(`/menu/${locationId}`);
+    const modeParam = adminView ? '?mode=takeaway' : '';
+    router.push(`/menu/${locationId}${modeParam}`);
   };
 
   const selectedLocation = safeLocations.find((loc) => loc.nameId === location)?.name
