@@ -151,8 +151,12 @@ export default function UpsellingManager() {
 
     // Toggle display location
     const toggleDisplayLocation = async (id, location, currentValue) => {
+        console.log('[toggleDisplayLocation] Called:', { id, location, currentValue });
         const upselling = upsellings.find(u => u._id === id);
-        if (!upselling) return;
+        if (!upselling) {
+            console.log('[toggleDisplayLocation] Upselling not found');
+            return;
+        }
 
         const newLocations = {
             ...upselling.displayLocations,
@@ -166,6 +170,8 @@ export default function UpsellingManager() {
                 body: JSON.stringify({ displayLocations: newLocations })
             });
 
+            console.log('[toggleDisplayLocation] Response status:', res.status);
+
             if (res.ok) {
                 setUpsellings(prev =>
                     prev.map(u => u._id === id
@@ -173,6 +179,10 @@ export default function UpsellingManager() {
                         : u
                     )
                 );
+                console.log('[toggleDisplayLocation] Updated successfully');
+            } else {
+                const data = await res.json();
+                console.error('[toggleDisplayLocation] Error:', data);
             }
         } catch (err) {
             console.error('Error updating display location:', err);
@@ -201,9 +211,9 @@ export default function UpsellingManager() {
     // Bulk toggle display location for all visible upsellings
     const bulkToggleLocation = async (location, enable) => {
         const visibleIds = upsellings.map(u => u._id);
+        console.log('[bulkToggleLocation] Called:', { location, enable, count: visibleIds.length });
         if (visibleIds.length === 0) return;
 
-        const action = enable ? 'activar' : 'desactivar';
         const locationNames = { inMenu: 'Menú', inCheckout: 'Checkout' };
 
         if (!confirm(`¿${enable ? 'Activar' : 'Desactivar'} "${locationNames[location]}" para los ${visibleIds.length} upsellings visibles?`)) {
@@ -213,6 +223,7 @@ export default function UpsellingManager() {
         setBulkLoading(location);
 
         try {
+            console.log('[bulkToggleLocation] Sending request...');
             const res = await fetch('/api/upselling/bulk', {
                 method: 'PATCH',
                 headers: { 'Content-Type': 'application/json' },
@@ -224,7 +235,11 @@ export default function UpsellingManager() {
                 })
             });
 
-            if (res.ok) {
+            console.log('[bulkToggleLocation] Response status:', res.status);
+            const data = await res.json();
+            console.log('[bulkToggleLocation] Response data:', data);
+
+            if (res.ok && data.success) {
                 // Update local state
                 setUpsellings(prev =>
                     prev.map(u => ({
@@ -235,9 +250,14 @@ export default function UpsellingManager() {
                         }
                     }))
                 );
+                console.log('[bulkToggleLocation] Updated successfully');
+            } else {
+                console.error('[bulkToggleLocation] Error:', data.error);
+                alert('Error: ' + (data.error || 'No se pudo actualizar'));
             }
         } catch (err) {
             console.error('Error bulk updating location:', err);
+            alert('Error de conexión');
         } finally {
             setBulkLoading(null);
         }
@@ -246,6 +266,7 @@ export default function UpsellingManager() {
     // Bulk toggle active status for all visible upsellings
     const bulkToggleActive = async (enable) => {
         const visibleIds = upsellings.map(u => u._id);
+        console.log('[bulkToggleActive] Called with', visibleIds.length, 'upsellings, enable:', enable);
         if (visibleIds.length === 0) return;
 
         if (!confirm(`¿${enable ? 'Activar' : 'Desactivar'} los ${visibleIds.length} upsellings visibles?`)) {
@@ -255,6 +276,7 @@ export default function UpsellingManager() {
         setBulkLoading('isActive');
 
         try {
+            console.log('[bulkToggleActive] Sending request...');
             const res = await fetch('/api/upselling/bulk', {
                 method: 'PATCH',
                 headers: { 'Content-Type': 'application/json' },
@@ -265,13 +287,22 @@ export default function UpsellingManager() {
                 })
             });
 
-            if (res.ok) {
+            console.log('[bulkToggleActive] Response status:', res.status);
+            const data = await res.json();
+            console.log('[bulkToggleActive] Response data:', data);
+
+            if (res.ok && data.success) {
                 setUpsellings(prev =>
                     prev.map(u => ({ ...u, isActive: enable }))
                 );
+                console.log('[bulkToggleActive] Updated successfully');
+            } else {
+                console.error('[bulkToggleActive] Error:', data.error);
+                alert('Error: ' + (data.error || 'No se pudo actualizar'));
             }
         } catch (err) {
             console.error('Error bulk updating active status:', err);
+            alert('Error de conexión');
         } finally {
             setBulkLoading(null);
         }
