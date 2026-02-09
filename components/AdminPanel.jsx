@@ -549,7 +549,7 @@ const AdminPanel = () => {
                     <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                       {[
                         { label: 'Gestionar Productos', tab: 'products', icon: MdRestaurantMenu },
-                        { label: 'Ver Promociones', tab: 'promotions', icon: MdLocalOffer },
+                        { label: 'Ver Upselling', tab: 'upselling', icon: MdAutoGraph },
                         { label: 'Control de Caja', tab: 'caja', icon: MdPointOfSale },
                       ].map((action, i) => (
                         <button
