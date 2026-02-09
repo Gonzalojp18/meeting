@@ -77,6 +77,11 @@ const Category = ({ category, locationId, isTakeaway = false, displayOnly = fals
                     <h2 className="text-white text-lg font-bold tracking-wide uppercase">
                         {category.name}
                     </h2>
+                    {category.subtitle && (
+                        <p className="text-white/80 text-sm font-normal mt-0.5">
+                            {category.subtitle}
+                        </p>
+                    )}
                 </motion.div>
 
                 {/* Grid de productos */}
