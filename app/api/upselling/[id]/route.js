@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import dbConnect from "@/utils/dbConnect";
 import Upselling from "@/models/Upselling";
-import { getToken } from "next-auth/jwt";
+import { requireAdminOrManager } from "@/utils/authHelper";
 
 /**
  * GET /api/upselling/[id]
@@ -43,11 +43,11 @@ export async function GET(request, { params }) {
  */
 export async function PUT(request, { params }) {
     try {
-        const token = await getToken({ req: request, secret: process.env.NEXTAUTH_SECRET });
+        const { authorized, error } = await requireAdminOrManager(request);
 
-        if (!token || (token.role !== 'admin' && token.role !== 'manager')) {
+        if (!authorized) {
             return NextResponse.json(
-                { success: false, error: "No autorizado" },
+                { success: false, error: error || "No autorizado" },
                 { status: 401 }
             );
         }
@@ -102,11 +102,11 @@ export async function PATCH(request, { params }) {
 
         // Si es toggle de isActive, requiere admin
         if (body.isActive !== undefined) {
-            const token = await getToken({ req: request, secret: process.env.NEXTAUTH_SECRET });
+            const { authorized, error } = await requireAdminOrManager(request);
 
-            if (!token || (token.role !== 'admin' && token.role !== 'manager')) {
+            if (!authorized) {
                 return NextResponse.json(
-                    { success: false, error: "No autorizado" },
+                    { success: false, error: error || "No autorizado" },
                     { status: 401 }
                 );
             }
@@ -200,11 +200,11 @@ export async function PATCH(request, { params }) {
  */
 export async function DELETE(request, { params }) {
     try {
-        const token = await getToken({ req: request, secret: process.env.NEXTAUTH_SECRET });
+        const { authorized, error } = await requireAdminOrManager(request);
 
-        if (!token || (token.role !== 'admin' && token.role !== 'manager')) {
+        if (!authorized) {
             return NextResponse.json(
-                { success: false, error: "No autorizado" },
+                { success: false, error: error || "No autorizado" },
                 { status: 401 }
             );
         }

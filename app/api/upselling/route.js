@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import dbConnect from "@/utils/dbConnect";
 import Upselling from "@/models/Upselling";
 import Menu from "@/models/Menu";
-import { getToken } from "next-auth/jwt";
+import { getAuthToken, requireAdminOrManager } from "@/utils/authHelper";
 
 /**
  * GET /api/upselling
@@ -30,7 +30,7 @@ export async function GET(request) {
         const isActiveParam = searchParams.get('isActive');
 
         // Verificar si es admin
-        const token = await getToken({ req: request, secret: process.env.NEXTAUTH_SECRET });
+        const token = await getAuthToken(request);
         const isAdmin = token?.role === 'admin' || token?.role === 'manager';
 
         // Construir query
@@ -105,11 +105,11 @@ export async function GET(request) {
  */
 export async function POST(request) {
     try {
-        const token = await getToken({ req: request, secret: process.env.NEXTAUTH_SECRET });
+        const { authorized, error } = await requireAdminOrManager(request);
 
-        if (!token || (token.role !== 'admin' && token.role !== 'manager')) {
+        if (!authorized) {
             return NextResponse.json(
-                { success: false, error: "No autorizado" },
+                { success: false, error: error || "No autorizado" },
                 { status: 401 }
             );
         }
