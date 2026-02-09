@@ -19,7 +19,8 @@ import {
     MdNightlight,
     MdSchedule,
     MdSelectAll,
-    MdDeselect
+    MdDeselect,
+    MdMoreVert
 } from 'react-icons/md';
 
 /**
@@ -33,6 +34,7 @@ export default function UpsellingManager() {
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
     const [bulkLoading, setBulkLoading] = useState(null); // 'inMenu', 'inCheckout', 'isActive'
+    const [mobileMenuOpen, setMobileMenuOpen] = useState(null);
 
     // Filtros
     const [filters, setFilters] = useState({
@@ -332,156 +334,159 @@ export default function UpsellingManager() {
     };
 
     return (
-        <div className="space-y-6">
-            {/* Stats Cards */}
-            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
-                <div className="bg-white rounded-xl border border-gray-200 p-4">
-                    <p className="text-xs font-semibold text-gray-500 uppercase">Total</p>
-                    <p className="text-2xl font-bold text-gray-900">{stats.total}</p>
-                </div>
-                <div className="bg-white rounded-xl border border-green-200 p-4">
-                    <p className="text-xs font-semibold text-green-600 uppercase">Activas</p>
-                    <p className="text-2xl font-bold text-green-700">{stats.active}</p>
-                </div>
-                <div className="bg-white rounded-xl border border-blue-200 p-4">
-                    <div className="flex items-center gap-1 mb-1">
-                        <MdRestaurantMenu className="h-4 w-4 text-blue-500" />
-                        <p className="text-xs font-semibold text-blue-600 uppercase">En Menú</p>
+        <div className="space-y-4">
+            {/* Header con título */}
+            <div className="bg-gradient-to-r from-green-50 to-emerald-50 rounded-lg border border-green-200 p-4">
+                <div className="flex items-center gap-3">
+                    <div className="p-2 bg-green-500 rounded-lg">
+                        <MdTrendingUp className="h-6 w-6 text-white" />
                     </div>
-                    <p className="text-2xl font-bold text-blue-700">{stats.inMenu}</p>
-                </div>
-                <div className="bg-white rounded-xl border border-purple-200 p-4">
-                    <div className="flex items-center gap-1 mb-1">
-                        <MdReceipt className="h-4 w-4 text-purple-500" />
-                        <p className="text-xs font-semibold text-purple-600 uppercase">En Checkout</p>
+                    <div>
+                        <h2 className="text-lg font-bold text-gray-900">Upselling Inteligente</h2>
+                        <p className="text-sm text-gray-600">Gestiona las sugerencias automáticas para aumentar el ticket promedio</p>
                     </div>
-                    <p className="text-2xl font-bold text-purple-700">{stats.inCheckout}</p>
-                </div>
-                <div className="bg-white rounded-xl border border-emerald-200 p-4">
-                    <div className="flex items-center gap-1 mb-1">
-                        <MdTrendingUp className="h-4 w-4 text-emerald-500" />
-                        <p className="text-xs font-semibold text-emerald-600 uppercase">Conv. Prom.</p>
-                    </div>
-                    <p className="text-2xl font-bold text-emerald-700">{stats.avgConversion}%</p>
                 </div>
             </div>
 
-            {/* Bulk Actions */}
-            <div className="bg-gradient-to-r from-gray-50 to-gray-100 rounded-xl border border-gray-200 p-4">
-                <div className="flex flex-wrap items-center gap-3">
-                    <span className="text-sm font-semibold text-gray-700">Acciones masivas ({upsellings.length} visibles):</span>
-
-                    {/* Bulk Active Toggle */}
-                    <div className="flex items-center gap-1 bg-white rounded-lg border border-gray-200 p-1">
-                        <button
-                            onClick={() => bulkToggleActive(true)}
-                            disabled={bulkLoading}
-                            className="flex items-center gap-1 px-3 py-1.5 text-xs font-medium text-green-700 bg-green-50 hover:bg-green-100 rounded-md transition-colors disabled:opacity-50"
-                        >
-                            <MdSelectAll className="h-4 w-4" />
-                            Activar Todos
-                        </button>
-                        <button
-                            onClick={() => bulkToggleActive(false)}
-                            disabled={bulkLoading}
-                            className="flex items-center gap-1 px-3 py-1.5 text-xs font-medium text-red-700 bg-red-50 hover:bg-red-100 rounded-md transition-colors disabled:opacity-50"
-                        >
-                            <MdDeselect className="h-4 w-4" />
-                            Desactivar Todos
-                        </button>
+            {/* Stats Cards - MÁS COMPACTOS */}
+            <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
+                <div className="bg-white rounded-lg border border-gray-200 p-3">
+                    <p className="text-xs font-semibold text-gray-500 uppercase mb-1">Total</p>
+                    <p className="text-xl font-bold text-gray-900">{stats.total}</p>
+                </div>
+                <div className="bg-white rounded-lg border border-green-200 p-3">
+                    <p className="text-xs font-semibold text-green-600 uppercase mb-1">Activas</p>
+                    <p className="text-xl font-bold text-green-700">{stats.active}</p>
+                </div>
+                <div className="bg-white rounded-lg border border-blue-200 p-3">
+                    <div className="flex items-center gap-1 mb-1">
+                        <MdRestaurantMenu className="h-3 w-3 text-blue-500" />
+                        <p className="text-xs font-semibold text-blue-600 uppercase">Menú</p>
                     </div>
-
-                    <div className="h-6 w-px bg-gray-300"></div>
-
-                    {/* Bulk Menu Toggle */}
-                    <div className="flex items-center gap-1 bg-white rounded-lg border border-blue-200 p-1">
-                        <MdRestaurantMenu className="h-4 w-4 text-blue-500 ml-2" />
-                        <button
-                            onClick={() => bulkToggleLocation('inMenu', true)}
-                            disabled={bulkLoading}
-                            className="px-2 py-1 text-xs font-medium text-blue-700 hover:bg-blue-50 rounded transition-colors disabled:opacity-50"
-                        >
-                            ✓ Menú
-                        </button>
-                        <button
-                            onClick={() => bulkToggleLocation('inMenu', false)}
-                            disabled={bulkLoading}
-                            className="px-2 py-1 text-xs font-medium text-gray-500 hover:bg-gray-50 rounded transition-colors disabled:opacity-50"
-                        >
-                            ✗ Menú
-                        </button>
+                    <p className="text-xl font-bold text-blue-700">{stats.inMenu}</p>
+                </div>
+                <div className="bg-white rounded-lg border border-purple-200 p-3">
+                    <div className="flex items-center gap-1 mb-1">
+                        <MdReceipt className="h-3 w-3 text-purple-500" />
+                        <p className="text-xs font-semibold text-purple-600 uppercase">Checkout</p>
                     </div>
-
-                    {/* Bulk Checkout Toggle */}
-                    <div className="flex items-center gap-1 bg-white rounded-lg border border-purple-200 p-1">
-                        <MdReceipt className="h-4 w-4 text-purple-500 ml-2" />
-                        <button
-                            onClick={() => bulkToggleLocation('inCheckout', true)}
-                            disabled={bulkLoading}
-                            className="px-2 py-1 text-xs font-medium text-purple-700 hover:bg-purple-50 rounded transition-colors disabled:opacity-50"
-                        >
-                            ✓ Checkout
-                        </button>
-                        <button
-                            onClick={() => bulkToggleLocation('inCheckout', false)}
-                            disabled={bulkLoading}
-                            className="px-2 py-1 text-xs font-medium text-gray-500 hover:bg-gray-50 rounded transition-colors disabled:opacity-50"
-                        >
-                            ✗ Checkout
-                        </button>
+                    <p className="text-xl font-bold text-purple-700">{stats.inCheckout}</p>
+                </div>
+                <div className="bg-white rounded-lg border border-emerald-200 p-3">
+                    <div className="flex items-center gap-1 mb-1">
+                        <MdTrendingUp className="h-3 w-3 text-emerald-500" />
+                        <p className="text-xs font-semibold text-emerald-600 uppercase">Conv. Prom.</p>
                     </div>
+                    <p className="text-xl font-bold text-emerald-700">{stats.avgConversion}%</p>
+                </div>
+            </div>
 
+            {/* Bulk Actions - 1 LÍNEA COMPACTA */}
+            <div className="bg-gray-50 rounded-lg border border-gray-200 p-3">
+                <div className="flex flex-wrap items-center gap-2">
+                    <span className="text-xs font-semibold text-gray-600">Masivas ({upsellings.length}):</span>
 
+                    {/* Active/Inactive */}
+                    <button
+                        onClick={() => bulkToggleActive(true)}
+                        disabled={bulkLoading}
+                        className="px-2 py-1 text-xs font-medium text-green-700 bg-green-50 hover:bg-green-100 rounded border border-green-200 transition-colors disabled:opacity-50"
+                    >
+                        ✓ Activar
+                    </button>
+                    <button
+                        onClick={() => bulkToggleActive(false)}
+                        disabled={bulkLoading}
+                        className="px-2 py-1 text-xs font-medium text-red-700 bg-red-50 hover:bg-red-100 rounded border border-red-200 transition-colors disabled:opacity-50"
+                    >
+                        ✗ Desactivar
+                    </button>
+
+                    <div className="h-4 w-px bg-gray-300"></div>
+
+                    {/* Menu */}
+                    <button
+                        onClick={() => bulkToggleLocation('inMenu', true)}
+                        disabled={bulkLoading}
+                        className="px-2 py-1 text-xs font-medium text-blue-700 bg-blue-50 hover:bg-blue-100 rounded border border-blue-200 transition-colors disabled:opacity-50"
+                    >
+                        🍽️ Menú
+                    </button>
+                    <button
+                        onClick={() => bulkToggleLocation('inMenu', false)}
+                        disabled={bulkLoading}
+                        className="px-2 py-1 text-xs font-medium text-gray-500 bg-gray-100 hover:bg-gray-200 rounded border border-gray-300 transition-colors disabled:opacity-50"
+                    >
+                        ✗ Menú
+                    </button>
+
+                    <div className="h-4 w-px bg-gray-300"></div>
+
+                    {/* Checkout */}
+                    <button
+                        onClick={() => bulkToggleLocation('inCheckout', true)}
+                        disabled={bulkLoading}
+                        className="px-2 py-1 text-xs font-medium text-purple-700 bg-purple-50 hover:bg-purple-100 rounded border border-purple-200 transition-colors disabled:opacity-50"
+                    >
+                        🧾 Checkout
+                    </button>
+                    <button
+                        onClick={() => bulkToggleLocation('inCheckout', false)}
+                        disabled={bulkLoading}
+                        className="px-2 py-1 text-xs font-medium text-gray-500 bg-gray-100 hover:bg-gray-200 rounded border border-gray-300 transition-colors disabled:opacity-50"
+                    >
+                        ✗ Checkout
+                    </button>
 
                     {bulkLoading && (
-                        <div className="animate-spin h-5 w-5 border-2 border-orange-500 border-t-transparent rounded-full"></div>
+                        <div className="animate-spin h-4 w-4 border-2 border-orange-500 border-t-transparent rounded-full ml-2"></div>
                     )}
                 </div>
             </div>
 
-            {/* Filters & Search */}
-            <div className="bg-white rounded-xl border border-gray-200 p-4">
-                <div className="flex flex-col sm:flex-row gap-4">
+            {/* Search & Filters - INLINE HORIZONTAL */}
+            <div className="bg-white rounded-lg border border-gray-200 p-3">
+                <div className="flex flex-col sm:flex-row gap-3">
                     {/* Search */}
                     <div className="relative flex-1">
-                        <MdSearch className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-gray-400" />
+                        <MdSearch className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
                         <input
                             type="text"
-                            placeholder="Buscar por nombre, copy o producto..."
+                            placeholder="Buscar..."
                             value={filters.search}
                             onChange={(e) => setFilters(prev => ({ ...prev, search: e.target.value }))}
-                            className="w-full pl-10 pr-4 py-2.5 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-orange-500 focus:border-transparent"
+                            className="w-full pl-9 pr-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-orange-500 focus:border-transparent"
                         />
                     </div>
 
                     {/* Toggle Filters */}
                     <button
                         onClick={() => setShowFilters(!showFilters)}
-                        className={`flex items-center gap-2 px-4 py-2.5 border rounded-lg text-sm font-medium transition-colors ${showFilters
+                        className={`flex items-center gap-2 px-3 py-2 border rounded-lg text-sm font-medium transition-colors ${showFilters
                             ? 'bg-orange-50 border-orange-300 text-orange-700'
                             : 'bg-white border-gray-300 text-gray-700 hover:bg-gray-50'
                             }`}
                     >
-                        <MdFilterList className="h-5 w-5" />
-                        Filtros
+                        <MdFilterList className="h-4 w-4" />
+                        <span className="hidden sm:inline">Filtros</span>
                     </button>
 
                     {/* Refresh */}
                     <button
                         onClick={fetchUpsellings}
-                        className="flex items-center gap-2 px-4 py-2.5 bg-gray-100 hover:bg-gray-200 border border-gray-300 rounded-lg text-sm font-medium transition-colors"
+                        className="flex items-center justify-center px-3 py-2 bg-gray-100 hover:bg-gray-200 border border-gray-300 rounded-lg transition-colors"
                     >
-                        <MdRefresh className={`h-5 w-5 ${loading ? 'animate-spin' : ''}`} />
+                        <MdRefresh className={`h-4 w-4 ${loading ? 'animate-spin' : ''}`} />
                     </button>
                 </div>
 
                 {/* Expanded Filters */}
                 {showFilters && (
-                    <div className="mt-4 pt-4 border-t border-gray-200 grid grid-cols-1 sm:grid-cols-4 gap-4">
+                    <div className="mt-3 pt-3 border-t border-gray-200 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
                         <select
                             value={filters.category}
                             onChange={(e) => setFilters(prev => ({ ...prev, category: e.target.value }))}
-                            className="px-3 py-2.5 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-orange-500"
+                            className="px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-orange-500"
                         >
                             {categories.map(cat => (
                                 <option key={cat.value} value={cat.value}>{cat.label}</option>
@@ -491,7 +496,7 @@ export default function UpsellingManager() {
                         <select
                             value={filters.type}
                             onChange={(e) => setFilters(prev => ({ ...prev, type: e.target.value }))}
-                            className="px-3 py-2.5 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-orange-500"
+                            className="px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-orange-500"
                         >
                             {types.map(type => (
                                 <option key={type.value} value={type.value}>{type.label}</option>
@@ -501,7 +506,7 @@ export default function UpsellingManager() {
                         <select
                             value={filters.timing}
                             onChange={(e) => setFilters(prev => ({ ...prev, timing: e.target.value }))}
-                            className="px-3 py-2.5 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-orange-500"
+                            className="px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-orange-500"
                         >
                             {timings.map(t => (
                                 <option key={t.value} value={t.value}>{t.label}</option>
@@ -511,7 +516,7 @@ export default function UpsellingManager() {
                         <select
                             value={filters.isActive}
                             onChange={(e) => setFilters(prev => ({ ...prev, isActive: e.target.value }))}
-                            className="px-3 py-2.5 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-orange-500"
+                            className="px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-orange-500"
                         >
                             <option value="">Todos los estados</option>
                             <option value="true">Solo activas</option>
@@ -523,7 +528,7 @@ export default function UpsellingManager() {
 
             {/* Error State */}
             {error && (
-                <div className="bg-red-50 border border-red-200 rounded-xl p-4 text-red-700">
+                <div className="bg-red-50 border border-red-200 rounded-lg p-3 text-red-700 text-sm">
                     {error}
                 </div>
             )}
@@ -531,30 +536,35 @@ export default function UpsellingManager() {
             {/* Loading State */}
             {loading && (
                 <div className="flex items-center justify-center py-12">
-                    <div className="animate-spin rounded-full h-12 w-12 border-4 border-orange-200 border-t-orange-500"></div>
+                    <div className="animate-spin rounded-full h-10 w-10 border-4 border-orange-200 border-t-orange-500"></div>
                 </div>
             )}
 
-            {/* Upsellings Table */}
+            {/* DESKTOP: Tabla optimizada (6 columnas vs 10) */}
             {!loading && upsellings.length > 0 && (
-                <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
+                <div className="hidden md:block bg-white rounded-lg border border-gray-200 overflow-hidden">
                     <div className="overflow-x-auto">
-                        <table className="w-full whitespace-nowrap">
+                        <table className="w-full">
                             <thead className="bg-gray-50 border-b border-gray-200">
                                 <tr>
-                                    <th className="px-4 py-3 text-left text-xs font-bold text-gray-600 uppercase tracking-wider">Estado</th>
-                                    <th className="px-4 py-3 text-left text-xs font-bold text-gray-600 uppercase tracking-wider">Nombre</th>
-                                    <th className="px-4 py-3 text-left text-xs font-bold text-gray-600 uppercase tracking-wider">Horario</th>
-                                    <th className="px-4 py-3 text-left text-xs font-bold text-gray-600 uppercase tracking-wider">Copy</th>
-                                    <th className="px-4 py-3 text-left text-xs font-bold text-gray-600 uppercase tracking-wider">Tipo</th>
-                                    <th className="px-4 py-3 text-center text-xs font-bold text-gray-600 uppercase tracking-wider">
-                                        <MdRestaurantMenu className="inline h-4 w-4" title="En Menú" />
+                                    <th className="px-3 py-2 text-left text-xs font-bold text-gray-600 uppercase">
+                                        Estado / Nombre
                                     </th>
-                                    <th className="px-4 py-3 text-center text-xs font-bold text-gray-600 uppercase tracking-wider">
-                                        <MdReceipt className="inline h-4 w-4" title="En Checkout" />
+                                    <th className="px-3 py-2 text-left text-xs font-bold text-gray-600 uppercase">
+                                        Horario
                                     </th>
-                                    <th className="px-4 py-3 text-center text-xs font-bold text-gray-600 uppercase tracking-wider">Conv.</th>
-                                    <th className="px-4 py-3 text-center text-xs font-bold text-gray-600 uppercase tracking-wider">Acciones</th>
+                                    <th className="px-3 py-2 text-left text-xs font-bold text-gray-600 uppercase">
+                                        Tipo
+                                    </th>
+                                    <th className="px-3 py-2 text-center text-xs font-bold text-gray-600 uppercase">
+                                        Ubicación
+                                    </th>
+                                    <th className="px-3 py-2 text-center text-xs font-bold text-gray-600 uppercase">
+                                        Conv.
+                                    </th>
+                                    <th className="px-3 py-2 text-center text-xs font-bold text-gray-600 uppercase w-16">
+
+                                    </th>
                                 </tr>
                             </thead>
                             <tbody className="divide-y divide-gray-100">
@@ -562,36 +572,35 @@ export default function UpsellingManager() {
                                     const timingBadge = getTimingBadge(upselling.timing);
                                     return (
                                         <tr key={upselling._id} className={`hover:bg-gray-50 transition-colors ${!upselling.isActive ? 'opacity-50' : ''}`}>
-                                            {/* Toggle Active */}
-                                            <td className="px-4 py-3">
-                                                <button
-                                                    onClick={() => toggleActive(upselling._id, upselling.isActive)}
-                                                    className={`p-2 rounded-lg transition-colors ${upselling.isActive
-                                                        ? 'bg-green-100 text-green-600 hover:bg-green-200'
-                                                        : 'bg-gray-100 text-gray-400 hover:bg-gray-200'
-                                                        }`}
-                                                    title={upselling.isActive ? 'Desactivar' : 'Activar'}
-                                                >
-                                                    {upselling.isActive ? <MdVisibility className="h-5 w-5" /> : <MdVisibilityOff className="h-5 w-5" />}
-                                                </button>
-                                            </td>
-
-                                            {/* Name */}
-                                            <td className="px-4 py-3">
-                                                <div>
-                                                    <p className="font-medium text-gray-900 text-sm">{upselling.name}</p>
-                                                    {upselling.triggerItemName && (
-                                                        <p className="text-xs text-gray-500">Trigger: {upselling.triggerItemName}</p>
-                                                    )}
+                                            {/* Estado + Nombre */}
+                                            <td className="px-3 py-3">
+                                                <div className="flex items-start gap-2">
+                                                    <button
+                                                        onClick={() => toggleActive(upselling._id, upselling.isActive)}
+                                                        className={`p-1.5 rounded-lg transition-colors flex-shrink-0 ${upselling.isActive
+                                                            ? 'bg-green-100 text-green-600 hover:bg-green-200'
+                                                            : 'bg-gray-100 text-gray-400 hover:bg-gray-200'
+                                                            }`}
+                                                        title={upselling.isActive ? 'Desactivar' : 'Activar'}
+                                                    >
+                                                        {upselling.isActive ? <MdVisibility className="h-4 w-4" /> : <MdVisibilityOff className="h-4 w-4" />}
+                                                    </button>
+                                                    <div className="min-w-0">
+                                                        <p className="font-medium text-gray-900 text-sm truncate">{upselling.name}</p>
+                                                        <p className="text-xs text-gray-500 truncate">{upselling.copyText}</p>
+                                                        {upselling.triggerItemName && (
+                                                            <p className="text-xs text-gray-400 mt-0.5">→ {upselling.triggerItemName}</p>
+                                                        )}
+                                                    </div>
                                                 </div>
                                             </td>
 
-                                            {/* Timing */}
-                                            <td className="px-4 py-3">
+                                            {/* Horario */}
+                                            <td className="px-3 py-3">
                                                 <select
                                                     value={upselling.timing || 'todo-el-dia'}
                                                     onChange={(e) => updateTiming(upselling._id, e.target.value)}
-                                                    className={`px-2 py-1 text-xs font-medium rounded-lg border cursor-pointer ${timingBadge.bg} ${timingBadge.text} border-transparent hover:border-gray-300 focus:ring-2 focus:ring-orange-500`}
+                                                    className={`px-2 py-1 text-xs font-medium rounded border cursor-pointer ${timingBadge.bg} ${timingBadge.text} border-transparent hover:border-gray-300 focus:ring-1 focus:ring-orange-500`}
                                                 >
                                                     <option value="mañana">🌅 Mañana</option>
                                                     <option value="tarde">🌇 Tarde</option>
@@ -599,64 +608,59 @@ export default function UpsellingManager() {
                                                 </select>
                                             </td>
 
-                                            {/* Copy */}
-                                            <td className="px-4 py-3">
-                                                <p className="text-sm text-gray-700 max-w-[200px] truncate">{upselling.copyText}</p>
-                                            </td>
-
-                                            {/* Type */}
-                                            <td className="px-4 py-3">
+                                            {/* Tipo */}
+                                            <td className="px-3 py-3">
                                                 <span className={`px-2 py-1 text-xs font-semibold rounded-full border ${getTypeBadge(upselling.type)}`}>
                                                     {upselling.type}
                                                 </span>
                                             </td>
 
-                                            {/* Display Locations */}
-                                            <td className="px-4 py-3 text-center">
-                                                <button
-                                                    onClick={() => toggleDisplayLocation(upselling._id, 'inMenu', upselling.displayLocations?.inMenu)}
-                                                    className={`p-1.5 rounded-lg transition-colors ${upselling.displayLocations?.inMenu
-                                                        ? 'bg-blue-100 text-blue-600'
-                                                        : 'bg-gray-100 text-gray-400'
-                                                        }`}
-                                                    title="Toggle en Menú"
-                                                >
-                                                    <MdCheck className="h-4 w-4" />
-                                                </button>
-                                            </td>
-                                            <td className="px-4 py-3 text-center">
-                                                <button
-                                                    onClick={() => toggleDisplayLocation(upselling._id, 'inCheckout', upselling.displayLocations?.inCheckout)}
-                                                    className={`p-1.5 rounded-lg transition-colors ${upselling.displayLocations?.inCheckout
-                                                        ? 'bg-purple-100 text-purple-600'
-                                                        : 'bg-gray-100 text-gray-400'
-                                                        }`}
-                                                    title="Toggle en Checkout"
-                                                >
-                                                    <MdCheck className="h-4 w-4" />
-                                                </button>
-                                            </td>
-
-                                            {/* Conversion Rate */}
-                                            <td className="px-4 py-3 text-center">
-                                                <div className="flex items-center justify-center gap-1">
-                                                    <MdTrendingUp className={`h-4 w-4 ${parseFloat(upselling.conversionRate) > 5 ? 'text-green-500' : 'text-gray-400'}`} />
-                                                    <span className="text-sm font-medium text-gray-700">{upselling.conversionRate}%</span>
-                                                </div>
-                                                <p className="text-xs text-gray-400">{upselling.metrics?.clicks?.total || 0} clicks</p>
-                                            </td>
-
-                                            {/* Actions */}
-                                            <td className="px-4 py-3 text-center">
+                                            {/* Ubicación (Menú + Checkout inline) */}
+                                            <td className="px-3 py-3">
                                                 <div className="flex items-center justify-center gap-1">
                                                     <button
-                                                        onClick={() => deleteUpselling(upselling._id)}
-                                                        className="p-2 text-red-500 hover:bg-red-50 rounded-lg transition-colors"
-                                                        title="Eliminar"
+                                                        onClick={() => toggleDisplayLocation(upselling._id, 'inMenu', upselling.displayLocations?.inMenu)}
+                                                        className={`p-1 rounded transition-colors ${upselling.displayLocations?.inMenu
+                                                            ? 'bg-blue-100 text-blue-600'
+                                                            : 'bg-gray-100 text-gray-400'
+                                                            }`}
+                                                        title="Toggle en Menú"
                                                     >
-                                                        <MdDelete className="h-5 w-5" />
+                                                        <MdRestaurantMenu className="h-4 w-4" />
+                                                    </button>
+                                                    <button
+                                                        onClick={() => toggleDisplayLocation(upselling._id, 'inCheckout', upselling.displayLocations?.inCheckout)}
+                                                        className={`p-1 rounded transition-colors ${upselling.displayLocations?.inCheckout
+                                                            ? 'bg-purple-100 text-purple-600'
+                                                            : 'bg-gray-100 text-gray-400'
+                                                            }`}
+                                                        title="Toggle en Checkout"
+                                                    >
+                                                        <MdReceipt className="h-4 w-4" />
                                                     </button>
                                                 </div>
+                                            </td>
+
+                                            {/* Conversión */}
+                                            <td className="px-3 py-3 text-center">
+                                                <div className="flex flex-col items-center">
+                                                    <div className="flex items-center gap-1">
+                                                        <MdTrendingUp className={`h-3 w-3 ${parseFloat(upselling.conversionRate) > 5 ? 'text-green-500' : 'text-gray-400'}`} />
+                                                        <span className="text-sm font-medium text-gray-700">{upselling.conversionRate}%</span>
+                                                    </div>
+                                                    <span className="text-xs text-gray-400">{upselling.metrics?.clicks?.total || 0}c</span>
+                                                </div>
+                                            </td>
+
+                                            {/* Acciones */}
+                                            <td className="px-3 py-3 text-center">
+                                                <button
+                                                    onClick={() => deleteUpselling(upselling._id)}
+                                                    className="p-1.5 text-red-500 hover:bg-red-50 rounded-lg transition-colors"
+                                                    title="Eliminar"
+                                                >
+                                                    <MdDelete className="h-4 w-4" />
+                                                </button>
                                             </td>
                                         </tr>
                                     )
@@ -667,11 +671,118 @@ export default function UpsellingManager() {
                 </div>
             )}
 
+            {/* MOBILE: Cards (0 horizontal scroll) */}
+            {!loading && upsellings.length > 0 && (
+                <div className="md:hidden space-y-3">
+                    {upsellings.map(upselling => {
+                        const timingBadge = getTimingBadge(upselling.timing);
+                        return (
+                            <div
+                                key={upselling._id}
+                                className={`bg-white rounded-lg border border-gray-200 p-3 ${!upselling.isActive ? 'opacity-50' : ''}`}
+                            >
+                                {/* Header: Toggle + Nombre */}
+                                <div className="flex items-start gap-2 mb-2">
+                                    <button
+                                        onClick={() => toggleActive(upselling._id, upselling.isActive)}
+                                        className={`p-2 rounded-lg transition-colors flex-shrink-0 ${upselling.isActive
+                                            ? 'bg-green-100 text-green-600'
+                                            : 'bg-gray-100 text-gray-400'
+                                            }`}
+                                    >
+                                        {upselling.isActive ? <MdVisibility className="h-5 w-5" /> : <MdVisibilityOff className="h-5 w-5" />}
+                                    </button>
+
+                                    <div className="flex-1 min-w-0">
+                                        <h4 className="font-semibold text-gray-900 text-sm truncate">{upselling.name}</h4>
+                                        <p className="text-xs text-gray-600 line-clamp-2">{upselling.copyText}</p>
+                                        {upselling.triggerItemName && (
+                                            <p className="text-xs text-gray-400 mt-1">→ {upselling.triggerItemName}</p>
+                                        )}
+                                    </div>
+
+                                    {/* 3-dot menu */}
+                                    <div className="relative flex-shrink-0">
+                                        <button
+                                            onClick={() => setMobileMenuOpen(mobileMenuOpen === upselling._id ? null : upselling._id)}
+                                            className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
+                                        >
+                                            <MdMoreVert className="h-5 w-5 text-gray-400" />
+                                        </button>
+
+                                        {mobileMenuOpen === upselling._id && (
+                                            <>
+                                                <div
+                                                    className="fixed inset-0 z-10"
+                                                    onClick={() => setMobileMenuOpen(null)}
+                                                />
+                                                <div className="absolute right-0 top-10 z-20 w-40 bg-white rounded-lg shadow-lg border border-gray-200 py-1">
+                                                    <button
+                                                        onClick={() => {
+                                                            deleteUpselling(upselling._id)
+                                                            setMobileMenuOpen(null)
+                                                        }}
+                                                        className="w-full px-4 py-2 text-left text-sm text-red-600 hover:bg-red-50 flex items-center gap-2"
+                                                    >
+                                                        <MdDelete className="h-4 w-4" />
+                                                        Eliminar
+                                                    </button>
+                                                </div>
+                                            </>
+                                        )}
+                                    </div>
+                                </div>
+
+                                {/* Meta info inline */}
+                                <div className="flex flex-wrap items-center gap-2 mt-3">
+                                    {/* Timing */}
+                                    <select
+                                        value={upselling.timing || 'todo-el-dia'}
+                                        onChange={(e) => updateTiming(upselling._id, e.target.value)}
+                                        className={`px-2 py-1 text-xs font-medium rounded border ${timingBadge.bg} ${timingBadge.text}`}
+                                    >
+                                        <option value="mañana">🌅 Mañana</option>
+                                        <option value="tarde">🌇 Tarde</option>
+                                        <option value="todo-el-dia">🕐 Todo el día</option>
+                                    </select>
+
+                                    {/* Tipo */}
+                                    <span className={`px-2 py-1 text-xs font-semibold rounded-full border ${getTypeBadge(upselling.type)}`}>
+                                        {upselling.type}
+                                    </span>
+
+                                    {/* Ubicaciones */}
+                                    <button
+                                        onClick={() => toggleDisplayLocation(upselling._id, 'inMenu', upselling.displayLocations?.inMenu)}
+                                        className={`p-1 rounded ${upselling.displayLocations?.inMenu ? 'bg-blue-100 text-blue-600' : 'bg-gray-100 text-gray-400'}`}
+                                    >
+                                        <MdRestaurantMenu className="h-4 w-4" />
+                                    </button>
+                                    <button
+                                        onClick={() => toggleDisplayLocation(upselling._id, 'inCheckout', upselling.displayLocations?.inCheckout)}
+                                        className={`p-1 rounded ${upselling.displayLocations?.inCheckout ? 'bg-purple-100 text-purple-600' : 'bg-gray-100 text-gray-400'}`}
+                                    >
+                                        <MdReceipt className="h-4 w-4" />
+                                    </button>
+
+                                    {/* Conv */}
+                                    <div className="flex items-center gap-1 ml-auto">
+                                        <MdTrendingUp className={`h-3 w-3 ${parseFloat(upselling.conversionRate) > 5 ? 'text-green-500' : 'text-gray-400'}`} />
+                                        <span className="text-xs font-medium text-gray-700">{upselling.conversionRate}%</span>
+                                        <span className="text-xs text-gray-400">({upselling.metrics?.clicks?.total || 0}c)</span>
+                                    </div>
+                                </div>
+                            </div>
+                        )
+                    })}
+                </div>
+            )}
+
             {/* Empty State */}
             {!loading && upsellings.length === 0 && (
-                <div className="bg-white rounded-xl border border-gray-200 p-12 text-center">
+                <div className="bg-white rounded-lg border border-gray-200 p-12 text-center">
                     <MdTrendingUp className="mx-auto h-16 w-16 text-gray-300 mb-4" />
-                    <h3 className="text-lg font-semibold text-gray-900 mb-2">No se encontraron upsellings</h3>
+                    <h3 className="text-base font-semibold text-gray-900 mb-2">No se encontraron upsellings</h3>
                     <p className="text-sm text-gray-500">
                         {filters.search || filters.category || filters.type || filters.isActive || filters.timing
                             ? 'Intenta con otros filtros'
