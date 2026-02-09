@@ -4,7 +4,6 @@ import {
     MdAttachMoney,
     MdShoppingCart,
     MdTrendingUp,
-    MdLocalShipping,
     MdStore
 } from 'react-icons/md';
 
@@ -38,7 +37,6 @@ const StatsGrid = ({ summary = {}, deliveryStats = [] }) => {
 
     // Obtener cantidad por método de entrega
     const deliveryTypes = [
-        { key: 'A domicilio', icon: MdLocalShipping, label: 'Delivery' },
         { key: 'Retiro en Sucursal', icon: MdStore, label: 'Takeaway' }
     ];
 
@@ -54,7 +52,7 @@ const StatsGrid = ({ summary = {}, deliveryStats = [] }) => {
     });
 
     return (
-        <div className="grid grid-cols-2 lg:grid-cols-5 gap-4">
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
             {[...stats, ...deliveryMetrics].map((stat, idx) => {
                 const Icon = stat.icon;
                 return (
