@@ -81,16 +81,19 @@ const MenuDisplay = ({ locationId }) => {
   const globalHours = data?.takeawayHours || DEFAULT_TAKEAWAY_HOURS;
 
   // Calcular hora solo en el cliente para evitar hydration mismatch
+  const isTakeawayEnabledByAdmin = data?.currentLocation?.features?.takeawayEnabled ?? true;
   useEffect(() => {
     const checkStoreHours = () => {
       const now = getCurrentTimeArgentina();
-      setIsStoreOpen(isTimeInRange(now, globalHours.open, globalHours.close));
+      const isWithinHours = isTimeInRange(now, globalHours.open, globalHours.close);
+      // Combinar horario Y configuración del admin
+      setIsStoreOpen(isWithinHours && isTakeawayEnabledByAdmin);
     };
     checkStoreHours();
     // Actualizar cada minuto
     const interval = setInterval(checkStoreHours, 60000);
     return () => clearInterval(interval);
-  }, [globalHours.open, globalHours.close]);
+  }, [globalHours.open, globalHours.close, isTakeawayEnabledByAdmin]);
 
   const isTakeaway = menuMode === 'takeaway';
 
@@ -101,7 +104,7 @@ const MenuDisplay = ({ locationId }) => {
   // Sin esto, el componente se queda en loading infinito
   if (loading) return (
     <>
-      <ModeSelector locationId={locationId} onModeSelect={handleModeSelect} takeawayHours={globalHours} isDisplayOnly={isDisplayOnly} urlMode={urlMode} />
+      <ModeSelector locationId={locationId} onModeSelect={handleModeSelect} takeawayHours={globalHours} locationFeatures={data?.currentLocation?.features} isDisplayOnly={isDisplayOnly} urlMode={urlMode} />
       <div className="min-h-screen flex items-center justify-center bg-gray-100">
         <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-orange-500"></div>
       </div>
@@ -111,7 +114,7 @@ const MenuDisplay = ({ locationId }) => {
   // Esperar a que se seleccione el modo (el ModeSelector ya está montado arriba o en el return principal)
   if (!menuMode) return (
     <>
-      <ModeSelector locationId={locationId} onModeSelect={handleModeSelect} takeawayHours={globalHours} isDisplayOnly={isDisplayOnly} urlMode={urlMode} />
+      <ModeSelector locationId={locationId} onModeSelect={handleModeSelect} takeawayHours={globalHours} locationFeatures={data?.currentLocation?.features} isDisplayOnly={isDisplayOnly} urlMode={urlMode} />
       <div className="min-h-screen flex items-center justify-center bg-gray-100">
         <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-orange-500"></div>
       </div>
@@ -146,7 +149,7 @@ const MenuDisplay = ({ locationId }) => {
   return (
     <div className='min-h-screen bg-gray-100 relative'>
       {/* Modal selector de modo */}
-      <ModeSelector locationId={locationId} onModeSelect={handleModeSelect} takeawayHours={globalHours} isDisplayOnly={isDisplayOnly} urlMode={urlMode} />
+      <ModeSelector locationId={locationId} onModeSelect={handleModeSelect} takeawayHours={globalHours} locationFeatures={data?.currentLocation?.features} isDisplayOnly={isDisplayOnly} urlMode={urlMode} />
 
       {/* Banner de pedido activo */}
       <ActiveOrderBanner />
@@ -159,6 +162,7 @@ const MenuDisplay = ({ locationId }) => {
             onModeChange={handleToggleMode}
             isTakeawayAvailable={isStoreOpen}
             takeawayHours={globalHours}
+            locationFeatures={data?.currentLocation?.features}
             isDisplayOnly={isDisplayOnly}
           /></div>
       )}

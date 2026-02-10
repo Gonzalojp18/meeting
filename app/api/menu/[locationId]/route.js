@@ -47,7 +47,13 @@ export async function GET(req, { params }) {
         schedule: category.schedule || {}
       })),
       locations: location,
-      takeawayHours
+      takeawayHours,
+      currentLocation: {
+        nameId: location.nameId,
+        name: location.name,
+        isActive: location.isActive ?? true,
+        features: location.features || { takeawayEnabled: true, localEnabled: true }
+      }
     };
 
     return NextResponse.json(filteredMenu);

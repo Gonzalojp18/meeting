@@ -3,7 +3,7 @@ import { useState } from 'react';
 import { MdRestaurant, MdDeliveryDining, MdSchedule } from 'react-icons/md';
 import { motion, AnimatePresence } from 'framer-motion';
 
-const ModeToggle = ({ currentMode, onModeChange, isTakeawayAvailable, takeawayHours, isDisplayOnly = false }) => {
+const ModeToggle = ({ currentMode, onModeChange, isTakeawayAvailable, takeawayHours, locationFeatures = { takeawayEnabled: true, localEnabled: true }, isDisplayOnly = false }) => {
     const isLocal = currentMode === 'local';
     const [showUnavailableToast, setShowUnavailableToast] = useState(false);
     const [showDisplayOnlyToast, setShowDisplayOnlyToast] = useState(false);
@@ -79,9 +79,13 @@ const ModeToggle = ({ currentMode, onModeChange, isTakeawayAvailable, takeawayHo
                         <div className="flex items-center gap-2">
                             <MdSchedule className="w-5 h-5 text-orange-400 flex-shrink-0" />
                             <div>
-                                <p className="text-sm font-semibold">Takeaway cerrado</p>
+                                <p className="text-sm font-semibold">
+                                    {locationFeatures?.takeawayEnabled === false ? 'Takeaway no disponible' : 'Takeaway cerrado'}
+                                </p>
                                 <p className="text-xs text-gray-300">
-                                    Horario: {takeawayHours?.open}hs - {takeawayHours?.close}hs
+                                    {locationFeatures?.takeawayEnabled === false
+                                        ? 'No disponible en esta sede'
+                                        : `Horario: ${takeawayHours?.open}hs - ${takeawayHours?.close}hs`}
                                 </p>
                             </div>
                         </div>

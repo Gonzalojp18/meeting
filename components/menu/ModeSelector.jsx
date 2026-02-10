@@ -5,12 +5,14 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { MdRestaurant, MdDeliveryDining } from 'react-icons/md';
 import { DEFAULT_TAKEAWAY_HOURS, isWithinTakeawayHours } from '@/utils/constants';
 
-const ModeSelector = ({ locationId, onModeSelect, takeawayHours, isDisplayOnly = false, urlMode = null }) => {
+const ModeSelector = ({ locationId, onModeSelect, takeawayHours, locationFeatures = { takeawayEnabled: true, localEnabled: true }, isDisplayOnly = false, urlMode = null }) => {
     const [isOpen, setIsOpen] = useState(false);
     const onModeSelectRef = useRef(onModeSelect);
 
     const globalHours = takeawayHours || DEFAULT_TAKEAWAY_HOURS;
-    const isTakeawayAvailable = isWithinTakeawayHours(globalHours);
+    const isTakeawayOpen = isWithinTakeawayHours(globalHours);
+    const isTakeawayEnabledByAdmin = locationFeatures?.takeawayEnabled ?? true;
+    const isTakeawayAvailable = isTakeawayOpen && isTakeawayEnabledByAdmin;
 
     // Mantener la ref actualizada
     useEffect(() => {
@@ -51,7 +53,7 @@ const ModeSelector = ({ locationId, onModeSelect, takeawayHours, isDisplayOnly =
             // Priority 3: Mostrar modal (solo cuando no hay URL mode ni localStorage)
             setIsOpen(true);
         }
-    }, [locationId, isTakeawayAvailable, isDisplayOnly, urlMode]);
+    }, [locationId, isTakeawayAvailable, isTakeawayEnabledByAdmin, isDisplayOnly, urlMode]);
 
     const handleSelectMode = (mode) => {
         localStorage.setItem(`menuMode_${locationId}`, mode);
@@ -115,6 +117,8 @@ const ModeSelector = ({ locationId, onModeSelect, takeawayHours, isDisplayOnly =
                                             <p className="font-bold text-lg">Takeaway / Para Llevar</p>
                                             {isTakeawayAvailable ? (
                                                 <p className="text-sm text-orange-200">Hacer pedido online</p>
+                                            ) : !isTakeawayEnabledByAdmin ? (
+                                                <p className="text-sm text-gray-400">No disponible en esta sede</p>
                                             ) : (
                                                 <p className="text-sm text-gray-400">
                                                     Disponible de {globalHours.open}hs a {globalHours.close}hs
