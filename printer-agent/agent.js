@@ -4,7 +4,7 @@ const fs = require('fs');
 const path = require('path');
 
 // --- CONFIGURACIÓN ---
-const CONFIG_PATH = path.join(process.cwd(), 'config.json');
+const CONFIG_PATH = path.join(__dirname, 'config.json');
 
 let config = {
     apiUrl: 'https://www.meetingrestobar.com',
