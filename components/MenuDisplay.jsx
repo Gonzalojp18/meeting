@@ -235,7 +235,7 @@ const MenuDisplay = ({ locationId }) => {
           </div>
         )}
         {(!isTakeaway || isStoreOpen || isDisplayOnly) && activeCategories.map((category) => (
-          <CategoryDisplay key={category._id} category={category} locationId={locationId} isTakeaway={isTakeaway || isDisplayOnly} displayOnly={isDisplayOnly} />
+          <CategoryDisplay key={category._id} category={category} locationId={locationId} isTakeaway={isTakeaway} displayOnly={isDisplayOnly} />
         ))}
 
         {/* 

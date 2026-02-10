@@ -13,6 +13,7 @@ const ModeSelector = ({ locationId, onModeSelect, takeawayHours, locationFeature
     const isTakeawayOpen = isWithinTakeawayHours(globalHours);
     const isTakeawayEnabledByAdmin = locationFeatures?.takeawayEnabled ?? true;
     const isTakeawayAvailable = isTakeawayOpen && isTakeawayEnabledByAdmin;
+    const isLocalEnabledByAdmin = locationFeatures?.localEnabled ?? true;
 
     // Mantener la ref actualizada
     useEffect(() => {
@@ -20,21 +21,25 @@ const ModeSelector = ({ locationId, onModeSelect, takeawayHours, locationFeature
     });
 
     useEffect(() => {
-        // Para location3 (display only), auto-seleccionar takeaway sin mostrar modal
+        // Para location3 (display only), respetar URL mode sin mostrar modal
         if (isDisplayOnly) {
-            // Si está habilitado takeaway, usarlo (comportamiento original)
-            // Si NO está habilitado, forzar local (ver menú)
-            const targetMode = isTakeawayAvailable ? 'takeaway' : 'local';
+            const targetMode = urlMode || 'local';
             onModeSelectRef.current(targetMode);
             return;
         }
 
         // Priority 1: URL mode parameter (viene desde home o link directo con parámetro)
         if (urlMode && (urlMode === 'local' || urlMode === 'takeaway')) {
-            // Si el modo es 'takeaway' pero está fuera de horario, forzar 'local'
             if (urlMode === 'takeaway' && !isTakeawayAvailable) {
                 localStorage.setItem(`menuMode_${locationId}`, 'local');
                 onModeSelectRef.current('local');
+            } else if (urlMode === 'local' && !isLocalEnabledByAdmin) {
+                if (isTakeawayAvailable) {
+                    localStorage.setItem(`menuMode_${locationId}`, 'takeaway');
+                    onModeSelectRef.current('takeaway');
+                } else {
+                    setIsOpen(true);
+                }
             } else {
                 localStorage.setItem(`menuMode_${locationId}`, urlMode);
                 onModeSelectRef.current(urlMode);
@@ -45,10 +50,16 @@ const ModeSelector = ({ locationId, onModeSelect, takeawayHours, locationFeature
         // Priority 2: Verificar si ya hay un modo seleccionado en localStorage
         const savedMode = localStorage.getItem(`menuMode_${locationId}`);
         if (savedMode) {
-            // Si el modo guardado es 'takeaway' pero está fuera de horario, forzar 'local'
             if (savedMode === 'takeaway' && !isTakeawayAvailable) {
                 localStorage.setItem(`menuMode_${locationId}`, 'local');
                 onModeSelectRef.current('local');
+            } else if (savedMode === 'local' && !isLocalEnabledByAdmin) {
+                if (isTakeawayAvailable) {
+                    localStorage.setItem(`menuMode_${locationId}`, 'takeaway');
+                    onModeSelectRef.current('takeaway');
+                } else {
+                    setIsOpen(true);
+                }
             } else {
                 onModeSelectRef.current(savedMode);
             }
@@ -56,7 +67,7 @@ const ModeSelector = ({ locationId, onModeSelect, takeawayHours, locationFeature
             // Priority 3: Mostrar modal (solo cuando no hay URL mode ni localStorage)
             setIsOpen(true);
         }
-    }, [locationId, isTakeawayAvailable, isTakeawayEnabledByAdmin, isDisplayOnly, urlMode]);
+    }, [locationId, isTakeawayAvailable, isTakeawayEnabledByAdmin, isLocalEnabledByAdmin, isDisplayOnly, urlMode]);
 
     const handleSelectMode = (mode) => {
         localStorage.setItem(`menuMode_${locationId}`, mode);
@@ -94,14 +105,22 @@ const ModeSelector = ({ locationId, onModeSelect, takeawayHours, locationFeature
 
                             <div className="space-y-4">
                                 <button
-                                    onClick={() => handleSelectMode('local')}
-                                    className="w-full p-6 bg-gradient-to-r from-gray-700 to-gray-900 text-white rounded-2xl hover:from-gray-800 hover:to-black transition-all duration-300 shadow-lg hover:shadow-xl transform hover:-translate-y-1"
+                                    onClick={() => isLocalEnabledByAdmin && handleSelectMode('local')}
+                                    disabled={!isLocalEnabledByAdmin}
+                                    className={`w-full p-6 rounded-2xl transition-all duration-300 shadow-lg ${isLocalEnabledByAdmin
+                                        ? 'bg-gradient-to-r from-gray-700 to-gray-900 text-white hover:from-gray-800 hover:to-black hover:shadow-xl transform hover:-translate-y-1'
+                                        : 'bg-gray-200 text-gray-500 cursor-not-allowed'
+                                        }`}
                                 >
                                     <div className="flex items-center justify-center gap-4">
                                         <MdRestaurant size={32} />
                                         <div className="text-left">
                                             <p className="font-bold text-lg">Consumo en Local</p>
-                                            <p className="text-sm text-gray-300">Ver menú sin pedido</p>
+                                            {isLocalEnabledByAdmin ? (
+                                                <p className="text-sm text-gray-300">Ver menú sin pedido</p>
+                                            ) : (
+                                                <p className="text-sm text-gray-400">No disponible en esta sede</p>
+                                            )}
                                         </div>
                                     </div>
                                 </button>

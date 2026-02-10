@@ -66,6 +66,7 @@ export async function PATCH(request, { params }) {
             location.metadata.notes = body.notes;
         }
 
+        menu.markModified('locations');
         await menu.save();
 
         return NextResponse.json({

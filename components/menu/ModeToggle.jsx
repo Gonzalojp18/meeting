@@ -17,7 +17,11 @@ const ModeToggle = ({ currentMode, onModeChange, isTakeawayAvailable, takeawayHo
         }
 
         if (isLocal && !isTakeawayAvailable) {
-            // Mostrar toast de horario no disponible
+            setShowUnavailableToast(true);
+            setTimeout(() => setShowUnavailableToast(false), 3000);
+            return;
+        }
+        if (!isLocal && !(locationFeatures?.localEnabled ?? true)) {
             setShowUnavailableToast(true);
             setTimeout(() => setShowUnavailableToast(false), 3000);
             return;
@@ -80,11 +84,13 @@ const ModeToggle = ({ currentMode, onModeChange, isTakeawayAvailable, takeawayHo
                             <MdSchedule className="w-5 h-5 text-orange-400 flex-shrink-0" />
                             <div>
                                 <p className="text-sm font-semibold">
-                                    {locationFeatures?.takeawayEnabled === false ? 'Takeaway no disponible' : 'Takeaway cerrado'}
+                                    {locationFeatures?.localEnabled === false ? 'Menú local no disponible'
+                                        : locationFeatures?.takeawayEnabled === false ? 'Takeaway no disponible'
+                                        : 'Takeaway cerrado'}
                                 </p>
                                 <p className="text-xs text-gray-300">
-                                    {locationFeatures?.takeawayEnabled === false
-                                        ? 'No disponible en esta sede'
+                                    {locationFeatures?.localEnabled === false ? 'No disponible en esta sede'
+                                        : locationFeatures?.takeawayEnabled === false ? 'No disponible en esta sede'
                                         : `Horario: ${takeawayHours?.open}hs - ${takeawayHours?.close}hs`}
                                 </p>
                             </div>
