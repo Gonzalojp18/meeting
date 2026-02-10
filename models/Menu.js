@@ -143,6 +143,29 @@ const locationSchema = new mongoose.Schema({
   isActive: {
     type: Boolean,
     default: true
+  },
+  // Control de features por locación (SuperAdmin)
+  features: {
+    takeawayEnabled: {
+      type: Boolean,
+      default: true
+    },
+    localEnabled: {
+      type: Boolean,
+      default: true
+    }
+  },
+  // Metadata para SuperAdmin
+  metadata: {
+    activatedAt: {
+      type: Date
+    },
+    deactivatedAt: {
+      type: Date
+    },
+    notes: {
+      type: String
+    }
   }
 });
 

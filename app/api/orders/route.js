@@ -3,6 +3,7 @@ import dbConnect from '@/utils/dbConnect';
 import Order from '@/models/Order';
 import { auth } from '@/auth';
 import { executePrintSaga } from '@/lib/print/saga';
+import { trackCustomer } from '@/utils/customerTracking';
 
 export async function GET(req) {
     try {
@@ -56,6 +57,16 @@ export async function POST(req) {
         });
 
         await newOrder.save();
+
+        // Track customer (async, no bloquea el flujo)
+        trackCustomer({
+            phone: data.customerData?.phone,
+            email: data.customerData?.email,
+            name: data.customerData?.name,
+            lastname: data.customerData?.lastname,
+            total: data.total,
+            locationId: data.location?.locationId
+        }).catch(err => console.error('[Order POST] trackCustomer error:', err));
 
         // Disparar impresora automáticamente (Bypass MP para pruebas)
         /* 

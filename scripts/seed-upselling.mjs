@@ -86,7 +86,7 @@ const upsellingDefinitions = [
     // 🥪 SANDWICHES (7)
     { name: 'Crudo Queso + Limonada', type: 'cross-sell', category: 'sandwiches', trigger: 'de crudo y queso', suggested: ['limonada'], copy: 'Algo fresco', ticketLevel: 'bajo', timing: 'todo-el-dia' },
     { name: 'Jamón Queso + Agua', type: 'cross-sell', category: 'sandwiches', trigger: 'de jamon cocido', suggested: ['agua con y sin gas'], copy: 'Hidratate', ticketLevel: 'bajo', timing: 'todo-el-dia' },
-    { name: 'Mila Simple → Mediano', type: 'upgrade', category: 'sandwiches', trigger: 'simple', suggested: ['mediano'], copy: 'Llevá más ingredientes', ticketLevel: 'medio', timing: 'tarde' },
+    { name: 'Mila Simple → Mediano', type: 'upgrade', category: 'sandwiches', trigger: 'simple', suggested: ['mediano'], copy: 'Lleválo con más ingredientes por solo', ticketLevel: 'medio', timing: 'tarde' },
     { name: 'Mila Mediano → Completo', type: 'upgrade', category: 'sandwiches', trigger: 'mediano', suggested: ['completo'], copy: 'Hacelo completo', ticketLevel: 'medio', timing: 'tarde' },
     { name: 'Mila Completo + Corona', type: 'cross-sell', category: 'sandwiches', trigger: 'completo', suggested: ['cerveza corona'], copy: 'El combo perfecto 🍺', ticketLevel: 'medio', timing: 'tarde' },
     { name: 'Tostado + Café', type: 'cross-sell', category: 'sandwiches', trigger: 'tostado en pan arabe', suggested: ['café con leche'], copy: 'Completá la merienda', ticketLevel: 'bajo', timing: 'tarde' },
