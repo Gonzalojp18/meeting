@@ -43,7 +43,7 @@ export default function PublicHomePage() {
 
                         {/* Menu Button - Frosted glass light style */}
                         <Link
-                            href="/menu/location3?mode=takeaway"
+                            href="/menu/location3?mode=local"
                             className="flex-1 flex items-center justify-center gap-2 bg-white/70 backdrop-blur-md text-gray-700 rounded-full py-3 px-6 shadow-lg hover:bg-white/90 transition-all active:scale-[0.97] border border-white/50"
                         >
                             <MdRestaurantMenu className="w-5 h-5 text-orange-600" />

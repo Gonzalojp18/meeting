@@ -22,7 +22,10 @@ const ModeSelector = ({ locationId, onModeSelect, takeawayHours, locationFeature
     useEffect(() => {
         // Para location3 (display only), auto-seleccionar takeaway sin mostrar modal
         if (isDisplayOnly) {
-            onModeSelectRef.current('takeaway');
+            // Si está habilitado takeaway, usarlo (comportamiento original)
+            // Si NO está habilitado, forzar local (ver menú)
+            const targetMode = isTakeawayAvailable ? 'takeaway' : 'local';
+            onModeSelectRef.current(targetMode);
             return;
         }
 

@@ -18,7 +18,7 @@ import WeatherWidget from './Weather/WeatherWidget'
 import { motion } from 'framer-motion';
 
 import useCartStore from '../store/cartStore';
-import { MdShoppingCart, MdSchedule } from 'react-icons/md';
+import { MdShoppingCart, MdSchedule, MdStorefront } from 'react-icons/md';
 import Link from 'next/link';
 import ModeSelector from './menu/ModeSelector';
 import ModeToggle from './menu/ModeToggle';
@@ -110,6 +110,24 @@ const MenuDisplay = ({ locationId }) => {
       </div>
     </>
   );
+
+  // Verificar si la sede está activa (SuperAdmin)
+  const isActive = data?.currentLocation?.isActive ?? true;
+
+  if (!isActive) {
+    return (
+      <div className="min-h-screen flex flex-col items-center justify-center bg-gray-100 p-4">
+        <MdStorefront className="w-16 h-16 text-gray-400 mb-4" />
+        <h1 className="text-2xl font-bold text-gray-800 mb-2">Sede No Disponible</h1>
+        <p className="text-gray-600 text-center mb-6">
+          Esta sucursal se encuentra temporalmente deshabilitada.
+        </p>
+        <Link href="/" className="px-6 py-2 bg-orange-600 text-white rounded-full hover:bg-orange-700 transition-colors">
+          Volver al Inicio
+        </Link>
+      </div>
+    );
+  }
 
   // Esperar a que se seleccione el modo (el ModeSelector ya está montado arriba o en el return principal)
   if (!menuMode) return (
