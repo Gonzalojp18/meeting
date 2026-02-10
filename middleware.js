@@ -71,8 +71,14 @@ export default async function middleware(request) {
     const isPublicRoute = PUBLIC_ROUTES.some(route => pathname.startsWith(route));
     const isPublicApiRoute = PUBLIC_API_ROUTES.some(route => pathname.startsWith(route));
 
+    // Excepciones para acciones públicas de órdenes (cancelar y confirmar retiro)
+    // Permite /api/orders/:id/cancel y /api/orders/:id/customer-pickup
+    const isPublicOrderAction =
+        /\/api\/orders\/[^/]+\/cancel$/.test(pathname) ||
+        /\/api\/orders\/[^/]+\/customer-pickup$/.test(pathname);
+
     // Si es ruta completamente pública, permitir acceso
-    if (isPublicRoute || isPublicApiRoute) {
+    if (isPublicRoute || isPublicApiRoute || isPublicOrderAction) {
         return NextResponse.next();
     }
 
