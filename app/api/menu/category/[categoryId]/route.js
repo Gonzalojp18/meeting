@@ -42,6 +42,7 @@ export async function PUT(req, { params }) {
     if (updatedData.name !== undefined) category.name = updatedData.name;
     if (updatedData.subtitle !== undefined) category.subtitle = updatedData.subtitle;
     if (updatedData.style !== undefined) category.style = updatedData.style;
+    if (updatedData.printRole !== undefined) category.printRole = updatedData.printRole;
     if (updatedData.image !== undefined) category.image = updatedData.image;
     if (updatedData.locations !== undefined) category.locations = updatedData.locations;
     if (updatedData.isActive !== undefined) category.isActive = updatedData.isActive;

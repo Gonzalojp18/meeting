@@ -10,6 +10,7 @@ const CategoryForm = ({ category, locations = [], onSubmit, onCancel }) => {
     name: '',
     subtitle: '',
     style: 'default',
+    printRole: 'kitchen',
     image: {
       url: '',
       position: 'top',
@@ -27,7 +28,9 @@ const CategoryForm = ({ category, locations = [], onSubmit, onCancel }) => {
       setFormData({
         name: category.name || '',
         subtitle: category.subtitle || '',
+        subtitle: category.subtitle || '',
         style: category.style || 'default',
+        printRole: category.printRole || 'kitchen',
         image: {
           url: category.image?.url || '',
           position: category.image?.position || 'top',
@@ -161,6 +164,24 @@ const CategoryForm = ({ category, locations = [], onSubmit, onCancel }) => {
         </select>
       </div>
 
+      <div>
+        <label className="block text-sm font-medium text-gray-700">
+          Rol de Impresión (Comandas)
+        </label>
+        <select
+          value={formData.printRole}
+          onChange={(e) => setFormData({ ...formData, printRole: e.target.value })}
+          className="mt-1 block w-full rounded-md border border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm px-3 py-2"
+        >
+          <option value="kitchen">Cocina (Comida)</option>
+          <option value="bar">Barra (Bebidas/Cafetería)</option>
+          <option value="both">Ambas</option>
+        </select>
+        <p className="mt-1 text-xs text-gray-500">
+          Determina a qué impresora se enviarán los productos de esta categoría.
+        </p>
+      </div>
+
       {/* Selector de sedes */}
       <div>
         <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -237,13 +258,13 @@ const CategoryForm = ({ category, locations = [], onSubmit, onCancel }) => {
       {/* Sección de imagen */}
       <div className="border-t pt-4 space-y-3">
         <h4 className="text-sm font-medium text-gray-700">Imagen de categoría (opcional)</h4>
-        
+
         {previewUrl ? (
           <div className="space-y-3">
             {/* Preview */}
             <div className="relative rounded-lg overflow-hidden border-2 border-gray-200 bg-gray-50">
-              <img 
-                src={previewUrl} 
+              <img
+                src={previewUrl}
                 alt="Preview"
                 className="w-full h-48 object-cover"
               />
@@ -264,8 +285,8 @@ const CategoryForm = ({ category, locations = [], onSubmit, onCancel }) => {
                   <label className="block text-xs text-gray-600 mb-1">Posición de la imagen</label>
                   <select
                     value={formData.image.position}
-                    onChange={(e) => setFormData({ 
-                      ...formData, 
+                    onChange={(e) => setFormData({
+                      ...formData,
                       image: { ...formData.image, position: e.target.value }
                     })}
                     className="block w-full rounded-md border border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm px-3 py-2"
@@ -281,8 +302,8 @@ const CategoryForm = ({ category, locations = [], onSubmit, onCancel }) => {
                   <input
                     type="text"
                     value={formData.image.alt}
-                    onChange={(e) => setFormData({ 
-                      ...formData, 
+                    onChange={(e) => setFormData({
+                      ...formData,
                       image: { ...formData.image, alt: e.target.value }
                     })}
                     className="block w-full rounded-md border border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm px-3 py-2"

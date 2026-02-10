@@ -98,6 +98,12 @@ const categorySchema = new mongoose.Schema({
     enum: ['default', 'compact', 'featured'],
     default: 'default'
   },
+  // NUEVO: Rol de impresión para routing (Cocina vs Barra)
+  printRole: {
+    type: String,
+    enum: ['kitchen', 'bar', 'both'],
+    default: 'kitchen'
+  },
   image: {
     url: { type: String, trim: true },
     position: {

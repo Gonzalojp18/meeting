@@ -19,6 +19,7 @@ const CategoryManager = ({
     name: '',
     subtitle: '',
     style: 'default',
+    printRole: 'kitchen',
     image: { url: '', position: 'top', alt: '' },
     locations: [],
     schedule: { availableFrom: '', availableTo: '' }
@@ -37,6 +38,7 @@ const CategoryManager = ({
     name: '',
     subtitle: '',
     style: 'default',
+    printRole: 'kitchen',
     image: { url: '', position: 'top', alt: '' },
     locations: [],
     schedule: { availableFrom: '', availableTo: '' }
@@ -102,6 +104,7 @@ const CategoryManager = ({
       name: category.name || '',
       subtitle: category.subtitle || '',
       style: category.style || 'default',
+      printRole: category.printRole || 'kitchen',
       image: {
         url: category.image?.url || '',
         position: category.image?.position || 'top',
@@ -234,6 +237,24 @@ const CategoryManager = ({
                   <option value="all">🌍 Todas las sedes</option>
                   <option value="specific">📍 Sedes específicas</option>
                 </select>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+              <div>
+                <label className="block text-sm font-semibold text-gray-700 mb-2">
+                  Rol de Impresión (Comandas)
+                </label>
+                <select
+                  value={formData.printRole}
+                  onChange={(e) => setFormData({ ...formData, printRole: e.target.value })}
+                  className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent bg-white transition-all"
+                >
+                  <option value="kitchen">🍳 Cocina (Comida)</option>
+                  <option value="bar">🍹 Barra (Bebidas/Cafetería)</option>
+                  <option value="both">🔄 Ambas</option>
+                </select>
+                <p className="text-xs text-gray-500 mt-1">Define dónde se imprimirá esta categoría</p>
               </div>
             </div>
 

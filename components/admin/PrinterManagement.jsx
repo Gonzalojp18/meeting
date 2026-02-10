@@ -264,7 +264,7 @@ const PrinterManagement = ({ locations = [] }) => {
                 <div className="flex flex-wrap gap-2 w-full lg:w-auto">
                     {/* Panel de Pruebas Multitarea */}
                     <div className="flex items-center gap-1 bg-gray-50 p-1.5 rounded-xl border border-gray-200 shadow-sm">
-                        {['kitchen', 'cashier'].map(role => (
+                        {['kitchen', 'bar', 'cashier'].map(role => (
                             <button
                                 key={role}
                                 onClick={() => setTestRoles(prev =>
@@ -273,7 +273,7 @@ const PrinterManagement = ({ locations = [] }) => {
                                 className={`px-3 py-1.5 rounded-lg text-[10px] font-black uppercase transition-all ${testRoles.includes(role) ? 'bg-indigo-600 text-white shadow-sm' : 'text-gray-400 hover:text-gray-600'
                                     }`}
                             >
-                                {role === 'kitchen' ? 'Cocina' : 'Caja'}
+                                {role === 'kitchen' ? 'Cocina' : role === 'bar' ? 'Barra' : 'Caja'}
                             </button>
                         ))}
                         <button
@@ -388,7 +388,7 @@ const PrinterManagement = ({ locations = [] }) => {
                         <div className="flex-1 space-y-3">
                             <label className="block text-xs font-bold text-gray-800 uppercase tracking-wider">Tareas asignadas:</label>
                             <div className="flex gap-3 flex-wrap">
-                                {['kitchen', 'cashier'].map(role => (
+                                {['kitchen', 'bar', 'cashier'].map(role => (
                                     <button
                                         key={role}
                                         type="button"
@@ -403,7 +403,7 @@ const PrinterManagement = ({ locations = [] }) => {
                                             : 'bg-white border-gray-100 text-gray-400 hover:border-indigo-200 hover:text-indigo-600'
                                             }`}
                                     >
-                                        {role === 'kitchen' ? 'Cocina' : 'Caja / Ticket'}
+                                        {role === 'kitchen' ? 'Cocina' : role === 'bar' ? 'Barra' : 'Caja / Ticket'}
                                     </button>
                                 ))}
                             </div>
@@ -473,7 +473,7 @@ const PrinterManagement = ({ locations = [] }) => {
                                 <div className="flex flex-wrap gap-1.5">
                                     {printer.roles.map(role => (
                                         <span key={role} className="bg-indigo-600 text-white px-2.5 py-1 rounded-lg text-[9px] font-black uppercase shadow-sm shadow-indigo-100">
-                                            {role === 'kitchen' ? 'Cocina' : 'Caja'}
+                                            {role === 'kitchen' ? 'Cocina' : role === 'bar' ? 'Barra' : 'Caja'}
                                         </span>
                                     ))}
                                     <button

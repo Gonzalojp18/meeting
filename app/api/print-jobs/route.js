@@ -34,8 +34,34 @@ export async function GET(req) {
       isActive: true
     });
 
+    // 3. Obtener el Menú para saber el rol de impresión de cada producto
+    // (Optimizacion: Traemos solo categorías y sus items con printRole)
+    const Menu = (await import("@/models/Menu")).default;
+    const menu = await Menu.findOne({ "locations.isActive": true }).lean();
+
+    // Mapa: itemId -> printRole ('kitchen' | 'bar')
+    const itemRoleMap = {};
+    if (menu) {
+      menu.categories.forEach(cat => {
+        const role = cat.printRole || 'kitchen'; // Default
+        cat.items.forEach(item => {
+          itemRoleMap[item._id.toString()] = role;
+        });
+      });
+    }
+
+    // 4. Enriquecer las órdenes con el rol de impresión por item
+    const enrichedOrders = pendingOrders.map(order => {
+      const orderObj = order.toObject();
+      orderObj.items = orderObj.items.map(item => {
+        const role = itemRoleMap[item.itemId.toString()] || 'kitchen';
+        return { ...item, printRole: role };
+      });
+      return orderObj;
+    });
+
     return NextResponse.json({
-      orders: pendingOrders,
+      orders: enrichedOrders,
       printers: printers
     });
   } catch (error) {

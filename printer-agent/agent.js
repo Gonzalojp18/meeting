@@ -97,10 +97,25 @@ class JobManager {
 const jobManager = new JobManager();
 
 // --- GENERADOR DE TICKETS (Lógica compartida) ---
+// --- GENERADOR DE TICKETS (Lógica compartida) ---
 function generateTicket(order, role, columns = 32) {
     let chunks = [];
     const customer = order.customer || {};
-    const items = order.items || [];
+    const allItems = order.items || [];
+
+    // FILTRADO DE ITEMS SEGÚN ROL
+    let itemsToPrint = [];
+    if (role === 'cashier') {
+        itemsToPrint = allItems;
+    } else if (role === 'kitchen') {
+        itemsToPrint = allItems.filter(i => !i.printRole || i.printRole === 'kitchen' || i.printRole === 'both');
+    } else if (role === 'bar') {
+        itemsToPrint = allItems.filter(i => i.printRole === 'bar' || i.printRole === 'both');
+    }
+
+    // Si no hay items para este rol, no generamos ticket
+    if (itemsToPrint.length === 0) return null;
+
     const lineStr = '-'.repeat(columns);
     const money = (v) => Number(v || 0).toLocaleString('es-AR');
 
@@ -115,23 +130,39 @@ function generateTicket(order, role, columns = 32) {
         chunks.push(ESC_POS.TEXT_SIZE_LARGE, ESC_POS.BOLD_ON);
         chunks.push(Buffer.from(`ORDEN: ${order.orderNumber}\n`));
         chunks.push(ESC_POS.TEXT_SIZE_NORMAL, ESC_POS.BOLD_OFF);
-        chunks.push(Buffer.from(`*** COCINA ***\n`));
+
+        let sectorName = "COCINA";
+        if (role === 'bar') sectorName = "BARRA / BEBIDAS";
+
+        chunks.push(Buffer.from(`*** ${sectorName} ***\n`));
     }
 
     chunks.push(Buffer.from(`${lineStr}\n`));
     chunks.push(ESC_POS.ALIGN_LEFT);
     chunks.push(Buffer.from(`Fecha: ${new Date(order.createdAt).toLocaleString()}\n`));
     chunks.push(Buffer.from(`Cliente: ${customer.name} ${customer.lastname || ''}\n`));
+
+    if (role !== 'cashier' && order.notes) {
+        chunks.push(Buffer.from(`Nota: ${order.notes}\n`));
+    }
+
     chunks.push(Buffer.from(`${lineStr}\n`));
 
-    items.forEach(item => {
+    itemsToPrint.forEach(item => {
         const line = `${item.quantity}x ${item.name}`;
+
         if (role === 'cashier') {
             const price = `$${money(item.price * item.quantity)}`;
             const dots = '.'.repeat(Math.max(2, columns - line.length - price.length));
             chunks.push(Buffer.from(`${line}${dots}${price}\n`));
         } else {
+            // En cocina/barra, si hay customizaciones las mostramos
             chunks.push(Buffer.from(`${line}\n`));
+            if (item.customizations && item.customizations.length > 0) {
+                item.customizations.forEach(c => {
+                    chunks.push(Buffer.from(`  + ${c.selected}\n`));
+                });
+            }
         }
     });
 
@@ -163,6 +194,11 @@ async function poll() {
                     console.log(`[QUEUE] Agregando Orden ${order.orderNumber} para ${printer.name} (${role})`);
 
                     const ticketBuffer = generateTicket(order, role, printer.paperWidth === 80 ? 48 : 32);
+
+                    if (!ticketBuffer) {
+                        console.log(`[SKIP] Orden ${order.orderNumber} no tiene items para ${printer.name} (${role})`);
+                        continue;
+                    }
 
                     jobManager.enqueue(printer.uid, printer, ticketBuffer, async (success, errorMsg) => {
                         try {

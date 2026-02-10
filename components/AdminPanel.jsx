@@ -250,8 +250,8 @@ const AdminPanel = () => {
   // Todos los roles tienen acceso a Caja
   tabs.push({ id: 'caja', label: 'Caja', icon: MdPointOfSale });
 
-  // Staff tiene acceso a Impresoras, Historial, y control de disponibilidad
-  if (isStaff) {
+  // Staff y Admin tienen acceso a Impresoras, Historial, y control de disponibilidad (temporalmente para admin también)
+  if (isStaff || isAdmin) {
     tabs.push({ id: 'availability', label: 'Disponibilidad', icon: MdRestaurantMenu });
     tabs.push({ id: 'printers', label: 'Impresoras', icon: MdPrint });
     tabs.push({ id: 'history', label: 'Historial', icon: MdHistory });
