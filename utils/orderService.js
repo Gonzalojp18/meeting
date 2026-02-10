@@ -76,7 +76,10 @@ export async function createOrderFromPayment(paymentInfo) {
                 name: item.name,
                 quantity: item.quantity,
                 price: item.unitPrice, // Schema expects 'price'
-                customizations: item.customizations || []
+                customizations: (item.customizations || []).map(c => ({
+                    groupName: c.group || c.groupName || '',
+                    selected: c.option || c.selected || ''
+                }))
             })),
             location: {
                 locationId: locationId || 'unknown',

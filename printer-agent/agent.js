@@ -97,7 +97,6 @@ class JobManager {
 const jobManager = new JobManager();
 
 // --- GENERADOR DE TICKETS (Lógica compartida) ---
-// --- GENERADOR DE TICKETS (Lógica compartida) ---
 function generateTicket(order, role, columns = 32) {
     let chunks = [];
     const customer = order.customer || {};
@@ -140,10 +139,26 @@ function generateTicket(order, role, columns = 32) {
     chunks.push(Buffer.from(`${lineStr}\n`));
     chunks.push(ESC_POS.ALIGN_LEFT);
     chunks.push(Buffer.from(`Fecha: ${new Date(order.createdAt).toLocaleString()}\n`));
-    chunks.push(Buffer.from(`Cliente: ${customer.name} ${customer.lastname || ''}\n`));
 
+    // Tipo de entrega
+    if (order.deliveryMethod) {
+        chunks.push(Buffer.from(`Tipo: ${order.deliveryMethod}\n`));
+    }
+
+    // Info del cliente
+    chunks.push(ESC_POS.BOLD_ON);
+    chunks.push(Buffer.from(`Cliente: ${customer.name || ''} ${customer.lastname || ''}\n`));
+    if (customer.phone) {
+        chunks.push(Buffer.from(`Tel: ${customer.phone}\n`));
+    }
+    chunks.push(ESC_POS.BOLD_OFF);
+
+    // Observaciones del cliente (prominente)
     if (role !== 'cashier' && order.notes) {
-        chunks.push(Buffer.from(`Nota: ${order.notes}\n`));
+        chunks.push(Buffer.from(`${lineStr}\n`));
+        chunks.push(ESC_POS.BOLD_ON);
+        chunks.push(Buffer.from(`OBS: ${order.notes}\n`));
+        chunks.push(ESC_POS.BOLD_OFF);
     }
 
     chunks.push(Buffer.from(`${lineStr}\n`));
@@ -156,11 +171,16 @@ function generateTicket(order, role, columns = 32) {
             const dots = '.'.repeat(Math.max(2, columns - line.length - price.length));
             chunks.push(Buffer.from(`${line}${dots}${price}\n`));
         } else {
-            // En cocina/barra, si hay customizaciones las mostramos
+            // En cocina/barra mostramos item + customizaciones
             chunks.push(Buffer.from(`${line}\n`));
             if (item.customizations && item.customizations.length > 0) {
                 item.customizations.forEach(c => {
-                    chunks.push(Buffer.from(`  + ${c.selected}\n`));
+                    // Soportar ambos formatos: { selected } y { option }
+                    const detail = c.selected || c.option || '';
+                    const group = c.groupName || c.group || '';
+                    if (detail) {
+                        chunks.push(Buffer.from(`  > ${group ? group + ': ' : ''}${detail}\n`));
+                    }
                 });
             }
         }

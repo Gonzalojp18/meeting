@@ -66,7 +66,9 @@ async function validateAndGetRealPrices(items, locationId) {
                 // Buscar el grupo de customización en el item
                 const group = foundItem.customizations?.find(g => g.name === customization.groupName);
                 if (group) {
-                    for (const selection of (customization.selections || [])) {
+                    const selections = customization.selections
+                        || (customization.selected ? [customization.selected] : []);
+                    for (const selection of selections) {
                         const option = group.options.find(o => o.name === selection);
                         if (option && option.isAvailable !== false) {
                             // Sumar modificador de precio REAL de la DB
