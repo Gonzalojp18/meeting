@@ -25,7 +25,6 @@ const PROTECTED_API_ROUTES = [
     '/api/orders',
     '/api/settings',
     '/api/upload',
-    '/api/print-jobs',
 ];
 
 // APIs públicas (no requieren autenticación)
@@ -35,6 +34,7 @@ const PUBLIC_API_ROUTES = [
     '/api/orders/by-number',
     '/api/orders/by-payment',
     '/api/auth',
+    '/api/print-jobs',
 ];
 
 // APIs de menú: GET es público, POST/PUT/DELETE requiere auth
