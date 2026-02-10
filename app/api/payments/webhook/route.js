@@ -4,6 +4,7 @@ import crypto from 'crypto';
 import dbConnect from '@/utils/dbConnect';
 import Order from '@/models/Order';
 import { getMPCredentials } from '@/utils/getMPCredentials';
+import { createOrderFromPayment } from '@/utils/orderService';
 
 // 🔒 SECURITY: Validate MercadoPago webhook signature (VULN-002)
 function validateMPSignature(req, secret, dataId) {
@@ -176,70 +177,13 @@ export async function POST(req) {
         // --- Creación de Orden ---
         await dbConnect();
 
-        // Evitar duplicados (idempotencia)
-        const existingOrder = await Order.findOne({ mercadoPagoId: paymentInfo.id.toString() });
-        if (existingOrder) {
-            console.log(`[WEBHOOK] La orden ${existingOrder.orderNumber} ya existe.`);
-            return NextResponse.json({ received: true, order: existingOrder.orderNumber });
-        }
+        // Usamos el servicio centralizado para crear la orden
+        // Esto maneja idempotencia (evita duplicados) y parseo de metadata
+        const newOrder = await createOrderFromPayment(paymentInfo);
 
-        // Extraer metadata
-        // MP a veces devuelve snake_case en metadata cuando se consulta vía API
-        const meta = paymentInfo.metadata || {};
-        const customerDataRaw = meta.customer_data || meta.customerData;
-        const itemsRaw = meta.items;
-        const locationId = meta.location_id || meta.locationId;
-        const total = meta.total;
+        console.log(`[WEBHOOK] ✅ Orden procesada/creada: ${newOrder.orderNumber}`);
 
-        if (!customerDataRaw || !itemsRaw) {
-            console.error('[WEBHOOK] Metadata incompleta en el pago.');
-            return NextResponse.json({ received: true }); // No podemos hacer nada sin data
-        }
-
-        // Parsear si vienen como strings (bug usual de MP v1/v2 mix)
-        const customerData = typeof customerDataRaw === 'string' ? JSON.parse(customerDataRaw) : customerDataRaw;
-        const items = typeof itemsRaw === 'string' ? JSON.parse(itemsRaw) : itemsRaw;
-
-        // 🔒 SECURITY: Generar Order Number de forma más segura (VULN-011 parcial)
-        const orderCount = await Order.countDocuments();
-        const timestamp = Date.now().toString(36).toUpperCase();
-        const orderNumber = `ORD-${String(orderCount + 1).padStart(4, '0')}-${timestamp.slice(-4)}`;
-
-        // 🔒 SECURITY: Sanitizar y limitar notas (VULN-009)
-        const MAX_NOTES_LENGTH = 500;
-        const sanitizedNotes = (customerData.notes || '')
-            .toString()
-            .trim()
-            .substring(0, MAX_NOTES_LENGTH);
-
-        const newOrder = new Order({
-            orderNumber,
-            customer: {
-                name: customerData.name,
-                lastname: customerData.lastname || '',
-                phone: customerData.phone,
-                email: customerData.email || ''
-            },
-            items,
-            location: {
-                locationId: locationId,
-                locationName: locationId // Podrías mejorar esto buscando el nombre real
-            },
-            deliveryMethod: customerData.deliveryMethod || 'Retiro en Sucursal',
-            deliveryAddress: customerData.deliveryAddress || '',
-            paymentMethod: 'Mercado Pago',
-            paymentStatus: 'approved',
-            mercadoPagoId: paymentInfo.id.toString(),
-            status: 'pending', // Pending de "Preparación", pero pagado
-            subtotal: total,
-            total,
-            notes: sanitizedNotes
-        });
-
-        await newOrder.save();
-        console.log(`[WEBHOOK] ✅ Orden creada exitosamente: ${orderNumber}`);
-
-        return NextResponse.json({ received: true, order: orderNumber });
+        return NextResponse.json({ received: true, order: newOrder.orderNumber });
 
     } catch (error) {
         console.error('[WEBHOOK CRASH]:', error);
