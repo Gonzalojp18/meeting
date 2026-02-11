@@ -3,6 +3,7 @@
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { MdAdd, MdClose, MdLocalOffer } from 'react-icons/md';
+import { shouldHideUpselling, recordDismissal } from '@/utils/upsellingStorage';
 
 /**
  * UpsellingMicroMessage
@@ -17,7 +18,10 @@ export default function UpsellingMicroMessage({
     locationId
 }) {
     const [isAdding, setIsAdding] = useState(false);
-    const [isDismissed, setIsDismissed] = useState(false);
+    // [Mejora 2] Inicializar con check de localStorage
+    const [isDismissed, setIsDismissed] = useState(() =>
+        upselling?._id ? shouldHideUpselling(upselling._id.toString()) : false
+    );
 
     if (!upselling || isDismissed) return null;
 
@@ -68,6 +72,7 @@ export default function UpsellingMicroMessage({
     };
 
     const handleDismiss = () => {
+        recordDismissal(upselling._id.toString()); // [Mejora 2] Persistir en localStorage
         setIsDismissed(true);
         onDismiss?.(upselling._id);
     };

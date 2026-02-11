@@ -2,19 +2,29 @@ import { NextResponse } from "next/server";
 import dbConnect from "@/utils/dbConnect";
 import Upselling from "@/models/Upselling";
 import Menu from "@/models/Menu";
+import Settings from "@/models/Settings";
 import mongoose from "mongoose";
+import { weightedShuffleByPriority } from "@/utils/upsellingHelpers";
+import { DEFAULT_UPSELLING_CONFIG } from "@/utils/constants";
 
 /**
  * POST /api/upselling/suggest
- * 
+ *
  * Motor de sugerencias inteligente.
  * Recibe el carrito actual y devuelve las mejores sugerencias de upselling.
- * 
+ *
+ * Mejoras implementadas:
+ * 1. Rotación aleatoria ponderada dentro del mismo nivel de prioridad
+ * 2. (Client-side) Anti-repetición con localStorage
+ * 3. Límite configurable desde admin Settings
+ * 4. Peso por tasa de conversión
+ * 5. Filtrar cross-sells cuya categoría ya está cubierta en el carrito
+ *
  * Body:
  * - cartItems: [{ itemId, itemName, categoryId, quantity }]
  * - displayLocation: 'menu' | 'checkout' | 'cart'
  * - locationId: string (ubicación del restaurante)
- * - limit: number (máximo de sugerencias, default 2)
+ * - limit: number | null (si null, se usa el valor de Settings)
  */
 export async function POST(request) {
     try {
@@ -25,32 +35,46 @@ export async function POST(request) {
             cartItems = [],
             displayLocation = 'checkout',
             locationId = null,
-            limit = 2
+            limit = null
         } = body;
 
+        // [Mejora 3] Resolver límite: si el cliente no envía, usar Settings
+        let effectiveLimit;
+        if (limit !== null && limit !== undefined) {
+            effectiveLimit = limit;
+        } else {
+            try {
+                const config = await Settings.getValue('upselling_config') || DEFAULT_UPSELLING_CONFIG;
+                const limitMap = {
+                    menu: config.maxInMenu,
+                    checkout: config.maxInCheckout,
+                    cart: config.maxInCart
+                };
+                effectiveLimit = limitMap[displayLocation] || config.maxInCheckout || 2;
+            } catch {
+                effectiveLimit = 2;
+            }
+        }
+
         // Obtener hora actual para filtrar por timing
-        // Horario del restaurante: 08:30 - 20:30
-        // mañana: 08:30 - 12:00 (desayunos)
-        // tarde: 12:00 - 20:30 (almuerzos, meriendas, cenas tempranas)
         const now = new Date();
         const hour = now.getHours();
         const minutes = now.getMinutes();
-        const currentTime = hour + (minutes / 60); // Ej: 20:30 = 20.5
+        const currentTime = hour + (minutes / 60);
 
         let currentTiming;
         if (currentTime >= 8.5 && currentTime < 12) {
             currentTiming = 'mañana';
         } else {
-            // De 12:00 a 20:30 (cierre) es "tarde"
             currentTiming = 'tarde';
         }
 
         // Día actual (0 = domingo)
         const currentDay = now.getDay();
 
-        console.log(`[Upselling Suggest] Time: ${hour}:00, Timing: ${currentTiming}, Day: ${currentDay}, Location: ${displayLocation}`);
+        console.log(`[Upselling Suggest] Time: ${hour}:00, Timing: ${currentTiming}, Day: ${currentDay}, Location: ${displayLocation}, Limit: ${effectiveLimit}`);
 
-        // Construir query base - más permisivo para obtener resultados
+        // Construir query base
         const query = {
             isActive: true,
             daysActive: currentDay
@@ -73,20 +97,19 @@ export async function POST(request) {
 
         console.log(`[Upselling Suggest] Found ${upsellings.length} upsellings before timing filter`);
 
-        // Si no hay resultados, intentar query más simple para debug
+        // Si no hay resultados, debug
         if (upsellings.length === 0) {
             const totalActive = await Upselling.countDocuments({ isActive: true });
             const totalWithDay = await Upselling.countDocuments({ isActive: true, daysActive: currentDay });
             console.log(`[Upselling Suggest] DEBUG: Total active: ${totalActive}, With day ${currentDay}: ${totalWithDay}`);
         }
 
-        // Filtrar por timing (preferir timing actual pero incluir 'todo-el-dia')
+        // Filtrar por timing
         if (upsellings.length > 0) {
             const timingFiltered = upsellings.filter(u =>
                 u.timing === currentTiming || u.timing === 'todo-el-dia'
             );
 
-            // Si hay resultados con timing, usar esos; si no, usar todos
             if (timingFiltered.length > 0) {
                 upsellings = timingFiltered;
                 console.log(`[Upselling Suggest] After timing filter: ${upsellings.length} upsellings`);
@@ -102,12 +125,24 @@ export async function POST(request) {
             );
         }
 
+        // [Mejora 5] Preparar mapa de categorías del menú ANTES del procesamiento del carrito
+        const menu = await Menu.findOne().lean();
+        const itemCategoryMap = {}; // { itemId -> categoryId }
+        if (menu?.categories) {
+            for (const cat of menu.categories) {
+                const catId = cat._id?.toString();
+                if (catId && cat.items) {
+                    for (const item of cat.items) {
+                        itemCategoryMap[item._id.toString()] = catId;
+                    }
+                }
+            }
+        }
 
         // Si hay items en el carrito, priorizar los que tienen trigger match
         if (cartItems.length > 0) {
             console.log(`[Upselling Suggest] Cart items:`, cartItems.map(i => i.itemName || i.itemId));
 
-            // Intentar convertir los IDs del carrito a ObjectId, pero manejar errores
             const cartItemIds = [];
             const cartCategoryIds = [];
 
@@ -132,7 +167,18 @@ export async function POST(request) {
                 }
             }
 
-            console.log(`[Upselling Suggest] Valid IDs - Items: ${cartItemIds.length}, Categories: ${cartCategoryIds.length}`);
+            // [Mejora 5] Construir set de categorías presentes en el carrito (desde el menú)
+            const cartCategoriesFromMenu = new Set();
+            for (const cartId of cartItemIds) {
+                const catId = itemCategoryMap[cartId.toString()];
+                if (catId) cartCategoriesFromMenu.add(catId);
+            }
+            // También incluir las que vienen directo del carrito
+            for (const catId of cartCategoryIds) {
+                cartCategoriesFromMenu.add(catId.toString());
+            }
+
+            console.log(`[Upselling Suggest] Valid IDs - Items: ${cartItemIds.length}, Categories: ${cartCategoryIds.length}, Cart categories: ${cartCategoriesFromMenu.size}`);
 
             // Separar upsellings con trigger match vs sin match
             const withTriggerMatch = [];
@@ -156,7 +202,21 @@ export async function POST(request) {
                 );
 
                 if (alreadyInCart) {
-                    continue; // Saltar este upselling
+                    continue;
+                }
+
+                // [Mejora 5] Para cross-sells: si TODOS los items sugeridos pertenecen
+                // a una categoría que ya está en el carrito, skip.
+                // No aplica a upsell, upgrade, combo (sugerir dentro de la misma categoría es intencional).
+                if (upselling.type === 'cross-sell' && cartCategoriesFromMenu.size > 0) {
+                    const allSuggestedInCartCategories = suggestedItemIds.every(itemId => {
+                        const catId = itemCategoryMap[itemId];
+                        return catId && cartCategoriesFromMenu.has(catId);
+                    });
+                    if (allSuggestedInCartCategories) {
+                        console.log(`[Upselling Suggest] Skipping cross-sell "${upselling.name}" - category already in cart`);
+                        continue;
+                    }
                 }
 
                 if (triggerMatch) {
@@ -164,46 +224,42 @@ export async function POST(request) {
                 } else if (categoryMatch) {
                     withCategoryMatch.push(upselling);
                 } else if (!upselling.triggerItemId && !upselling.triggerCategoryId) {
-                    // Upsellings generales (combos especiales sin trigger específico)
                     noTrigger.push(upselling);
                 } else {
-                    // Tiene trigger pero no coincide - incluir como fallback
                     withUnmatchedTrigger.push(upselling);
                 }
             }
 
             console.log(`[Upselling Suggest] Matches - Trigger: ${withTriggerMatch.length}, Category: ${withCategoryMatch.length}, NoTrigger: ${noTrigger.length}, Unmatched: ${withUnmatchedTrigger.length}`);
 
-            // Combinar priorizando: trigger match > category match > generales > otros
+            // [Mejora 1 + 4] Combinar con shuffle ponderado dentro de cada bucket
             upsellings = [
-                ...withTriggerMatch,
-                ...withCategoryMatch,
-                ...noTrigger,
-                ...withUnmatchedTrigger  // Fallback: si no hay matches, usar estos
+                ...weightedShuffleByPriority(withTriggerMatch),
+                ...weightedShuffleByPriority(withCategoryMatch),
+                ...weightedShuffleByPriority(noTrigger),
+                ...weightedShuffleByPriority(withUnmatchedTrigger)
             ];
 
             console.log(`[Upselling Suggest] Final upsellings count: ${upsellings.length}`);
+        } else {
+            // [Mejora 1 + 4] Sin carrito, igual aplicar shuffle ponderado
+            upsellings = weightedShuffleByPriority(upsellings);
         }
 
         // Limitar resultados
-        const suggestions = upsellings.slice(0, limit);
-
-        // Obtener precios actuales del menú para los productos sugeridos
-        const menu = await Menu.findOne().lean();
+        const suggestions = upsellings.slice(0, effectiveLimit);
 
         // Enriquecer sugerencias con precios actuales
         const enrichedSuggestions = suggestions.map(suggestion => {
             const suggestedItemsWithPrices = suggestion.suggestedItems.map(item => {
                 let price = 0;
 
-                // Buscar el precio en el menú
                 if (menu?.categories) {
                     for (const category of menu.categories) {
                         const menuItem = category.items?.find(
                             i => i._id.toString() === item.itemId.toString()
                         );
                         if (menuItem) {
-                            // Obtener precio para la ubicación específica o precio general
                             if (locationId && menuItem.prices && typeof menuItem.prices === 'object') {
                                 price = menuItem.prices[locationId] || menuItem.prices.location1 || 0;
                             } else if (typeof menuItem.prices === 'number') {
@@ -222,7 +278,6 @@ export async function POST(request) {
                 };
             });
 
-            // Calcular precio total de la sugerencia
             const totalPrice = suggestedItemsWithPrices.reduce((sum, item) => sum + item.price, 0);
 
             return {
@@ -245,7 +300,8 @@ export async function POST(request) {
                 timing: currentTiming,
                 day: currentDay,
                 cartItemCount: cartItems.length,
-                totalAvailable: upsellings.length
+                totalAvailable: upsellings.length,
+                limit: effectiveLimit
             }
         });
 

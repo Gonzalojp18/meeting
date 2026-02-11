@@ -21,6 +21,14 @@ export const getCurrentTimeArgentina = () => {
     });
 };
 
+// Configuración por defecto del sistema de upselling
+// Si la BD no tiene config, se usan estos valores
+export const DEFAULT_UPSELLING_CONFIG = {
+    maxInMenu: 1,
+    maxInCheckout: 2,
+    maxInCart: 1
+};
+
 // Función helper para verificar si está dentro del horario
 export const isWithinTakeawayHours = (hours) => {
     const now = getCurrentTimeArgentina();

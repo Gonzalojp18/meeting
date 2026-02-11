@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect, useCallback } from 'react';
 import { MdAdd, MdClose, MdLocalOffer } from 'react-icons/md';
+import { filterDismissedUpsellings, recordDismissal } from '@/utils/upsellingStorage';
 
 /**
  * UpsellingBanner Component
@@ -23,7 +24,7 @@ export default function UpsellingBanner({
     displayLocation = 'checkout',
     onAddToCart,
     variant = 'banner',
-    maxSuggestions = 2
+    maxSuggestions = null
 }) {
     const [suggestions, setSuggestions] = useState([]);
     const [loading, setLoading] = useState(false);
@@ -48,7 +49,7 @@ export default function UpsellingBanner({
                     cartItems,
                     displayLocation,
                     locationId,
-                    limit: maxSuggestions
+                    ...(maxSuggestions !== null && { limit: maxSuggestions })
                 })
             });
 
@@ -56,11 +57,13 @@ export default function UpsellingBanner({
             console.log('[UpsellingBanner] API Response:', data);
 
             if (data.success && data.data.length > 0) {
+                // [Mejora 2] Filtrar los que el usuario ya dismisseó recientemente
+                const filtered = filterDismissedUpsellings(data.data);
                 // Track impressions
-                for (const suggestion of data.data) {
+                for (const suggestion of filtered) {
                     trackImpression(suggestion._id);
                 }
-                setSuggestions(data.data);
+                setSuggestions(filtered);
             } else {
                 console.log('[UpsellingBanner] No suggestions returned');
                 setSuggestions([]);
@@ -133,6 +136,7 @@ export default function UpsellingBanner({
 
     // Dismiss suggestion
     const handleDismiss = (suggestionId) => {
+        recordDismissal(suggestionId); // [Mejora 2] Persistir dismiss en localStorage
         setDismissed(prev => [...prev, suggestionId]);
         setSuggestions(prev => prev.filter(s => s._id !== suggestionId));
     };

@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect, useRef } from 'react';
+import { shouldHideUpselling, recordDismissal } from '@/utils/upsellingStorage';
 
 /**
  * useProductUpselling
@@ -62,12 +63,15 @@ export function useProductUpselling(cartItemIds = [], locationId) {
 
     // Función para marcar como dismissed
     const dismissUpselling = (itemId) => {
+        recordDismissal(itemId); // [Mejora 2] Persistir en localStorage
         setDismissed(prev => [...prev, itemId]);
     };
 
-    // Filtrar dismissed
+    // Filtrar dismissed (state local + localStorage persistido)
     const filteredUpsellings = Object.fromEntries(
-        Object.entries(upsellings).filter(([key]) => !dismissed.includes(key))
+        Object.entries(upsellings).filter(([key]) =>
+            !dismissed.includes(key) && !shouldHideUpselling(key)
+        )
     );
 
     return {

@@ -3,6 +3,7 @@ import dbConnect from "@/utils/dbConnect";
 import Upselling from "@/models/Upselling";
 import Menu from "@/models/Menu";
 import mongoose from "mongoose";
+import { weightedShuffleByPriority } from "@/utils/upsellingHelpers";
 
 /**
  * POST /api/upselling/by-trigger
@@ -75,14 +76,25 @@ export async function POST(request) {
         // Obtener precios del menú
         const menu = await Menu.findOne().lean();
 
-        // Crear mapa de triggerId -> upselling (con precios enriquecidos)
-        const upsellingsByTrigger = {};
+        // [Mejora 1 + 4] Agrupar por triggerId, luego pick ponderado entre los de mayor prioridad
+        const triggerGroups = {}; // { triggerId -> [upsellings] }
 
         for (const upselling of upsellings) {
             const triggerId = upselling.triggerItemId.toString();
+            if (!triggerGroups[triggerId]) triggerGroups[triggerId] = [];
+            triggerGroups[triggerId].push(upselling);
+        }
 
-            // Si ya hay un upselling para este trigger, mantener el de mayor prioridad
-            if (upsellingsByTrigger[triggerId]) continue;
+        const upsellingsByTrigger = {};
+
+        for (const [triggerId, group] of Object.entries(triggerGroups)) {
+            // Dentro del grupo (ya ordenado por priority DESC), filtrar solo los de top priority
+            const topPriority = group[0].priority;
+            const topGroup = group.filter(u => u.priority === topPriority);
+
+            // Weighted random pick entre los de misma prioridad
+            const shuffled = weightedShuffleByPriority(topGroup);
+            const upselling = shuffled[0];
 
             // Enriquecer con precios
             const enrichedItems = upselling.suggestedItems.map(item => {
