@@ -284,6 +284,7 @@ export async function POST(request) {
                 _id: suggestion._id,
                 name: suggestion.name,
                 type: suggestion.type,
+                triggerItemId: suggestion.triggerItemId?.toString() || null,
                 copyText: suggestion.copyText,
                 description: suggestion.description,
                 ticketLevel: suggestion.ticketLevel,

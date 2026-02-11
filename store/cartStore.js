@@ -72,6 +72,24 @@ const useCartStore = create(
                 }));
             },
 
+            // Reemplaza un item del carrito por otro (usado en upgrades de upselling)
+            replaceItem: (oldItemId, newItem, locationId) => {
+                set((state) => {
+                    const filtered = state.items.filter(
+                        (i) => !(i._id === oldItemId && i.locationId === locationId)
+                    );
+                    return {
+                        items: [...filtered, {
+                            ...newItem,
+                            quantity: 1,
+                            locationId,
+                            selectedCustomizations: [],
+                            cartLineId: `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`
+                        }]
+                    };
+                });
+            },
+
             clearCart: (locationId) => {
                 if (locationId) {
                     set((state) => ({

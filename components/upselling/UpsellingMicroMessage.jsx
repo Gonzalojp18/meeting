@@ -14,7 +14,9 @@ import { shouldHideUpselling, recordDismissal } from '@/utils/upsellingStorage';
 export default function UpsellingMicroMessage({
     upselling,
     onAdd,
+    onReplace,
     onDismiss,
+    triggerItemId,
     locationId
 }) {
     const [isAdding, setIsAdding] = useState(false);
@@ -39,13 +41,24 @@ export default function UpsellingMicroMessage({
         setIsAdding(true);
 
         try {
-            // Agregar todos los items sugeridos
-            for (const item of upselling.suggestedItems) {
-                await onAdd({
-                    _id: item.itemId,
-                    name: item.itemName,
-                    price: item.price,
-                }, locationId);
+            // Para upgrades: reemplazar el item original
+            if (upselling.type === 'upgrade' && triggerItemId && onReplace) {
+                for (const item of upselling.suggestedItems) {
+                    await onReplace(triggerItemId, {
+                        _id: item.itemId,
+                        name: item.itemName,
+                        price: item.price,
+                    }, locationId);
+                }
+            } else {
+                // Para otros tipos: agregar normalmente
+                for (const item of upselling.suggestedItems) {
+                    await onAdd({
+                        _id: item.itemId,
+                        name: item.itemName,
+                        price: item.price,
+                    }, locationId);
+                }
             }
 
             // Track click (opcional)

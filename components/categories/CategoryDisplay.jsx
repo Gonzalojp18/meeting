@@ -14,7 +14,7 @@ const styles = {
 };
 
 const Category = ({ category, locationId, isTakeaway = false, displayOnly = false }) => {
-    const { items: cartItems, addItem, removeItem } = useCartStore();
+    const { items: cartItems, addItem, removeItem, replaceItem } = useCartStore();
     const style = styles[category.style || 'default'];
     const [modalItem, setModalItem] = useState(null);
 
@@ -129,7 +129,9 @@ const Category = ({ category, locationId, isTakeaway = false, displayOnly = fals
                                         {!displayOnly && quantity > 0 && productUpsellings[item._id] && (
                                             <UpsellingMicroMessage
                                                 upselling={productUpsellings[item._id]}
+                                                triggerItemId={item._id}
                                                 onAdd={(suggestedItem) => addItem(suggestedItem, locationId)}
+                                                onReplace={(triggerId, newItem) => replaceItem(triggerId, newItem, locationId)}
                                                 onDismiss={() => dismissUpselling(item._id)}
                                                 locationId={locationId}
                                             />

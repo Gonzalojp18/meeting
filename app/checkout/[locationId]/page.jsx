@@ -86,7 +86,7 @@ const FloatingInput = ({ label, id, type = 'text', required = false, value, onCh
 const CheckoutPage = () => {
     const { locationId } = useParams();
     const router = useRouter();
-    const { items, getCartTotal, clearCart, addItem, removeItem, deleteItem } = useCartStore();
+    const { items, getCartTotal, clearCart, addItem, removeItem, deleteItem, replaceItem } = useCartStore();
     const { activeOrder, hasActiveOrder, setActiveOrder } = useActiveOrderStore();
 
     const locationItems = items.filter(i => i.locationId === locationId);
@@ -360,8 +360,14 @@ const CheckoutPage = () => {
                                     price: suggestedItem.price,
                                 }, locationId, []);
                             }}
+                            onReplaceInCart={(triggerItemId, suggestedItem) => {
+                                replaceItem(triggerItemId, {
+                                    _id: suggestedItem.itemId,
+                                    name: suggestedItem.name,
+                                    price: suggestedItem.price,
+                                }, locationId);
+                            }}
                             variant="banner"
-                            maxSuggestions={2}
                         />
                     </div>
                 )}

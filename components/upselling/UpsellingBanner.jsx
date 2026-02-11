@@ -23,6 +23,7 @@ export default function UpsellingBanner({
     locationId = 'location1',
     displayLocation = 'checkout',
     onAddToCart,
+    onReplaceInCart,
     variant = 'banner',
     maxSuggestions = null
 }) {
@@ -119,14 +120,25 @@ export default function UpsellingBanner({
         setAddingId(suggestion._id);
         trackClick(suggestion._id);
 
-        // Add all suggested items to cart
-        for (const item of suggestion.suggestedItems) {
-            await onAddToCart({
-                itemId: item.itemId,
-                name: item.itemName,
-                price: item.price,
-                quantity: 1
-            });
+        // Para upgrades: reemplazar el item original en vez de sumar
+        if (suggestion.type === 'upgrade' && suggestion.triggerItemId && onReplaceInCart) {
+            for (const item of suggestion.suggestedItems) {
+                await onReplaceInCart(suggestion.triggerItemId, {
+                    itemId: item.itemId,
+                    name: item.itemName,
+                    price: item.price,
+                });
+            }
+        } else {
+            // Para cross-sell, upsell, combo: agregar normalmente
+            for (const item of suggestion.suggestedItems) {
+                await onAddToCart({
+                    itemId: item.itemId,
+                    name: item.itemName,
+                    price: item.price,
+                    quantity: 1
+                });
+            }
         }
 
         // Remove from suggestions
