@@ -31,7 +31,7 @@ export async function POST(req) {
       return NextResponse.json({ error: 'Menu not found' }, { status: 404 });
     }
 
-    // Agregar la nueva categoría al array
+    // Agregar la nueva categoría al array con estructura correcta
     menu.categories.push({
       name: newCategory.name,
       subtitle: newCategory.subtitle || '',
@@ -39,7 +39,13 @@ export async function POST(req) {
       image: newCategory.image || {},
       locations: newCategory.locations || [],
       items: [],
-      isActive: true
+      isActive: true,
+      // Ensure proper defaults for frontend compatibility
+      printRole: newCategory.printRole || 'kitchen',
+      schedule: newCategory.schedule || {
+        availableFrom: null,
+        availableTo: null
+      }
     });
 
     await menu.save();

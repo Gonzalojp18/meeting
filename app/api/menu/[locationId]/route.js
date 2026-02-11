@@ -27,13 +27,35 @@ export async function GET(req, { params }) {
     const filterItemsByLocation = (category, locId) => {
       return category.items
         .filter(item => {
-          const price = item.prices?.[locId];
+          // Handle different price structures
+          let price = null;
+          
+          if (item.prices && typeof item.prices === 'object') {
+            // Nested structure: prices.location1
+            price = item.prices[locId];
+          } else if (typeof item.prices === 'number') {
+            // Flat structure: just a number
+            price = item.prices;
+          }
+          
+          // Include item if it has a valid price > 0 or if we're in display mode
           return price !== undefined && price !== null && price > 0;
         })
-        .map(item => ({
-          ...item,
-          prices: item.prices[locId]
-        }));
+        .map(item => {
+          // Normalize price structure for frontend
+          let price = 0;
+          
+          if (item.prices && typeof item.prices === 'object') {
+            price = item.prices[locId] || 0;
+          } else if (typeof item.prices === 'number') {
+            price = item.prices;
+          }
+          
+          return {
+            ...item,
+            prices: price // Flatten to single number for frontend compatibility
+          };
+        });
     };
 
     const takeawayHours = await Settings.getValue('takeawayHours') || DEFAULT_TAKEAWAY_HOURS;

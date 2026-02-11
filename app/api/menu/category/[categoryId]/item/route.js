@@ -38,7 +38,38 @@ export async function POST(req, { params }) {
       return NextResponse.json({ error: 'Category not found' }, { status: 404 });
     }
 
-    category.items.push(newItem);
+    // Ensure newItem has proper prices structure
+    if (newItem.prices && typeof newItem.prices === 'object') {
+      // Convert flat prices structure to nested if needed
+      if (newItem.prices.location1 !== undefined || 
+          newItem.prices.location2 !== undefined || 
+          newItem.prices.location3 !== undefined) {
+        // Already in correct format
+        category.items.push(newItem);
+      } else {
+        // Convert from flat structure to location-based structure
+        const convertedItem = {
+          ...newItem,
+          prices: {
+            location1: newItem.prices,
+            location2: newItem.prices,
+            location3: newItem.prices
+          }
+        };
+        category.items.push(convertedItem);
+      }
+    } else {
+      // Handle items with no prices or invalid structure
+      category.items.push({
+        ...newItem,
+        prices: {
+          location1: 0,
+          location2: 0,
+          location3: 0
+        }
+      });
+    }
+    
     await menu.save();
 
     // Registrar en audit log
