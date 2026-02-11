@@ -79,7 +79,9 @@ export async function createOrderFromPayment(paymentInfo) {
                 customizations: (item.customizations || []).map(c => ({
                     groupName: c.group || c.groupName || '',
                     selected: c.option || c.selected || ''
-                }))
+                })),
+                origin: item.origin || 'organic',
+                ...(item.upsellId && { upsellId: item.upsellId }),
             })),
             location: {
                 locationId: locationId || 'unknown',

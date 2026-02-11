@@ -127,6 +127,8 @@ export default function UpsellingBanner({
                     itemId: item.itemId,
                     name: item.itemName,
                     price: item.price,
+                    origin: 'upsell',
+                    upsellId: suggestion._id,
                 });
             }
         } else {
@@ -136,7 +138,9 @@ export default function UpsellingBanner({
                     itemId: item.itemId,
                     name: item.itemName,
                     price: item.price,
-                    quantity: 1
+                    quantity: 1,
+                    origin: 'upsell',
+                    upsellId: suggestion._id,
                 });
             }
         }

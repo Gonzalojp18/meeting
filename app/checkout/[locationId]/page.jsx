@@ -181,7 +181,9 @@ const CheckoutPage = () => {
                 name: item.name,
                 quantity: item.quantity,
                 price: item.price,
-                customizations: item.selectedCustomizations || []
+                customizations: item.selectedCustomizations || [],
+                ...(item.origin && { origin: item.origin }),
+                ...(item.upsellId && { upsellId: item.upsellId }),
             }));
 
             const customerData = {
@@ -358,6 +360,8 @@ const CheckoutPage = () => {
                                     _id: suggestedItem.itemId,
                                     name: suggestedItem.name,
                                     price: suggestedItem.price,
+                                    origin: suggestedItem.origin,
+                                    upsellId: suggestedItem.upsellId,
                                 }, locationId, []);
                             }}
                             onReplaceInCart={(triggerItemId, suggestedItem) => {
@@ -365,6 +369,8 @@ const CheckoutPage = () => {
                                     _id: suggestedItem.itemId,
                                     name: suggestedItem.name,
                                     price: suggestedItem.price,
+                                    origin: suggestedItem.origin,
+                                    upsellId: suggestedItem.upsellId,
                                 }, locationId);
                             }}
                             variant="banner"

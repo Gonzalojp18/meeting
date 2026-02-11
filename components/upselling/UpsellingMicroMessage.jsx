@@ -48,6 +48,8 @@ export default function UpsellingMicroMessage({
                         _id: item.itemId,
                         name: item.itemName,
                         price: item.price,
+                        origin: 'upsell',
+                        upsellId: upselling._id,
                     }, locationId);
                 }
             } else {
@@ -57,6 +59,8 @@ export default function UpsellingMicroMessage({
                         _id: item.itemId,
                         name: item.itemName,
                         price: item.price,
+                        origin: 'upsell',
+                        upsellId: upselling._id,
                     }, locationId);
                 }
             }

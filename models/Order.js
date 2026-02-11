@@ -60,6 +60,17 @@ const orderSchema = new mongoose.Schema(
             selected: String,
           },
         ],
+        // Origen del item: 'organic' = seleccionado por el cliente, 'upsell' = sugerido por el sistema
+        origin: {
+          type: String,
+          enum: ['organic', 'upsell'],
+          default: 'organic',
+        },
+        // ID del upselling que originó este item (solo si origin = 'upsell')
+        upsellId: {
+          type: mongoose.Schema.Types.ObjectId,
+          default: null,
+        },
       },
     ],
 

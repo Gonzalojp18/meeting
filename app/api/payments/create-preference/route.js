@@ -97,7 +97,10 @@ async function validateAndGetRealPrices(items, locationId) {
             basePrice: realBasePrice,
             quantity: quantity,
             lineTotal: lineTotal,
-            customizations: validatedCustomizations
+            customizations: validatedCustomizations,
+            // Preservar metadata de origen (upselling tracking)
+            ...(cartItem.origin && { origin: cartItem.origin }),
+            ...(cartItem.upsellId && { upsellId: cartItem.upsellId }),
         });
     }
 
