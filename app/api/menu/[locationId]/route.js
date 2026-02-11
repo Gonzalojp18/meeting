@@ -26,7 +26,10 @@ export async function GET(req, { params }) {
 
     const filterItemsByLocation = (category, locId) => {
       return category.items
-        .filter(item => item.prices[locId] !== undefined)
+        .filter(item => {
+          const price = item.prices?.[locId];
+          return price !== undefined && price !== null && price > 0;
+        })
         .map(item => ({
           ...item,
           prices: item.prices[locId]

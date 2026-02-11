@@ -172,10 +172,12 @@ const ItemForm = ({ item, locations, onSubmit, onCancel }) => {
       description: formData.description,
       isAvailable: formData.isAvailable,
       image: formData.image,
-      prices: Object.entries(formData.locations).reduce((acc, [locationId, data]) => ({
-        ...acc,
-        [locationId]: data.price
-      }), {}),
+      prices: Object.entries(formData.locations).reduce((acc, [locationId, data]) => {
+        if (data.enabled && data.price !== '' && data.price !== undefined && data.price !== null) {
+          return { ...acc, [locationId]: parseFloat(data.price) };
+        }
+        return acc;
+      }, {}),
       customizations: formData.hasCustomizations && formData.customization.options.length > 0
         ? [{
             name: formData.customization.name,

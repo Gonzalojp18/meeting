@@ -166,6 +166,7 @@ const AdminPanel = () => {
       refetch()
     } catch (error) {
       handleAxiosError(error)
+      alert('Error al agregar el producto. Verifica que todos los precios estén completos.')
     }
   };
 
@@ -175,6 +176,7 @@ const AdminPanel = () => {
       refetch()
     } catch (error) {
       handleAxiosError(error)
+      alert('Error al actualizar el producto.')
     }
   };
 
@@ -184,16 +186,18 @@ const AdminPanel = () => {
       refetch()
     } catch (error) {
       handleAxiosError(error)
+      alert('Error al eliminar el producto.')
     }
   };
 
-  // ========== HANDLERS DE CATEGORÍAS (SIN CAMBIOS) ==========
+  // ========== HANDLERS DE CATEGORÍAS ==========
   const handleAddCategory = async (categoryData) => {
     try {
       await axios.post(`${API_URI}/api/menu/category`, categoryData, authHeaders);
       refetch();
     } catch (error) {
       handleAxiosError(error);
+      alert('Error al crear la categoría.')
     }
   };
 
@@ -203,6 +207,7 @@ const AdminPanel = () => {
       refetch();
     } catch (error) {
       handleAxiosError(error);
+      alert('Error al actualizar la categoría.')
     }
   };
 
@@ -212,6 +217,7 @@ const AdminPanel = () => {
       refetch();
     } catch (error) {
       handleAxiosError(error);
+      alert('Error al eliminar la categoría.')
     }
   };
 

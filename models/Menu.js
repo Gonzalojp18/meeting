@@ -53,12 +53,10 @@ const itemSchema = new mongoose.Schema({
   prices: {
     location1: {
       type: Number,
-      required: [true, "This field can't be empty"],
       min: 0
     },
     location2: {
       type: Number,
-      required: [true, "This field can't be empty"],
       min: 0
     },
     location3: {
