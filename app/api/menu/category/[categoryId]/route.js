@@ -73,7 +73,7 @@ export async function PUT(req, { params }) {
   }
 }
 
-// @desc Delete Category (Soft Delete)
+// @desc Delete Category
 // @route DELETE /api/menu/category/:categoryId
 // @access Private
 export async function DELETE(req, { params }) {
@@ -106,8 +106,11 @@ export async function DELETE(req, { params }) {
       return NextResponse.json({ error: 'Category not found' }, { status: 404 });
     }
 
-    // Soft delete: marcar como inactiva
-    category.isActive = false;
+    const categoryName = category.name;
+    const itemCount = category.items?.length || 0;
+
+    // Eliminación completa: remover la categoría del array
+    menu.categories.pull(categoryId);
 
     await menu.save();
 
@@ -116,12 +119,12 @@ export async function DELETE(req, { params }) {
       action: 'DELETE',
       entity: 'category',
       entityId: categoryId,
-      entityName: category.name,
-      details: `Eliminó (desactivó) la categoría "${category.name}"`
+      entityName: categoryName,
+      details: `Eliminó la categoría "${categoryName}" con ${itemCount} productos`
     });
 
     return NextResponse.json({
-      message: 'Category deactivated successfully'
+      message: 'Category deleted successfully'
     });
   } catch (error) {
     console.error('DELETE /api/menu/category/[categoryId] error:', error);
