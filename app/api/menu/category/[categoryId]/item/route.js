@@ -38,11 +38,15 @@ export async function POST(req, { params }) {
       return NextResponse.json({ error: 'Category not found' }, { status: 404 });
     }
 
+    // Calcular siguiente orden para el nuevo item
+    const maxItemOrder = category.items.reduce((max, item) => Math.max(max, item.order || 0), -1);
+    newItem.order = maxItemOrder + 1;
+
     // Ensure newItem has proper prices structure
     if (newItem.prices && typeof newItem.prices === 'object') {
       // Convert flat prices structure to nested if needed
-      if (newItem.prices.location1 !== undefined || 
-          newItem.prices.location2 !== undefined || 
+      if (newItem.prices.location1 !== undefined ||
+          newItem.prices.location2 !== undefined ||
           newItem.prices.location3 !== undefined) {
         // Already in correct format
         category.items.push(newItem);

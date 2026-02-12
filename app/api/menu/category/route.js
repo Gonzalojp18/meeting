@@ -31,6 +31,9 @@ export async function POST(req) {
       return NextResponse.json({ error: 'Menu not found' }, { status: 404 });
     }
 
+    // Calcular siguiente orden
+    const maxOrder = menu.categories.reduce((max, cat) => Math.max(max, cat.order || 0), -1);
+
     // Agregar la nueva categoría al array con estructura correcta
     menu.categories.push({
       name: newCategory.name,
@@ -40,12 +43,12 @@ export async function POST(req) {
       locations: newCategory.locations || [],
       items: [],
       isActive: true,
-      // Ensure proper defaults for frontend compatibility
       printRole: newCategory.printRole || 'kitchen',
       schedule: newCategory.schedule || {
         availableFrom: null,
         availableTo: null
-      }
+      },
+      order: maxOrder + 1
     });
 
     await menu.save();

@@ -1,17 +1,43 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import ItemForm from './ItemForm';
-import { MdEdit, MdDelete, MdMoreVert, MdAdd, MdRestaurantMenu } from 'react-icons/md';
+import { MdEdit, MdDelete, MdMoreVert, MdAdd, MdRestaurantMenu, MdDragIndicator } from 'react-icons/md';
+import { Reorder } from 'framer-motion';
 
 const CategoryItems = ({
   category,
   locations,
   onAddItem,
   onUpdateItem,
-  onDeleteItem
+  onDeleteItem,
+  onReorderItems
 }) => {
   const [editingItem, setEditingItem] = useState(null);
   const [isAddingItem, setIsAddingItem] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(null);
+  const [localItems, setLocalItems] = useState(category.items || []);
+  const reorderTimeoutRef = useRef(null);
+
+  // Sync local items with parent data
+  useEffect(() => {
+    setLocalItems(category.items || []);
+  }, [category.items]);
+
+  // Cleanup timeout on unmount
+  useEffect(() => {
+    return () => {
+      if (reorderTimeoutRef.current) clearTimeout(reorderTimeoutRef.current);
+    };
+  }, []);
+
+  const handleItemReorder = useCallback((newOrder) => {
+    setLocalItems(newOrder);
+
+    if (reorderTimeoutRef.current) clearTimeout(reorderTimeoutRef.current);
+    reorderTimeoutRef.current = setTimeout(() => {
+      const orderedIds = newOrder.map(item => item._id);
+      onReorderItems(orderedIds);
+    }, 300);
+  }, [onReorderItems]);
 
   const handleAddItem = (itemData) => {
     onAddItem(category._id, itemData);
@@ -35,6 +61,9 @@ const CategoryItems = ({
 
   // Filtrar locations sin "Menu sin precios"
   const activeLocations = locations.filter(loc => loc.name !== 'Menu sin precios');
+
+  // Grid template columns: drag + name + description + N prices + actions
+  const gridCols = `40px 1fr 1fr ${activeLocations.map(() => 'minmax(80px, auto)').join(' ')} 120px`;
 
   return (
     <div>
@@ -77,118 +106,137 @@ const CategoryItems = ({
         </div>
       )}
 
-      {/* ========== DESKTOP: TABLA MEJORADA ========== */}
+      {/* ========== DESKTOP: GRID CON DRAG & DROP ========== */}
       <div className="hidden lg:block overflow-x-auto">
-        <table className="w-full">
-          <thead className="bg-gray-100 border-b-2 border-gray-200">
-            <tr>
-              <th className="px-6 py-4 text-left text-xs font-bold text-gray-700 uppercase tracking-wider">
-                Producto
-              </th>
-              <th className="px-6 py-4 text-left text-xs font-bold text-gray-700 uppercase tracking-wider">
-                Descripción
-              </th>
-              {activeLocations.map(location => (
-                <th
-                  key={location._id}
-                  className="px-6 py-4 text-right text-xs font-bold text-gray-700 uppercase tracking-wider whitespace-nowrap"
-                  title={location.name}
-                >
-                  {location.name.length > 12 ? location.name.substring(0, 10) + '...' : location.name}
-                </th>
-              ))}
-              <th className="px-6 py-4 text-center text-xs font-bold text-gray-700 uppercase tracking-wider w-32">
-                Acciones
-              </th>
-            </tr>
-          </thead>
-          <tbody className="bg-white divide-y divide-gray-100">
-            {category.items.map(item => (
+        {/* Header row */}
+        <div
+          className="grid gap-4 items-center px-6 py-4 bg-gray-100 border-b-2 border-gray-200"
+          style={{ gridTemplateColumns: gridCols }}
+        >
+          <span></span>
+          <span className="text-xs font-bold text-gray-700 uppercase tracking-wider">Producto</span>
+          <span className="text-xs font-bold text-gray-700 uppercase tracking-wider">Descripción</span>
+          {activeLocations.map(location => (
+            <span
+              key={location._id}
+              className="text-xs font-bold text-gray-700 uppercase tracking-wider text-right whitespace-nowrap"
+              title={location.name}
+            >
+              {location.name.length > 12 ? location.name.substring(0, 10) + '...' : location.name}
+            </span>
+          ))}
+          <span className="text-xs font-bold text-gray-700 uppercase tracking-wider text-center">Acciones</span>
+        </div>
+
+        {/* Items list */}
+        {localItems.length > 0 ? (
+          <Reorder.Group
+            axis="y"
+            values={localItems}
+            onReorder={handleItemReorder}
+            as="div"
+            className="bg-white divide-y divide-gray-100"
+          >
+            {localItems.map(item => (
               editingItem?._id === item._id ? (
-                <tr key={item._id} className="bg-orange-50">
-                  <td colSpan={3 + activeLocations.length} className="p-5 lg:p-6">
-                    <div className="mb-3">
-                      <p className="text-sm font-semibold text-orange-900">Editando: {item.name}</p>
-                      <p className="text-xs text-orange-700 mt-1">Modifica los datos del producto</p>
-                    </div>
-                    <ItemForm
-                      item={item}
-                      locations={locations}
-                      onSubmit={handleUpdateItem}
-                      onCancel={() => setEditingItem(null)}
-                    />
-                  </td>
-                </tr>
+                <div key={item._id} className="p-5 lg:p-6 bg-orange-50">
+                  <div className="mb-3">
+                    <p className="text-sm font-semibold text-orange-900">Editando: {item.name}</p>
+                    <p className="text-xs text-orange-700 mt-1">Modifica los datos del producto</p>
+                  </div>
+                  <ItemForm
+                    item={item}
+                    locations={locations}
+                    onSubmit={handleUpdateItem}
+                    onCancel={() => setEditingItem(null)}
+                  />
+                </div>
               ) : (
-                <tr key={item._id} className={`hover:bg-orange-50/30 transition-colors group ${item.isAvailable === false ? 'opacity-50' : ''}`}>
-                  <td className="px-6 py-4">
-                    <div className="font-semibold text-gray-900 text-base flex items-center gap-2">
-                      <button
-                        onClick={() => handleToggleAvailability(item)}
-                        className={`relative inline-flex h-5 w-9 items-center rounded-full transition-colors flex-shrink-0 ${item.isAvailable !== false ? 'bg-green-500' : 'bg-gray-300'}`}
-                        title={item.isAvailable !== false ? 'Disponible — clic para desactivar' : 'No disponible — clic para activar'}
-                      >
-                        <span className={`inline-block h-3 w-3 transform rounded-full bg-white transition-transform ${item.isAvailable !== false ? 'translate-x-5' : 'translate-x-1'}`} />
-                      </button>
-                      {item.name}
-                      {item.isAvailable === false && (
-                        <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold bg-red-100 text-red-600 uppercase tracking-wide">
-                          No disponible
-                        </span>
-                      )}
-                      {item.customizations?.length > 0 && (
-                        <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold bg-indigo-100 text-indigo-700 uppercase tracking-wide">
-                          {item.customizations[0].name}
-                        </span>
-                      )}
-                    </div>
-                  </td>
-                  <td className="px-6 py-4">
-                    <div
-                      className="text-sm text-gray-600 max-w-md line-clamp-2"
-                      title={item.description}
+                <Reorder.Item
+                  key={item._id}
+                  value={item}
+                  as="div"
+                  className={`grid gap-4 items-center px-6 py-4 hover:bg-orange-50/30 transition-colors group cursor-grab active:cursor-grabbing ${item.isAvailable === false ? 'opacity-50' : ''}`}
+                  style={{ gridTemplateColumns: gridCols, touchAction: 'none' }}
+                  whileDrag={{
+                    scale: 1.01,
+                    boxShadow: '0 4px 15px rgba(0,0,0,0.1)',
+                    backgroundColor: 'rgba(255, 247, 237, 0.95)',
+                    zIndex: 50
+                  }}
+                >
+                  {/* Drag handle */}
+                  <div className="text-gray-300 group-hover:text-orange-500 transition-colors">
+                    <MdDragIndicator className="h-5 w-5" />
+                  </div>
+
+                  {/* Product name */}
+                  <div className="font-semibold text-gray-900 text-base flex items-center gap-2 min-w-0">
+                    <button
+                      onClick={() => handleToggleAvailability(item)}
+                      className={`relative inline-flex h-5 w-9 items-center rounded-full transition-colors flex-shrink-0 ${item.isAvailable !== false ? 'bg-green-500' : 'bg-gray-300'}`}
+                      title={item.isAvailable !== false ? 'Disponible — clic para desactivar' : 'No disponible — clic para activar'}
                     >
-                      {item.description || (
-                        <span className="text-gray-400 italic">Sin descripción</span>
-                      )}
-                    </div>
-                  </td>
+                      <span className={`inline-block h-3 w-3 transform rounded-full bg-white transition-transform ${item.isAvailable !== false ? 'translate-x-5' : 'translate-x-1'}`} />
+                    </button>
+                    <span className="truncate">{item.name}</span>
+                    {item.isAvailable === false && (
+                      <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold bg-red-100 text-red-600 uppercase tracking-wide flex-shrink-0">
+                        No disponible
+                      </span>
+                    )}
+                    {item.customizations?.length > 0 && (
+                      <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold bg-indigo-100 text-indigo-700 uppercase tracking-wide flex-shrink-0">
+                        {item.customizations[0].name}
+                      </span>
+                    )}
+                  </div>
+
+                  {/* Description */}
+                  <div
+                    className="text-sm text-gray-600 line-clamp-2 min-w-0"
+                    title={item.description}
+                  >
+                    {item.description || (
+                      <span className="text-gray-400 italic">Sin descripción</span>
+                    )}
+                  </div>
+
+                  {/* Prices per location */}
                   {activeLocations.map(location => (
-                    <td key={location._id} className="px-6 py-4 text-right">
+                    <div key={location._id} className="text-right">
                       {item.prices[location.nameId] !== undefined ? (
-                        <span className="inline-flex items-center justify-end text-base font-bold text-gray-900">
+                        <span className="text-base font-bold text-gray-900">
                           ${item.prices[location.nameId].toLocaleString('es-AR')}
                         </span>
                       ) : (
                         <span className="text-sm text-gray-300 font-medium">N/A</span>
                       )}
-                    </td>
-                  ))}
-                  <td className="px-6 py-4">
-                    <div className="flex items-center justify-center gap-1">
-                      <button
-                        onClick={() => setEditingItem(item)}
-                        className="p-2.5 text-gray-400 hover:text-orange-600 hover:bg-orange-50 rounded-lg transition-all hover:scale-110 active:scale-95"
-                        title="Editar producto"
-                      >
-                        <MdEdit className="h-5 w-5" />
-                      </button>
-                      <button
-                        onClick={() => handleDeleteItem(item._id)}
-                        className="p-2.5 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-all hover:scale-110 active:scale-95"
-                        title="Eliminar producto"
-                      >
-                        <MdDelete className="h-5 w-5" />
-                      </button>
                     </div>
-                  </td>
-                </tr>
+                  ))}
+
+                  {/* Actions */}
+                  <div className="flex items-center justify-center gap-1">
+                    <button
+                      onClick={() => setEditingItem(item)}
+                      className="p-2.5 text-gray-400 hover:text-orange-600 hover:bg-orange-50 rounded-lg transition-all hover:scale-110 active:scale-95"
+                      title="Editar producto"
+                    >
+                      <MdEdit className="h-5 w-5" />
+                    </button>
+                    <button
+                      onClick={() => handleDeleteItem(item._id)}
+                      className="p-2.5 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-all hover:scale-110 active:scale-95"
+                      title="Eliminar producto"
+                    >
+                      <MdDelete className="h-5 w-5" />
+                    </button>
+                  </div>
+                </Reorder.Item>
               )
             ))}
-          </tbody>
-        </table>
-
-        {category.items.length === 0 && (
+          </Reorder.Group>
+        ) : (
           <div className="text-center py-16 bg-gradient-to-b from-white to-gray-50">
             <div className="inline-flex items-center justify-center w-16 h-16 bg-orange-100 rounded-2xl mb-4">
               <MdRestaurantMenu className="h-8 w-8 text-orange-400" />
@@ -210,166 +258,186 @@ const CategoryItems = ({
         )}
       </div>
 
-      {/* ========== MOBILE/TABLET: CARDS MEJORADAS ========== */}
-      <div className="lg:hidden divide-y divide-gray-100">
-        {category.items.map(item => (
-          editingItem?._id === item._id ? (
-            <div key={item._id} className="p-4 bg-orange-50">
-              <div className="mb-3">
-                <p className="text-sm font-semibold text-orange-900">Editando: {item.name}</p>
-                <p className="text-xs text-orange-700 mt-1">Modifica los datos del producto</p>
-              </div>
-              <ItemForm
-                item={item}
-                locations={locations}
-                onSubmit={handleUpdateItem}
-                onCancel={() => setEditingItem(null)}
-              />
-            </div>
-          ) : (
-            <div key={item._id} className={`p-4 relative bg-white hover:bg-orange-50/30 transition-colors ${item.isAvailable === false ? 'opacity-50' : ''}`}>
-              {/* Header: Nombre + 3-dot menu */}
-              <div className="flex items-start justify-between gap-3 mb-3">
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-center gap-2 mb-1.5">
-                    <button
-                      onClick={() => handleToggleAvailability(item)}
-                      className={`relative inline-flex h-5 w-9 items-center rounded-full transition-colors flex-shrink-0 ${item.isAvailable !== false ? 'bg-green-500' : 'bg-gray-300'}`}
-                      title={item.isAvailable !== false ? 'Disponible — clic para desactivar' : 'No disponible — clic para activar'}
-                    >
-                      <span className={`inline-block h-3 w-3 transform rounded-full bg-white transition-transform ${item.isAvailable !== false ? 'translate-x-5' : 'translate-x-1'}`} />
-                    </button>
-                    {item.isAvailable === false && (
-                      <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold bg-red-100 text-red-600 uppercase tracking-wide">
-                        No disponible
-                      </span>
-                    )}
+      {/* ========== MOBILE/TABLET: CARDS CON DRAG & DROP ========== */}
+      <div className="lg:hidden">
+        {localItems.length > 0 ? (
+          <Reorder.Group
+            axis="y"
+            values={localItems}
+            onReorder={handleItemReorder}
+            as="div"
+            className="divide-y divide-gray-100"
+          >
+            {localItems.map(item => (
+              editingItem?._id === item._id ? (
+                <div key={item._id} className="p-4 bg-orange-50">
+                  <div className="mb-3">
+                    <p className="text-sm font-semibold text-orange-900">Editando: {item.name}</p>
+                    <p className="text-xs text-orange-700 mt-1">Modifica los datos del producto</p>
                   </div>
-                  <h4 className="font-bold text-gray-900 text-base mb-1.5 leading-tight flex items-center gap-2 flex-wrap">
-                    {item.name}
-                    {item.customizations?.length > 0 && (
-                      <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold bg-indigo-100 text-indigo-700 uppercase tracking-wide">
-                        {item.customizations[0].name}
-                      </span>
-                    )}
-                  </h4>
-                  {item.description && (
-                    <p className="text-sm text-gray-600 leading-relaxed line-clamp-2">
-                      {item.description}
-                    </p>
-                  )}
-                  {!item.description && (
-                    <p className="text-sm text-gray-400 italic">
-                      Sin descripción
-                    </p>
-                  )}
+                  <ItemForm
+                    item={item}
+                    locations={locations}
+                    onSubmit={handleUpdateItem}
+                    onCancel={() => setEditingItem(null)}
+                  />
                 </div>
-
-                {/* 3-dot menu mejorado */}
-                <div className="relative flex-shrink-0">
-                  <button
-                    onClick={() => setMobileMenuOpen(mobileMenuOpen === item._id ? null : item._id)}
-                    className="p-2.5 hover:bg-gray-100 rounded-xl transition-colors active:scale-95"
-                    aria-label="Más opciones"
-                  >
-                    <MdMoreVert className="h-6 w-6 text-gray-400" />
-                  </button>
-
-                  {mobileMenuOpen === item._id && (
-                    <>
-                      {/* Backdrop */}
-                      <div
-                        className="fixed inset-0 z-30 bg-black/20 backdrop-blur-sm"
-                        onClick={() => setMobileMenuOpen(null)}
-                      />
-
-                      {/* Menu */}
-                      <div className="absolute right-0 top-12 z-40 w-48 bg-white rounded-xl shadow-2xl border border-gray-200 py-2 animate-fade-in">
-                        <button
-                          onClick={() => {
-                            setEditingItem(item)
-                            setMobileMenuOpen(null)
-                          }}
-                          className="w-full px-4 py-3 text-left text-sm font-medium text-gray-700 hover:bg-orange-50 hover:text-orange-600 flex items-center gap-3 transition-colors"
-                        >
-                          <MdEdit className="h-5 w-5" />
-                          Editar producto
-                        </button>
-                        <div className="border-t border-gray-100 my-1"></div>
-                        <button
-                          onClick={() => {
-                            handleDeleteItem(item._id)
-                            setMobileMenuOpen(null)
-                          }}
-                          className="w-full px-4 py-3 text-left text-sm font-medium text-red-600 hover:bg-red-50 flex items-center gap-3 transition-colors"
-                        >
-                          <MdDelete className="h-5 w-5" />
-                          Eliminar producto
-                        </button>
+              ) : (
+                <Reorder.Item
+                  key={item._id}
+                  value={item}
+                  as="div"
+                  className={`p-4 relative bg-white hover:bg-orange-50/30 transition-colors cursor-grab active:cursor-grabbing ${item.isAvailable === false ? 'opacity-50' : ''}`}
+                  style={{ touchAction: 'none' }}
+                  whileDrag={{
+                    scale: 1.02,
+                    boxShadow: '0 4px 15px rgba(0,0,0,0.1)',
+                    backgroundColor: 'rgba(255, 247, 237, 0.95)',
+                    zIndex: 50
+                  }}
+                >
+                  {/* Header: Drag + Nombre + 3-dot menu */}
+                  <div className="flex items-start justify-between gap-3 mb-3">
+                    <div className="flex items-start gap-2 flex-1 min-w-0">
+                      {/* Drag handle */}
+                      <div className="text-gray-300 pt-1 flex-shrink-0">
+                        <MdDragIndicator className="h-5 w-5" />
                       </div>
-                    </>
-                  )}
-                </div>
-              </div>
-
-              {/* Precios en GRID mejorado */}
-              <div className="grid grid-cols-2 gap-3 mt-4 pt-3 border-t border-gray-100">
-                {activeLocations.map(location => (
-                  item.prices[location.nameId] !== undefined ? (
-                    <div
-                      key={location._id}
-                      className="bg-gradient-to-br from-gray-50 to-gray-100 rounded-lg p-3 border border-gray-200"
-                    >
-                      <div className="flex items-center gap-1.5 mb-1">
-                        <div className="w-1.5 h-1.5 bg-orange-500 rounded-full"></div>
-                        <span className="text-xs text-gray-600 font-semibold uppercase tracking-wide">
-                          {location.name.length > 10 ? location.name.substring(0, 8) + '...' : location.name}
-                        </span>
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-2 mb-1.5">
+                          <button
+                            onClick={() => handleToggleAvailability(item)}
+                            className={`relative inline-flex h-5 w-9 items-center rounded-full transition-colors flex-shrink-0 ${item.isAvailable !== false ? 'bg-green-500' : 'bg-gray-300'}`}
+                            title={item.isAvailable !== false ? 'Disponible — clic para desactivar' : 'No disponible — clic para activar'}
+                          >
+                            <span className={`inline-block h-3 w-3 transform rounded-full bg-white transition-transform ${item.isAvailable !== false ? 'translate-x-5' : 'translate-x-1'}`} />
+                          </button>
+                          {item.isAvailable === false && (
+                            <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold bg-red-100 text-red-600 uppercase tracking-wide">
+                              No disponible
+                            </span>
+                          )}
+                        </div>
+                        <h4 className="font-bold text-gray-900 text-base mb-1.5 leading-tight flex items-center gap-2 flex-wrap">
+                          {item.name}
+                          {item.customizations?.length > 0 && (
+                            <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold bg-indigo-100 text-indigo-700 uppercase tracking-wide">
+                              {item.customizations[0].name}
+                            </span>
+                          )}
+                        </h4>
+                        {item.description && (
+                          <p className="text-sm text-gray-600 leading-relaxed line-clamp-2">
+                            {item.description}
+                          </p>
+                        )}
+                        {!item.description && (
+                          <p className="text-sm text-gray-400 italic">
+                            Sin descripción
+                          </p>
+                        )}
                       </div>
-                      <span className="text-lg font-bold text-gray-900 block">
-                        ${item.prices[location.nameId].toLocaleString('es-AR')}
-                      </span>
                     </div>
-                  ) : null
-                ))}
 
-                {/* Si no hay precios, mostrar mensaje */}
-                {activeLocations.every(loc => item.prices[loc.nameId] === undefined) && (
-                  <div className="col-span-2 text-center py-3 text-sm text-gray-400 italic">
-                    Sin precios configurados
+                    {/* 3-dot menu */}
+                    <div className="relative flex-shrink-0">
+                      <button
+                        onClick={() => setMobileMenuOpen(mobileMenuOpen === item._id ? null : item._id)}
+                        className="p-2.5 hover:bg-gray-100 rounded-xl transition-colors active:scale-95"
+                        aria-label="Más opciones"
+                      >
+                        <MdMoreVert className="h-6 w-6 text-gray-400" />
+                      </button>
+
+                      {mobileMenuOpen === item._id && (
+                        <>
+                          <div
+                            className="fixed inset-0 z-30 bg-black/20 backdrop-blur-sm"
+                            onClick={() => setMobileMenuOpen(null)}
+                          />
+                          <div className="absolute right-0 top-12 z-40 w-48 bg-white rounded-xl shadow-2xl border border-gray-200 py-2 animate-fade-in">
+                            <button
+                              onClick={() => {
+                                setEditingItem(item)
+                                setMobileMenuOpen(null)
+                              }}
+                              className="w-full px-4 py-3 text-left text-sm font-medium text-gray-700 hover:bg-orange-50 hover:text-orange-600 flex items-center gap-3 transition-colors"
+                            >
+                              <MdEdit className="h-5 w-5" />
+                              Editar producto
+                            </button>
+                            <div className="border-t border-gray-100 my-1"></div>
+                            <button
+                              onClick={() => {
+                                handleDeleteItem(item._id)
+                                setMobileMenuOpen(null)
+                              }}
+                              className="w-full px-4 py-3 text-left text-sm font-medium text-red-600 hover:bg-red-50 flex items-center gap-3 transition-colors"
+                            >
+                              <MdDelete className="h-5 w-5" />
+                              Eliminar producto
+                            </button>
+                          </div>
+                        </>
+                      )}
+                    </div>
                   </div>
-                )}
-              </div>
 
-              {/* Badge de cantidad de precios (opcional) */}
-              <div className="flex items-center justify-between mt-3 pt-3 border-t border-gray-100">
-                <span className="text-xs text-gray-500 font-medium">
-                  {Object.keys(item.prices).length} {Object.keys(item.prices).length === 1 ? 'precio' : 'precios'} configurado{Object.keys(item.prices).length === 1 ? '' : 's'}
-                </span>
+                  {/* Precios en GRID */}
+                  <div className="grid grid-cols-2 gap-3 mt-4 pt-3 border-t border-gray-100">
+                    {activeLocations.map(location => (
+                      item.prices[location.nameId] !== undefined ? (
+                        <div
+                          key={location._id}
+                          className="bg-gradient-to-br from-gray-50 to-gray-100 rounded-lg p-3 border border-gray-200"
+                        >
+                          <div className="flex items-center gap-1.5 mb-1">
+                            <div className="w-1.5 h-1.5 bg-orange-500 rounded-full"></div>
+                            <span className="text-xs text-gray-600 font-semibold uppercase tracking-wide">
+                              {location.name.length > 10 ? location.name.substring(0, 8) + '...' : location.name}
+                            </span>
+                          </div>
+                          <span className="text-lg font-bold text-gray-900 block">
+                            ${item.prices[location.nameId].toLocaleString('es-AR')}
+                          </span>
+                        </div>
+                      ) : null
+                    ))}
 
-                {/* Quick actions mobile */}
-                <div className="flex items-center gap-1">
-                  <button
-                    onClick={() => setEditingItem(item)}
-                    className="p-2 text-gray-400 hover:text-orange-600 hover:bg-orange-50 rounded-lg transition-all active:scale-95"
-                    title="Editar"
-                  >
-                    <MdEdit className="h-4 w-4" />
-                  </button>
-                  <button
-                    onClick={() => handleDeleteItem(item._id)}
-                    className="p-2 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-all active:scale-95"
-                    title="Eliminar"
-                  >
-                    <MdDelete className="h-4 w-4" />
-                  </button>
-                </div>
-              </div>
-            </div>
-          )
-        ))}
+                    {activeLocations.every(loc => item.prices[loc.nameId] === undefined) && (
+                      <div className="col-span-2 text-center py-3 text-sm text-gray-400 italic">
+                        Sin precios configurados
+                      </div>
+                    )}
+                  </div>
 
-        {category.items.length === 0 && (
+                  {/* Footer */}
+                  <div className="flex items-center justify-between mt-3 pt-3 border-t border-gray-100">
+                    <span className="text-xs text-gray-500 font-medium">
+                      {Object.keys(item.prices).length} {Object.keys(item.prices).length === 1 ? 'precio' : 'precios'} configurado{Object.keys(item.prices).length === 1 ? '' : 's'}
+                    </span>
+                    <div className="flex items-center gap-1">
+                      <button
+                        onClick={() => setEditingItem(item)}
+                        className="p-2 text-gray-400 hover:text-orange-600 hover:bg-orange-50 rounded-lg transition-all active:scale-95"
+                        title="Editar"
+                      >
+                        <MdEdit className="h-4 w-4" />
+                      </button>
+                      <button
+                        onClick={() => handleDeleteItem(item._id)}
+                        className="p-2 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-all active:scale-95"
+                        title="Eliminar"
+                      >
+                        <MdDelete className="h-4 w-4" />
+                      </button>
+                    </div>
+                  </div>
+                </Reorder.Item>
+              )
+            ))}
+          </Reorder.Group>
+        ) : (
           <div className="text-center py-16 bg-gradient-to-b from-white to-gray-50">
             <div className="inline-flex items-center justify-center w-16 h-16 bg-orange-100 rounded-2xl mb-4">
               <MdRestaurantMenu className="h-8 w-8 text-orange-400" />

@@ -36,8 +36,12 @@ export async function GET(req) {
         isActive: category.isActive !== false,
         style: category.style || 'default',
         image: category.image || {},
-        items: category.items || []
-      }))
+        order: category.order || 0,
+        items: (category.items || []).map(item => ({
+          ...item,
+          order: item.order || 0
+        })).sort((a, b) => a.order - b.order)
+      })).sort((a, b) => a.order - b.order)
     };
 
     return NextResponse.json(normalizedMenu);

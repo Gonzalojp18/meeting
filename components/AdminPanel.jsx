@@ -221,6 +221,22 @@ const AdminPanel = () => {
     }
   };
 
+  // ========== HANDLER DE REORDENAMIENTO ==========
+  const handleReorder = async (type, orderedIds, categoryId = null) => {
+    try {
+      await axios.put(`${API_URI}/api/menu/reorder`, {
+        type,
+        categoryId,
+        orderedIds
+      }, authHeaders);
+      refetch();
+    } catch (error) {
+      handleAxiosError(error);
+      alert('Error al reordenar.');
+      refetch(); // Revert optimistic UI on error
+    }
+  };
+
   const filteredCategories = searchTerm === ''
     ? categories
     : categories.map(category => {
@@ -650,6 +666,7 @@ const AdminPanel = () => {
                       onAddItem={handleAddItem}
                       onUpdateItem={handleUpdateItem}
                       onDeleteItem={handleDeleteItem}
+                      onReorderItems={(orderedIds) => handleReorder('items', orderedIds, category._id)}
                     />
                   </div>
                 ))
@@ -684,6 +701,7 @@ const AdminPanel = () => {
                 onAddCategory={handleAddCategory}
                 onUpdateCategory={handleUpdateCategory}
                 onDeleteCategory={handleDeleteCategory}
+                onReorderCategories={(orderedIds) => handleReorder('categories', orderedIds)}
               />
             </div>
           )

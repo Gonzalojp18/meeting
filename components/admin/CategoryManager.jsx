@@ -1,5 +1,6 @@
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { MdEdit, MdDelete, MdAdd, MdMoreVert, MdDragIndicator, MdCloudUpload, MdCategory, MdImage } from 'react-icons/md';
+import { Reorder } from 'framer-motion';
 import { useSession } from 'next-auth/react';
 
 const CategoryManager = ({
@@ -7,7 +8,8 @@ const CategoryManager = ({
   locations,
   onAddCategory,
   onUpdateCategory,
-  onDeleteCategory
+  onDeleteCategory,
+  onReorderCategories
 }) => {
   const { data: session } = useSession();
   const token = session?.user?.token;
@@ -15,6 +17,7 @@ const CategoryManager = ({
   const [editingCategory, setEditingCategory] = useState(null);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(null);
   const [uploading, setUploading] = useState(false);
+  const [localCategories, setLocalCategories] = useState(categories);
   const [formData, setFormData] = useState({
     name: '',
     subtitle: '',
@@ -26,13 +29,35 @@ const CategoryManager = ({
   });
 
   const formRef = useRef(null);
+  const reorderTimeoutRef = useRef(null);
+
+  // Sync local state with parent data
+  useEffect(() => {
+    setLocalCategories(categories);
+  }, [categories]);
 
   useEffect(() => {
     if (isAdding && formRef.current) {
-      // Scroll suave hacia el formulario cuando se abre para editar o crear
       formRef.current.scrollIntoView({ behavior: 'smooth', block: 'center' });
     }
   }, [isAdding, editingCategory]);
+
+  // Cleanup timeout on unmount
+  useEffect(() => {
+    return () => {
+      if (reorderTimeoutRef.current) clearTimeout(reorderTimeoutRef.current);
+    };
+  }, []);
+
+  const handleReorder = useCallback((newOrder) => {
+    setLocalCategories(newOrder);
+
+    if (reorderTimeoutRef.current) clearTimeout(reorderTimeoutRef.current);
+    reorderTimeoutRef.current = setTimeout(() => {
+      const orderedIds = newOrder.map(cat => cat._id);
+      onReorderCategories(orderedIds);
+    }, 300);
+  }, [onReorderCategories]);
 
   const getInitialFormData = () => ({
     name: '',
@@ -436,14 +461,29 @@ const CategoryManager = ({
               </button>
             </div>
           ) : (
-            <div className="divide-y divide-gray-100">
-              {categories.map((category) => (
-                <div
+            <Reorder.Group
+              axis="y"
+              values={localCategories}
+              onReorder={handleReorder}
+              as="div"
+              className="divide-y divide-gray-100"
+            >
+              {localCategories.map((category) => (
+                <Reorder.Item
                   key={category._id}
-                  className="flex items-center gap-5 p-5 hover:bg-purple-50/30 transition-colors group"
+                  value={category}
+                  as="div"
+                  className="flex items-center gap-5 p-5 hover:bg-purple-50/30 transition-colors group cursor-grab active:cursor-grabbing"
+                  style={{ touchAction: 'none' }}
+                  whileDrag={{
+                    scale: 1.02,
+                    boxShadow: '0 8px 25px rgba(0,0,0,0.15)',
+                    backgroundColor: 'rgba(243, 232, 255, 0.9)',
+                    zIndex: 50
+                  }}
                 >
                   {/* Drag handle */}
-                  <div className="flex-shrink-0 cursor-move text-gray-300 hover:text-purple-500 transition-colors">
+                  <div className="flex-shrink-0 text-gray-300 group-hover:text-purple-500 transition-colors">
                     <MdDragIndicator className="h-6 w-6" />
                   </div>
 
@@ -517,9 +557,9 @@ const CategoryManager = ({
                       <MdDelete className="h-5 w-5" />
                     </button>
                   </div>
-                </div>
+                </Reorder.Item>
               ))}
-            </div>
+            </Reorder.Group>
           )}
         </div>
       </div>
@@ -546,99 +586,116 @@ const CategoryManager = ({
             </button>
           </div>
         ) : (
-          categories.map((category) => (
-            <div
-              key={category._id}
-              className="bg-white rounded-xl border-2 border-gray-200 p-4 hover:border-purple-300 transition-colors"
-            >
-              <div className="flex items-start gap-3">
-                {/* Drag + Image */}
-                <div className="flex items-start gap-2 flex-shrink-0">
-                  <div className="cursor-move text-gray-300 pt-1">
-                    <MdDragIndicator className="h-6 w-6" />
-                  </div>
-                  {getImageUrl(category.image) ? (
-                    <img
-                      src={getImageUrl(category.image)}
-                      alt={category.image?.alt || category.name}
-                      className="w-20 h-20 rounded-xl object-cover shadow-md border-2 border-gray-200"
-                    />
-                  ) : (
-                    <div className="w-20 h-20 rounded-xl bg-gradient-to-br from-gray-100 to-gray-200 flex items-center justify-center border-2 border-gray-200">
-                      <MdImage className="h-6 w-6 text-gray-400" />
+          <Reorder.Group
+            axis="y"
+            values={localCategories}
+            onReorder={handleReorder}
+            as="div"
+            className="space-y-3"
+          >
+            {localCategories.map((category) => (
+              <Reorder.Item
+                key={category._id}
+                value={category}
+                as="div"
+                className="bg-white rounded-xl border-2 border-gray-200 p-4 hover:border-purple-300 transition-colors cursor-grab active:cursor-grabbing"
+                style={{ touchAction: 'none' }}
+                whileDrag={{
+                  scale: 1.02,
+                  boxShadow: '0 8px 25px rgba(0,0,0,0.15)',
+                  backgroundColor: 'rgba(243, 232, 255, 0.9)',
+                  zIndex: 50
+                }}
+              >
+                <div className="flex items-start gap-3">
+                  {/* Drag + Image */}
+                  <div className="flex items-start gap-2 flex-shrink-0">
+                    <div className="text-gray-300 pt-1">
+                      <MdDragIndicator className="h-6 w-6" />
                     </div>
-                  )}
-                </div>
+                    {getImageUrl(category.image) ? (
+                      <img
+                        src={getImageUrl(category.image)}
+                        alt={category.image?.alt || category.name}
+                        className="w-20 h-20 rounded-xl object-cover shadow-md border-2 border-gray-200"
+                      />
+                    ) : (
+                      <div className="w-20 h-20 rounded-xl bg-gradient-to-br from-gray-100 to-gray-200 flex items-center justify-center border-2 border-gray-200">
+                        <MdImage className="h-6 w-6 text-gray-400" />
+                      </div>
+                    )}
+                  </div>
 
-                {/* Info */}
-                <div className="flex-1 min-w-0">
-                  <h4 className="font-bold text-gray-900 text-base mb-1.5 leading-tight">
-                    {category.name}
-                  </h4>
-                  {category.subtitle && (
-                    <p className="text-sm text-gray-600 mb-2 line-clamp-2">
-                      {category.subtitle}
-                    </p>
-                  )}
-                  <div className="flex flex-wrap items-center gap-2">
-                    <span className="inline-flex items-center gap-1 px-2 py-1 bg-purple-100 text-purple-700 text-xs font-semibold rounded-full">
-                      {category.items?.length || 0} productos
-                    </span>
-                    <span className="inline-flex items-center gap-1 px-2 py-1 bg-gray-100 text-gray-600 text-xs font-medium rounded-full">
-                      {category.style || 'default'}
-                    </span>
-                    {category.schedule?.availableFrom && (
-                      <span className="inline-flex items-center gap-1 px-2 py-1 bg-orange-100 text-orange-700 text-xs font-semibold rounded-full">
-                        {category.schedule.availableFrom} - {category.schedule.availableTo}
+                  {/* Info */}
+                  <div className="flex-1 min-w-0">
+                    <h4 className="font-bold text-gray-900 text-base mb-1.5 leading-tight">
+                      {category.name}
+                    </h4>
+                    {category.subtitle && (
+                      <p className="text-sm text-gray-600 mb-2 line-clamp-2">
+                        {category.subtitle}
+                      </p>
+                    )}
+                    <div className="flex flex-wrap items-center gap-2">
+                      <span className="inline-flex items-center gap-1 px-2 py-1 bg-purple-100 text-purple-700 text-xs font-semibold rounded-full">
+                        {category.items?.length || 0} productos
                       </span>
+                      <span className="inline-flex items-center gap-1 px-2 py-1 bg-gray-100 text-gray-600 text-xs font-medium rounded-full">
+                        {category.style || 'default'}
+                      </span>
+                      {category.schedule?.availableFrom && (
+                        <span className="inline-flex items-center gap-1 px-2 py-1 bg-orange-100 text-orange-700 text-xs font-semibold rounded-full">
+                          {category.schedule.availableFrom} - {category.schedule.availableTo}
+                        </span>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Menu */}
+                  <div className="relative flex-shrink-0">
+                    <button
+                      onClick={() => setMobileMenuOpen(mobileMenuOpen === category._id ? null : category._id)}
+                      className="p-2.5 hover:bg-gray-100 rounded-xl transition-colors"
+                    >
+                      <MdMoreVert className="h-6 w-6 text-gray-400" />
+                    </button>
+
+                    {mobileMenuOpen === category._id && (
+                      <>
+                        <div
+                          className="fixed inset-0 z-30 bg-black/20 backdrop-blur-sm"
+                          onClick={() => setMobileMenuOpen(null)}
+                        />
+                        <div className="absolute right-0 top-12 z-40 w-48 bg-white rounded-xl shadow-2xl border border-gray-200 py-2 animate-fade-in">
+                          <button
+                            onClick={() => {
+                              handleEdit(category)
+                              setMobileMenuOpen(null)
+                            }}
+                            className="w-full px-4 py-3 text-left text-sm font-medium text-gray-700 hover:bg-purple-50 hover:text-purple-600 flex items-center gap-3 transition-colors"
+                          >
+                            <MdEdit className="h-5 w-5" />
+                            Editar categoría
+                          </button>
+                          <div className="border-t border-gray-100 my-1"></div>
+                          <button
+                            onClick={() => {
+                              handleDelete(category._id)
+                              setMobileMenuOpen(null)
+                            }}
+                            className="w-full px-4 py-3 text-left text-sm font-medium text-red-600 hover:bg-red-50 flex items-center gap-3 transition-colors"
+                          >
+                            <MdDelete className="h-5 w-5" />
+                            Eliminar categoría
+                          </button>
+                        </div>
+                      </>
                     )}
                   </div>
                 </div>
-
-                {/* Menu */}
-                <div className="relative flex-shrink-0">
-                  <button
-                    onClick={() => setMobileMenuOpen(mobileMenuOpen === category._id ? null : category._id)}
-                    className="p-2.5 hover:bg-gray-100 rounded-xl transition-colors"
-                  >
-                    <MdMoreVert className="h-6 w-6 text-gray-400" />
-                  </button>
-
-                  {mobileMenuOpen === category._id && (
-                    <>
-                      <div
-                        className="fixed inset-0 z-30 bg-black/20 backdrop-blur-sm"
-                        onClick={() => setMobileMenuOpen(null)}
-                      />
-                      <div className="absolute right-0 top-12 z-40 w-48 bg-white rounded-xl shadow-2xl border border-gray-200 py-2 animate-fade-in">
-                        <button
-                          onClick={() => {
-                            handleEdit(category)
-                            setMobileMenuOpen(null)
-                          }}
-                          className="w-full px-4 py-3 text-left text-sm font-medium text-gray-700 hover:bg-purple-50 hover:text-purple-600 flex items-center gap-3 transition-colors"
-                        >
-                          <MdEdit className="h-5 w-5" />
-                          Editar categoría
-                        </button>
-                        <div className="border-t border-gray-100 my-1"></div>
-                        <button
-                          onClick={() => {
-                            handleDelete(category._id)
-                            setMobileMenuOpen(null)
-                          }}
-                          className="w-full px-4 py-3 text-left text-sm font-medium text-red-600 hover:bg-red-50 flex items-center gap-3 transition-colors"
-                        >
-                          <MdDelete className="h-5 w-5" />
-                          Eliminar categoría
-                        </button>
-                      </div>
-                    </>
-                  )}
-                </div>
-              </div>
-            </div>
-          ))
+              </Reorder.Item>
+            ))}
+          </Reorder.Group>
         )}
       </div>
     </div>

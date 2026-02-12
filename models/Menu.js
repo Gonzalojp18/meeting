@@ -78,6 +78,10 @@ const itemSchema = new mongoose.Schema({
   preparationTime: {
     type: Number,
     default: 15
+  },
+  order: {
+    type: Number,
+    default: 0
   }
 });
 
@@ -130,6 +134,10 @@ const categorySchema = new mongoose.Schema({
       type: String,
       default: null
     }
+  },
+  order: {
+    type: Number,
+    default: 0
   }
 });
 

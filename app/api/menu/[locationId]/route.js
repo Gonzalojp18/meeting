@@ -66,11 +66,12 @@ export async function GET(req, { params }) {
         // Normalizar campos para evitar undefined (datos viejos sin estos campos)
         locations: category.locations || [],
         isActive: category.isActive !== false, // default true si no existe
-        items: filterItemsByLocation(category, locationId),
+        items: filterItemsByLocation(category, locationId)
+          .sort((a, b) => (a.order || 0) - (b.order || 0)),
         style: category.style || 'default',
         image: category.image || {},
         schedule: category.schedule || {}
-      })),
+      })).sort((a, b) => (a.order || 0) - (b.order || 0)),
       locations: location,
       takeawayHours,
       currentLocation: {
