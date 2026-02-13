@@ -5,6 +5,8 @@ import dbConnect from '@/utils/dbConnect';
 import Order from '@/models/Order';
 import { getMPCredentials } from '@/utils/getMPCredentials';
 import { createOrderFromPayment } from '@/utils/orderService';
+import Settings from '@/models/Settings';
+import { decrypt } from '@/utils/encryption';
 
 // 🔒 SECURITY: Validate MercadoPago webhook signature (VULN-002)
 function validateMPSignature(req, secret, dataId) {
@@ -96,6 +98,7 @@ export async function POST(req) {
 
         // Obtener credenciales
         const credentials = await getMPCredentials();
+        await dbConnect(); // Asegurar conexión
         const settings = await Settings.getValue('mercadopago_credentials');
         const webhookSecret = settings?.webhookSecret ? decrypt(settings.webhookSecret) : process.env.MP_WEBHOOK_SECRET;
 
@@ -116,8 +119,6 @@ export async function POST(req) {
             return NextResponse.json({ received: true });
         }
 
-        // Obtener credenciales
-        const credentials = await getMPCredentials();
         if (!credentials) {
             console.error('[WEBHOOK] Credenciales no configuradas.');
             return NextResponse.json({ error: 'MP not configured' }, { status: 503 });
