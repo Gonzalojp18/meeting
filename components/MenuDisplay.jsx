@@ -98,7 +98,7 @@ const MenuDisplay = ({ locationId }) => {
   const isTakeaway = menuMode === 'takeaway';
 
   // location3 es solo para mostrar el menú, sin funcionalidad de compra
-  const isDisplayOnly = locationId === 'location3';
+  const isDisplayOnly = locationId === 'location3' || locationId === '3';
 
   // Renderizar ModeSelector siempre para que pueda setear el modo
   // Sin esto, el componente se queda en loading infinito

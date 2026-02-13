@@ -140,7 +140,7 @@ const Category = ({ category, locationId, isTakeaway = false, displayOnly = fals
                                         {/* Precio y botón */}
                                         <div className="flex items-center justify-between mt-2 pt-2">
                                             <span className="text-base md:text-lg font-bold text-gray-800">
-                                                {itemPrice > 0 ? `$${itemPrice.toLocaleString()}` : ''}
+                                                {!displayOnly && itemPrice > 0 ? `$${itemPrice.toLocaleString()}` : ''}
                                             </span>
 
                                             {/* Controles - Solo si no es displayOnly */}
@@ -292,9 +292,11 @@ const Category = ({ category, locationId, isTakeaway = false, displayOnly = fals
                                     )}
                                 </div>
                                 <div className="text-right flex flex-col items-end gap-2">
-                                    <p className={style.price}>
-                                        {item.prices?.[locationId] > 0 ? `$${item.prices[locationId].toLocaleString()}` : (typeof item.prices === 'number' && item.prices > 0) ? `$${item.prices.toLocaleString()}` : ''}
-                                    </p>
+                                    {!displayOnly && (
+                                        <p className={style.price}>
+                                            {item.prices?.[locationId] > 0 ? `$${item.prices[locationId].toLocaleString()}` : (typeof item.prices === 'number' && item.prices > 0) ? `$${item.prices.toLocaleString()}` : ''}
+                                        </p>
+                                    )}
                                     {/* Botón agregar - Items SIN customizations, disponibles */}
                                     {isTakeaway && isAvailable && !itemHasCustomizations && quantity === 0 && (
                                         <button
