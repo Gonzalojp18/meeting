@@ -9,11 +9,13 @@ const MercadoPagoSettings = () => {
 
   const [publicKey, setPublicKey] = useState('');
   const [accessToken, setAccessToken] = useState('');
+  const [webhookSecret, setWebhookSecret] = useState('');
   const [currentPassword, setCurrentPassword] = useState('');
   const [showAccessToken, setShowAccessToken] = useState(false);
   const [showPublicKey, setShowPublicKey] = useState(false);
+  const [showWebhookSecret, setShowWebhookSecret] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
-  const [status, setStatus] = useState({ configured: false, mode: null, publicKey: '', accessToken: '' });
+  const [status, setStatus] = useState({ configured: false, mode: null, publicKey: '', accessToken: '', webhookSecret: '' });
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState(null);
@@ -67,7 +69,7 @@ const MercadoPagoSettings = () => {
           'Content-Type': 'application/json',
           ...getAuthHeaders(),
         },
-        body: JSON.stringify({ publicKey, accessToken, currentPassword }),
+        body: JSON.stringify({ publicKey, accessToken, webhookSecret, currentPassword }),
       });
 
       const data = await res.json();
@@ -76,6 +78,7 @@ const MercadoPagoSettings = () => {
         setMessage({ type: 'success', text: data.message });
         setPublicKey('');
         setAccessToken('');
+        setWebhookSecret('');
         setCurrentPassword('');
         setIsEditing(false);
         fetchStatus();
@@ -109,7 +112,7 @@ const MercadoPagoSettings = () => {
 
       if (res.ok) {
         setMessage({ type: 'success', text: 'Credenciales eliminadas' });
-        setStatus({ configured: false, mode: null, publicKey: '', accessToken: '' });
+        setStatus({ configured: false, mode: null, publicKey: '', accessToken: '', webhookSecret: '' });
         setIsEditing(true);
         setShowDeleteConfirm(false);
         setDeletePassword('');
@@ -178,6 +181,10 @@ const MercadoPagoSettings = () => {
             <div className="bg-gray-50 rounded-lg p-3">
               <p className="text-gray-500 text-xs mb-1">Access Token</p>
               <p className="font-mono text-gray-700">{status.accessToken}</p>
+            </div>
+            <div className="bg-gray-50 rounded-lg p-3 sm:col-span-2">
+              <p className="text-gray-500 text-xs mb-1">Webhook Secret (Firma)</p>
+              <p className="font-mono text-gray-700">{status.webhookSecret || 'No configurado'}</p>
             </div>
           </div>
         </div>
@@ -330,6 +337,30 @@ const MercadoPagoSettings = () => {
                 className="absolute right-2 top-1/2 -translate-y-1/2 p-1 text-gray-400 hover:text-gray-600"
               >
                 {showAccessToken ? <MdVisibilityOff className="h-4 w-4" /> : <MdVisibility className="h-4 w-4" />}
+              </button>
+            </div>
+          </div>
+
+          {/* Webhook Secret */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Webhook Secret (Firma de Notificaciones) *
+            </label>
+            <div className="relative">
+              <input
+                type={showWebhookSecret ? 'text' : 'password'}
+                value={webhookSecret}
+                onChange={(e) => setWebhookSecret(e.target.value)}
+                required
+                className="w-full px-3 py-2 pr-10 border border-gray-300 rounded-lg text-sm font-mono focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                placeholder="Ingresa el Webhook Secret de Mercado Pago"
+              />
+              <button
+                type="button"
+                onClick={() => setShowWebhookSecret(!showWebhookSecret)}
+                className="absolute right-2 top-1/2 -translate-y-1/2 p-1 text-gray-400 hover:text-gray-600"
+              >
+                {showWebhookSecret ? <MdVisibilityOff className="h-4 w-4" /> : <MdVisibility className="h-4 w-4" />}
               </button>
             </div>
           </div>

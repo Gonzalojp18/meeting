@@ -133,9 +133,26 @@ export async function POST(request) {
             );
         }
 
-        // Crear upselling
+        // Crear upselling - Sanitizado (Security: prevent mass-assignment)
         const upselling = await Upselling.create({
-            ...body,
+            name: body.name,
+            type: body.type,
+            category: body.category,
+            triggerItemId: body.triggerItemId,
+            triggerItemName: body.triggerItemName,
+            triggerCategoryId: body.triggerCategoryId,
+            triggerCategoryName: body.triggerCategoryName,
+            suggestedItems: body.suggestedItems,
+            copyText: body.copyText,
+            description: body.description,
+            ticketLevel: body.ticketLevel,
+            timing: body.timing,
+            daysActive: body.daysActive,
+            displayLocations: body.displayLocations,
+            isActive: body.isActive !== undefined ? body.isActive : true,
+            priority: body.priority || 0,
+            displayLimit: body.displayLimit || 3,
+            locationId: body.locationId,
             metrics: {
                 impressions: { total: 0, inMenu: 0, inCheckout: 0, inCart: 0 },
                 clicks: { total: 0, inMenu: 0, inCheckout: 0, inCart: 0 }

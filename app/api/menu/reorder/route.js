@@ -15,8 +15,12 @@ export async function PUT(req) {
     }
 
     const token = authHeader.split(' ')[1];
+    let decoded;
     try {
-      jwt.verify(token, process.env.JWT_SECRET);
+      decoded = jwt.verify(token, process.env.JWT_SECRET);
+      if (decoded.role !== 'admin' && decoded.role !== 'manager') {
+        return NextResponse.json({ error: 'Permisos insuficientes' }, { status: 403 });
+      }
     } catch {
       return NextResponse.json({ error: 'Not authorized' }, { status: 401 });
     }

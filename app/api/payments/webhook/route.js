@@ -11,7 +11,6 @@ function validateMPSignature(req, secret, dataId) {
     const xSignature = req.headers.get('x-signature');
     const xRequestId = req.headers.get('x-request-id');
 
-    // Si no hay firma, rechazar en producción, permitir en desarrollo para testing
     if (!xSignature || !xRequestId) {
         if (process.env.NODE_ENV === 'production') {
             console.warn('[WEBHOOK SECURITY] Missing signature headers in production');
@@ -22,7 +21,6 @@ function validateMPSignature(req, secret, dataId) {
     }
 
     try {
-        // Parsear los componentes de la firma: ts=xxx,v1=xxx
         const signatureParts = xSignature.split(',').reduce((acc, part) => {
             const [key, value] = part.split('=');
             if (key && value) {
@@ -39,31 +37,29 @@ function validateMPSignature(req, secret, dataId) {
             return false;
         }
 
-        // Construir el manifest según documentación de MP
-        // Template: id:[data.id];request-id:[x-request-id];ts:[ts];
-        const manifest = `id:${dataId};request-id:${xRequestId};ts:${ts};`;
+        // --- PROTECCIÓN CONTRA REPETICIÓN (REPLAY PROTECTION) ---
+        // Validar que la firma no tenga más de 5 minutos de antigüedad
+        const FIVE_MINUTES_MS = 5 * 60 * 1000;
+        const signatureTime = parseInt(ts) * 1000;
+        const now = Date.now();
+        if (Math.abs(now - signatureTime) > FIVE_MINUTES_MS) {
+            console.error('[WEBHOOK SECURITY] Signature expired (Replay Attack?)');
+            return false;
+        }
 
-        // Calcular HMAC-SHA256
+        const manifest = `id:${dataId};request-id:${xRequestId};ts:${ts};`;
         const hmac = crypto.createHmac('sha256', secret);
         hmac.update(manifest);
         const calculatedSignature = hmac.digest('hex');
 
-        // Comparación timing-safe para prevenir timing attacks
         const signatureBuffer = Buffer.from(v1, 'hex');
         const calculatedBuffer = Buffer.from(calculatedSignature, 'hex');
 
         if (signatureBuffer.length !== calculatedBuffer.length) {
-            console.warn('[WEBHOOK SECURITY] Signature length mismatch');
             return false;
         }
 
-        const isValid = crypto.timingSafeEqual(signatureBuffer, calculatedBuffer);
-
-        if (!isValid) {
-            console.warn('[WEBHOOK SECURITY] Signature validation failed');
-        }
-
-        return isValid;
+        return crypto.timingSafeEqual(signatureBuffer, calculatedBuffer);
     } catch (error) {
         console.error('[WEBHOOK SECURITY] Error validating signature:', error.message);
         return false;
@@ -98,8 +94,12 @@ export async function POST(req) {
         }
         console.log('---------------------------------------------------');
 
+        // Obtener credenciales
+        const credentials = await getMPCredentials();
+        const settings = await Settings.getValue('mercadopago_credentials');
+        const webhookSecret = settings?.webhookSecret ? decrypt(settings.webhookSecret) : process.env.MP_WEBHOOK_SECRET;
+
         // 🔒 SECURITY: Validar firma del webhook
-        const webhookSecret = process.env.MP_WEBHOOK_SECRET;
         if (webhookSecret) {
             if (!validateMPSignature(req, webhookSecret, dataId || id)) {
                 console.error('[WEBHOOK SECURITY] ❌ Invalid signature - possible attack');
@@ -107,8 +107,8 @@ export async function POST(req) {
             }
             console.log('[WEBHOOK SECURITY] ✅ Signature validated');
         } else if (process.env.NODE_ENV === 'production') {
-            console.error('[WEBHOOK SECURITY] ⚠️ MP_WEBHOOK_SECRET not configured in production!');
-            // En producción sin secret, aún procesamos pero logueamos warning
+            console.error('[WEBHOOK SECURITY] ⚠️ MP_WEBHOOK_SECRET not configured in DB or ENV!');
+            return NextResponse.json({ error: 'Security configuration missing' }, { status: 503 });
         }
 
         if (!id || (topic !== 'payment' && topic !== 'merchant_order')) {

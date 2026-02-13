@@ -65,16 +65,22 @@ export async function GET(req) {
     }
 
     // Desencriptar para enmascarar
-    let publicKeyDecrypted = '';
-    let accessTokenDecrypted = '';
-    let mode = null;
-
     try {
-      publicKeyDecrypted = decrypt(settings.publicKey);
-      accessTokenDecrypted = decrypt(settings.accessToken);
+      const publicKeyDecrypted = decrypt(settings.publicKey);
+      const accessTokenDecrypted = decrypt(settings.accessToken);
+      const webhookSecretDecrypted = settings.webhookSecret ? decrypt(settings.webhookSecret) : '';
       // Detectar si es test o producción
-      mode = accessTokenDecrypted.startsWith('TEST-') ? 'test' : 'production';
-    } catch {
+      const mode = accessTokenDecrypted.startsWith('TEST-') ? 'test' : 'production';
+
+      return NextResponse.json({
+        configured: true,
+        publicKey: maskValue(publicKeyDecrypted),
+        accessToken: maskValue(accessTokenDecrypted),
+        webhookSecret: webhookSecretDecrypted ? maskValue(webhookSecretDecrypted) : '',
+        mode,
+      });
+    } catch (innerError) {
+      console.error('Error desencriptando credenciales en GET:', innerError);
       return NextResponse.json({
         configured: false,
         publicKey: '',
@@ -83,13 +89,6 @@ export async function GET(req) {
         error: 'Error al leer credenciales. Reconfigúralas.',
       });
     }
-
-    return NextResponse.json({
-      configured: true,
-      publicKey: maskValue(publicKeyDecrypted),
-      accessToken: maskValue(accessTokenDecrypted),
-      mode,
-    });
   } catch (error) {
     console.error('GET /api/settings/mercadopago error:', error);
     return NextResponse.json({ error: 'Server error' }, { status: 500 });
@@ -108,7 +107,7 @@ export async function POST(req) {
 
     await dbConnect();
 
-    const { publicKey, accessToken, currentPassword } = await req.json();
+    const { publicKey, accessToken, webhookSecret, currentPassword } = await req.json();
 
     // =====================================================
     // SEGURIDAD: Verificar contraseña actual del admin
@@ -141,9 +140,9 @@ export async function POST(req) {
     }
 
     // Validar que se proporcionaron las credenciales
-    if (!publicKey || !accessToken) {
+    if (!publicKey || !accessToken || !webhookSecret) {
       return NextResponse.json(
-        { error: 'Se requieren Public Key y Access Token' },
+        { error: 'Se requieren Public Key, Access Token y Webhook Secret' },
         { status: 400 }
       );
     }
@@ -199,6 +198,7 @@ export async function POST(req) {
     const encryptedCredentials = {
       publicKey: encrypt(pkTrimmed),
       accessToken: encrypt(atTrimmed),
+      webhookSecret: encrypt(webhookSecret.trim()),
     };
 
     await Settings.setValue('mercadopago_credentials', encryptedCredentials);

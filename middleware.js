@@ -17,6 +17,7 @@ import { auth } from './auth';
 const ADMIN_ROUTES = [
     '/admin',
     '/caja',
+    '/superadmin',
 ];
 
 // APIs que requieren autenticación
@@ -25,6 +26,7 @@ const PROTECTED_API_ROUTES = [
     '/api/orders',
     '/api/settings',
     '/api/upload',
+    '/api/superadmin',
 ];
 
 // APIs públicas (no requieren autenticación)
