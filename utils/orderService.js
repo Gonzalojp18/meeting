@@ -76,10 +76,16 @@ export async function createOrderFromPayment(paymentInfo) {
                 name: item.name,
                 quantity: item.quantity,
                 price: item.unitPrice, // Schema expects 'price'
-                customizations: (item.customizations || []).map(c => ({
-                    groupName: c.group || c.groupName || '',
-                    selected: c.option || c.selected || ''
-                })),
+                customizations: (item.customizations || []).map(c => {
+                    const base = { groupName: c.group || c.groupName || '' };
+                    if (c.selections && Array.isArray(c.selections) && c.selections.length > 0) {
+                        base.selections = c.selections;
+                        base.selected = c.selections[0];
+                    } else {
+                        base.selected = c.option || c.selected || '';
+                    }
+                    return base;
+                }),
                 origin: item.origin || 'organic',
                 ...(item.upsellId && { upsellId: item.upsellId }),
             })),

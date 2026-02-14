@@ -187,7 +187,7 @@ const CategoryItems = ({
                     )}
                     {item.customizations?.length > 0 && (
                       <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold bg-indigo-100 text-indigo-700 uppercase tracking-wide flex-shrink-0">
-                        {item.customizations[0].name}
+                        {item.customizations.length === 1 ? item.customizations[0].name : `${item.customizations.length} opciones`}
                       </span>
                     )}
                   </div>
@@ -322,7 +322,7 @@ const CategoryItems = ({
                           {item.name}
                           {item.customizations?.length > 0 && (
                             <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold bg-indigo-100 text-indigo-700 uppercase tracking-wide">
-                              {item.customizations[0].name}
+                              {item.customizations.length === 1 ? item.customizations[0].name : `${item.customizations.length} opciones`}
                             </span>
                           )}
                         </h4>

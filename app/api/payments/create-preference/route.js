@@ -205,7 +205,10 @@ export async function POST(req) {
         // Crear items para MercadoPago con precios validados
         const mpItems = validated.items.map(item => ({
             title: item.name + (item.customizations.length > 0
-                ? ` (${item.customizations.map(c => c.option).join(', ')})`
+                ? ` (${item.customizations.map(c => {
+                    const sels = c.selections || (c.option ? [c.option] : []);
+                    return sels.join('+');
+                }).join(', ')})`
                 : ''),
             quantity: item.quantity,
             unit_price: Number(item.unitPrice),

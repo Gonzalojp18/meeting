@@ -381,9 +381,12 @@ export default function OrderTracker({ orderNumber, initialOrder = null }) {
                                     </p>
                                     {item.customizations?.length > 0 && (
                                         <div className="text-sm text-gray-500 mt-1">
-                                            {item.customizations.map((c, i) => (
-                                                <p key={i}>{c.groupName}: {c.selected}</p>
-                                            ))}
+                                            {item.customizations.map((c, i) => {
+                                                const sels = (c.selections && c.selections.length > 0) ? c.selections : (c.selected ? [c.selected] : []);
+                                                return sels.length > 0 ? (
+                                                    <p key={i}>{c.groupName}: {sels.join(', ')}</p>
+                                                ) : null;
+                                            })}
                                         </div>
                                     )}
                                 </div>

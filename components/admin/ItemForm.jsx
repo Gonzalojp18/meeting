@@ -13,20 +13,16 @@ const ItemForm = ({ item, locations, onSubmit, onCancel }) => {
     isAvailable: true,
     hasCustomizations: false,
     image: '',
-    customization: {
-      name: 'Guarnición',
-      required: false,
-      options: []
-    }
+    customizationGroups: []
   });
 
-  const [newOption, setNewOption] = useState('');
+  const [newOptions, setNewOptions] = useState({});
   const [uploading, setUploading] = useState(false);
   const [imageFile, setImageFile] = useState(null);
   const [previewUrl, setPreviewUrl] = useState('');
 
   useEffect(() => {
-    const existingCustomization = item?.customizations?.[0];
+    const existingGroups = item?.customizations || [];
 
     if (item) {
       setFormData({
@@ -41,14 +37,15 @@ const ItemForm = ({ item, locations, onSubmit, onCancel }) => {
             price: item.prices?.[loc.nameId] || ''
           }
         }), {}),
-        hasCustomizations: !!existingCustomization,
-        customization: existingCustomization
-          ? {
-              name: existingCustomization.name || 'Guarnición',
-              required: existingCustomization.required || false,
-              options: existingCustomization.options?.map(o => ({ name: o.name, isAvailable: o.isAvailable !== false })) || []
-            }
-          : { name: 'Guarnición', required: false, options: [] }
+        hasCustomizations: existingGroups.length > 0,
+        customizationGroups: existingGroups.map(g => ({
+          name: g.name || 'Guarnición',
+          type: g.type || 'single',
+          required: g.required || false,
+          minSelections: g.minSelections || 1,
+          maxSelections: g.maxSelections || 1,
+          options: g.options?.map(o => ({ name: o.name, isAvailable: o.isAvailable !== false })) || []
+        }))
       });
       if (item.image) {
         setPreviewUrl(item.image);
@@ -67,11 +64,7 @@ const ItemForm = ({ item, locations, onSubmit, onCancel }) => {
         isAvailable: true,
         hasCustomizations: false,
         image: '',
-        customization: {
-          name: 'Guarnición',
-          required: false,
-          options: []
-        }
+        customizationGroups: []
       });
       setPreviewUrl('');
     }
@@ -139,29 +132,56 @@ const ItemForm = ({ item, locations, onSubmit, onCancel }) => {
     setImageFile(null);
   };
 
-  const handleAddOption = () => {
-    const trimmed = newOption.trim();
-    if (!trimmed) return;
-    if (formData.customization.options.some(o => o.name.toLowerCase() === trimmed.toLowerCase())) return;
-
-    setFormData({
-      ...formData,
-      customization: {
-        ...formData.customization,
-        options: [...formData.customization.options, { name: trimmed, isAvailable: true }]
-      }
-    });
-    setNewOption('');
+  const handleAddGroup = () => {
+    setFormData(prev => ({
+      ...prev,
+      customizationGroups: [
+        ...prev.customizationGroups,
+        { name: '', type: 'single', required: false, minSelections: 1, maxSelections: 1, options: [] }
+      ]
+    }));
   };
 
-  const handleRemoveOption = (index) => {
-    setFormData({
-      ...formData,
-      customization: {
-        ...formData.customization,
-        options: formData.customization.options.filter((_, i) => i !== index)
-      }
+  const handleRemoveGroup = (groupIndex) => {
+    setFormData(prev => {
+      const newGroups = prev.customizationGroups.filter((_, i) => i !== groupIndex);
+      return { ...prev, customizationGroups: newGroups, hasCustomizations: newGroups.length > 0 };
     });
+  };
+
+  const updateGroup = (groupIndex, updates) => {
+    setFormData(prev => ({
+      ...prev,
+      customizationGroups: prev.customizationGroups.map((g, i) =>
+        i === groupIndex ? { ...g, ...updates } : g
+      )
+    }));
+  };
+
+  const handleTypeChange = (groupIndex, newType) => {
+    const updates = { type: newType };
+    if (newType === 'single') {
+      updates.minSelections = 1;
+      updates.maxSelections = 1;
+    } else {
+      updates.minSelections = 1;
+      updates.maxSelections = 2;
+    }
+    updateGroup(groupIndex, updates);
+  };
+
+  const handleAddOptionToGroup = (groupIndex) => {
+    const trimmed = (newOptions[groupIndex] || '').trim();
+    if (!trimmed) return;
+    const group = formData.customizationGroups[groupIndex];
+    if (group.options.some(o => o.name.toLowerCase() === trimmed.toLowerCase())) return;
+    updateGroup(groupIndex, { options: [...group.options, { name: trimmed, isAvailable: true }] });
+    setNewOptions(prev => ({ ...prev, [groupIndex]: '' }));
+  };
+
+  const handleRemoveOptionFromGroup = (groupIndex, optionIndex) => {
+    const group = formData.customizationGroups[groupIndex];
+    updateGroup(groupIndex, { options: group.options.filter((_, i) => i !== optionIndex) });
   };
 
   const handleSubmit = (e) => {
@@ -178,17 +198,21 @@ const ItemForm = ({ item, locations, onSubmit, onCancel }) => {
         }
         return acc;
       }, {}),
-      customizations: formData.hasCustomizations && formData.customization.options.length > 0
-        ? [{
-            name: formData.customization.name,
-            type: 'single',
-            required: formData.customization.required,
-            options: formData.customization.options.map(o => ({
-              name: o.name,
-              priceModifier: 0,
-              isAvailable: o.isAvailable !== false
+      customizations: formData.hasCustomizations
+        ? formData.customizationGroups
+            .filter(g => g.name.trim() && g.options.length > 0)
+            .map(g => ({
+              name: g.name,
+              type: g.type,
+              required: g.required,
+              minSelections: g.type === 'multiple' ? g.minSelections : 1,
+              maxSelections: g.type === 'multiple' ? g.maxSelections : 1,
+              options: g.options.map(o => ({
+                name: o.name,
+                priceModifier: 0,
+                isAvailable: o.isAvailable !== false
+              }))
             }))
-          }]
         : []
     };
 
@@ -364,97 +388,167 @@ const ItemForm = ({ item, locations, onSubmit, onCancel }) => {
           <input
             type="checkbox"
             checked={formData.hasCustomizations}
-            onChange={(e) => setFormData({ ...formData, hasCustomizations: e.target.checked })}
+            onChange={(e) => {
+              const checked = e.target.checked;
+              if (checked && formData.customizationGroups.length === 0) {
+                setFormData({ ...formData, hasCustomizations: true, customizationGroups: [{ name: '', type: 'single', required: false, minSelections: 1, maxSelections: 1, options: [] }] });
+              } else {
+                setFormData({ ...formData, hasCustomizations: checked });
+              }
+            }}
             className="rounded border-gray-300 text-indigo-600 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
           />
           <span className="ml-2 text-sm font-medium text-gray-700">
-            Este plato tiene opciones (ej: guarnición)
+            Este plato tiene opciones personalizables
           </span>
         </label>
 
         {formData.hasCustomizations && (
-          <div className="mt-3 space-y-3 bg-indigo-50 p-4 rounded-lg border border-indigo-100">
-            <div>
-              <label className="block text-xs font-medium text-gray-600 uppercase">Nombre del grupo</label>
-              <input
-                type="text"
-                value={formData.customization.name}
-                onChange={(e) => setFormData({
-                  ...formData,
-                  customization: { ...formData.customization, name: e.target.value }
-                })}
-                className="mt-1 block w-full rounded-md border border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm px-3 py-2"
-                placeholder="Guarnición"
-              />
-            </div>
-
-            <label className="inline-flex items-center cursor-pointer">
-              <input
-                type="checkbox"
-                checked={formData.customization.required}
-                onChange={(e) => setFormData({
-                  ...formData,
-                  customization: { ...formData.customization, required: e.target.checked }
-                })}
-                className="rounded border-gray-300 text-indigo-600 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
-              />
-              <span className="ml-2 text-sm text-gray-700">Obligatorio elegir</span>
-            </label>
-
-            <div>
-              <label className="block text-xs font-medium text-gray-600 uppercase mb-1">Opciones</label>
-              {formData.customization.options.length > 0 && (
-                <ul className="space-y-1 mb-2">
-                  {formData.customization.options.map((opt, idx) => (
-                    <li key={idx} className={`flex items-center justify-between px-3 py-2 rounded-md border ${opt.isAvailable !== false ? 'bg-white border-gray-200' : 'bg-red-50 border-red-200'}`}>
-                      <span className={`text-sm ${opt.isAvailable !== false ? 'text-gray-800' : 'text-gray-400 line-through'}`}>{opt.name}</span>
-                      <div className="flex items-center gap-2">
-                        <button
-                          type="button"
-                          onClick={() => {
-                            const newOptions = [...formData.customization.options];
-                            newOptions[idx] = { ...newOptions[idx], isAvailable: !newOptions[idx].isAvailable };
-                            setFormData({
-                              ...formData,
-                              customization: { ...formData.customization, options: newOptions }
-                            });
-                          }}
-                          className={`relative inline-flex h-5 w-9 items-center rounded-full transition-colors ${opt.isAvailable !== false ? 'bg-green-500' : 'bg-gray-300'}`}
-                          title={opt.isAvailable !== false ? 'Disponible' : 'No disponible'}
-                        >
-                          <span className={`inline-block h-3 w-3 transform rounded-full bg-white transition-transform ${opt.isAvailable !== false ? 'translate-x-5' : 'translate-x-1'}`} />
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => handleRemoveOption(idx)}
-                          className="text-red-400 hover:text-red-600 transition-colors"
-                        >
-                          <MdDelete size={18} />
-                        </button>
-                      </div>
-                    </li>
-                  ))}
-                </ul>
-              )}
-              <div className="flex gap-2">
-                <input
-                  type="text"
-                  value={newOption}
-                  onChange={(e) => setNewOption(e.target.value)}
-                  onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); handleAddOption(); } }}
-                  className="flex-1 rounded-md border border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm px-3 py-2"
-                  placeholder="Ej: Puré de papas"
-                />
+          <div className="mt-3 space-y-4">
+            {formData.customizationGroups.map((group, groupIdx) => (
+              <div key={groupIdx} className="bg-indigo-50 p-4 rounded-lg border border-indigo-100 relative">
+                {/* Eliminar grupo */}
                 <button
                   type="button"
-                  onClick={handleAddOption}
-                  className="px-3 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 transition-colors flex items-center gap-1 text-sm"
+                  onClick={() => handleRemoveGroup(groupIdx)}
+                  className="absolute top-2 right-2 text-red-400 hover:text-red-600 transition-colors"
+                  title="Eliminar grupo"
                 >
-                  <MdAdd size={16} />
-                  Agregar
+                  <MdDelete size={18} />
                 </button>
+
+                {/* Nombre del grupo */}
+                <div>
+                  <label className="block text-xs font-medium text-gray-600 uppercase">Nombre del grupo</label>
+                  <input
+                    type="text"
+                    value={group.name}
+                    onChange={(e) => updateGroup(groupIdx, { name: e.target.value })}
+                    className="mt-1 block w-full rounded-md border border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm px-3 py-2"
+                    placeholder="Ej: Guarnición, Proteína, Salsa"
+                  />
+                </div>
+
+                {/* Tipo: single o multiple */}
+                <div className="flex gap-2 mt-3">
+                  <button
+                    type="button"
+                    onClick={() => handleTypeChange(groupIdx, 'single')}
+                    className={`px-3 py-1.5 rounded-md text-xs font-medium transition-colors ${group.type === 'single' ? 'bg-indigo-600 text-white' : 'bg-white border border-gray-300 text-gray-600 hover:bg-gray-50'}`}
+                  >
+                    Elegir 1
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => handleTypeChange(groupIdx, 'multiple')}
+                    className={`px-3 py-1.5 rounded-md text-xs font-medium transition-colors ${group.type === 'multiple' ? 'bg-indigo-600 text-white' : 'bg-white border border-gray-300 text-gray-600 hover:bg-gray-50'}`}
+                  >
+                    Elegir varios
+                  </button>
+                </div>
+
+                {/* Min/Max para multiple */}
+                {group.type === 'multiple' && (
+                  <div className="flex gap-4 mt-3">
+                    <div className="flex-1">
+                      <label className="block text-xs font-medium text-gray-600">Min</label>
+                      <input
+                        type="number"
+                        min={0}
+                        max={group.options.length || 10}
+                        value={group.minSelections}
+                        onChange={(e) => updateGroup(groupIdx, { minSelections: parseInt(e.target.value) || 0 })}
+                        className="mt-1 block w-full rounded-md border border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm px-3 py-2"
+                      />
+                    </div>
+                    <div className="flex-1">
+                      <label className="block text-xs font-medium text-gray-600">Max</label>
+                      <input
+                        type="number"
+                        min={1}
+                        max={group.options.length || 10}
+                        value={group.maxSelections}
+                        onChange={(e) => updateGroup(groupIdx, { maxSelections: parseInt(e.target.value) || 1 })}
+                        className="mt-1 block w-full rounded-md border border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm px-3 py-2"
+                      />
+                    </div>
+                  </div>
+                )}
+
+                {/* Obligatorio */}
+                <label className="inline-flex items-center cursor-pointer mt-3">
+                  <input
+                    type="checkbox"
+                    checked={group.required}
+                    onChange={(e) => updateGroup(groupIdx, { required: e.target.checked })}
+                    className="rounded border-gray-300 text-indigo-600 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
+                  />
+                  <span className="ml-2 text-sm text-gray-700">Obligatorio elegir</span>
+                </label>
+
+                {/* Opciones */}
+                <div className="mt-3">
+                  <label className="block text-xs font-medium text-gray-600 uppercase mb-1">Opciones</label>
+                  {group.options.length > 0 && (
+                    <ul className="space-y-1 mb-2">
+                      {group.options.map((opt, optIdx) => (
+                        <li key={optIdx} className={`flex items-center justify-between px-3 py-2 rounded-md border ${opt.isAvailable !== false ? 'bg-white border-gray-200' : 'bg-red-50 border-red-200'}`}>
+                          <span className={`text-sm ${opt.isAvailable !== false ? 'text-gray-800' : 'text-gray-400 line-through'}`}>{opt.name}</span>
+                          <div className="flex items-center gap-2">
+                            <button
+                              type="button"
+                              onClick={() => {
+                                const newOpts = [...group.options];
+                                newOpts[optIdx] = { ...newOpts[optIdx], isAvailable: !newOpts[optIdx].isAvailable };
+                                updateGroup(groupIdx, { options: newOpts });
+                              }}
+                              className={`relative inline-flex h-5 w-9 items-center rounded-full transition-colors ${opt.isAvailable !== false ? 'bg-green-500' : 'bg-gray-300'}`}
+                              title={opt.isAvailable !== false ? 'Disponible' : 'No disponible'}
+                            >
+                              <span className={`inline-block h-3 w-3 transform rounded-full bg-white transition-transform ${opt.isAvailable !== false ? 'translate-x-5' : 'translate-x-1'}`} />
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => handleRemoveOptionFromGroup(groupIdx, optIdx)}
+                              className="text-red-400 hover:text-red-600 transition-colors"
+                            >
+                              <MdDelete size={18} />
+                            </button>
+                          </div>
+                        </li>
+                      ))}
+                    </ul>
+                  )}
+                  <div className="flex gap-2">
+                    <input
+                      type="text"
+                      value={newOptions[groupIdx] || ''}
+                      onChange={(e) => setNewOptions(prev => ({ ...prev, [groupIdx]: e.target.value }))}
+                      onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); handleAddOptionToGroup(groupIdx); } }}
+                      className="flex-1 rounded-md border border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm px-3 py-2"
+                      placeholder="Ej: Puré de papas"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => handleAddOptionToGroup(groupIdx)}
+                      className="px-3 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 transition-colors flex items-center gap-1 text-sm"
+                    >
+                      <MdAdd size={16} />
+                      Agregar
+                    </button>
+                  </div>
+                </div>
               </div>
-            </div>
+            ))}
+
+            {/* Agregar otro grupo */}
+            <button
+              type="button"
+              onClick={handleAddGroup}
+              className="w-full py-2.5 border-2 border-dashed border-indigo-300 rounded-lg text-indigo-600 hover:bg-indigo-50 transition-colors text-sm font-medium"
+            >
+              + Agregar otro grupo de opciones
+            </button>
           </div>
         )}
       </div>

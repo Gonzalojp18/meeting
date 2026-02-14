@@ -297,7 +297,10 @@ const CheckoutPage = () => {
                                         <h3 className="font-semibold text-gray-900 truncate">{item.name}</h3>
                                         {item.selectedCustomizations?.length > 0 && (
                                             <p className="text-xs text-orange-600 mt-0.5">
-                                                {item.selectedCustomizations.map(c => c.selected).join(', ')}
+                                                {item.selectedCustomizations.map(c => {
+                                                    const sels = (c.selections && c.selections.length > 0) ? c.selections : (c.selected ? [c.selected] : []);
+                                                    return sels.join(', ');
+                                                }).join(' | ')}
                                             </p>
                                         )}
                                     </div>

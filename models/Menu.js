@@ -41,6 +41,10 @@ const customizationGroupSchema = new mongoose.Schema({
     type: Number,
     default: 1  // Para type: 'multiple', cuántos puede elegir máximo
   },
+  minSelections: {
+    type: Number,
+    default: 1  // Para type: 'multiple', cuántos debe elegir mínimo
+  },
   options: [customizationOptionSchema]
 });
 

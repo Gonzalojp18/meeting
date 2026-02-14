@@ -58,6 +58,7 @@ const orderSchema = new mongoose.Schema(
           {
             groupName: String,
             selected: String,
+            selections: [String],
           },
         ],
         // Origen del item: 'organic' = seleccionado por el cliente, 'upsell' = sugerido por el sistema

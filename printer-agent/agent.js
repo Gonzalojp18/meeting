@@ -175,11 +175,13 @@ function generateTicket(order, role, columns = 32) {
             chunks.push(Buffer.from(`${line}\n`));
             if (item.customizations && item.customizations.length > 0) {
                 item.customizations.forEach(c => {
-                    // Soportar ambos formatos: { selected } y { option }
-                    const detail = c.selected || c.option || '';
                     const group = c.groupName || c.group || '';
-                    if (detail) {
-                        chunks.push(Buffer.from(`  > ${group ? group + ': ' : ''}${detail}\n`));
+                    const sels = (c.selections && Array.isArray(c.selections) && c.selections.length > 0)
+                        ? c.selections
+                        : (c.selected || c.option ? [c.selected || c.option] : []);
+                    if (sels.length > 0) {
+                        const prefix = group ? group + ': ' : '';
+                        chunks.push(Buffer.from(`  > ${prefix}${sels.join(', ')}\n`));
                     }
                 });
             }
