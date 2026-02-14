@@ -174,7 +174,7 @@ const MenuDisplay = ({ locationId }) => {
 
       {/* Toggle de modo - siempre visible en todos los modos */}
       {menuMode && (
-        <div className={`fixed right-4 z-[60] bg-white/95 backdrop-blur-sm shadow-lg rounded-full p-1.5 border border-gray-100 ${isTakeaway ? 'top-0 md:top-[4%]' : 'top-2 md:top-[15%]'}`}>
+        <div className={`fixed right-4 z-[60] bg-white/95 backdrop-blur-sm shadow-lg rounded-full p-1.5 border border-gray-100 ${isTakeaway ? 'top-4 md:top-6' : 'top-2 md:top-[15%]'}`}>
           <ModeToggle
             currentMode={menuMode}
             onModeChange={handleToggleMode}
@@ -196,7 +196,7 @@ const MenuDisplay = ({ locationId }) => {
         </header>
       )}
 
-      <main className={`max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pb-32 ${isTakeaway ? 'mt-40 md:mt-44' : 'mt-4'}`}>
+      <main className={`max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pb-32 ${isTakeaway ? 'mt-48 md:mt-64' : 'mt-4'}`}>
         {/* Header con logo y slogan - diferente para takeaway vs local */}
         {isTakeaway ? (
           <motion.div
@@ -219,7 +219,7 @@ const MenuDisplay = ({ locationId }) => {
             <Image className='m-auto' src="/logo.png" alt="logo.png" width={200} height={300} />
             <p className="text-center text-xl mb-8 italic text-menu px-4">
               Bienvenido a nuestro menú digital. Explorá nuestras deliciosas opciones y disfrutá de una experiencia.<br />
-              <span className='text-sm font-bold block mt-2 text-gray-500'>"Comés como en casa, pero sin lavar los platos!"</span>
+              <span className='text-sm font-bold block mt-6 md:mt-10 text-gray-500'>"Comés como en casa, pero sin lavar los platos!"</span>
             </p>
           </motion.div>
         )}

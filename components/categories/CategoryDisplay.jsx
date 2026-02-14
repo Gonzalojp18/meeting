@@ -69,7 +69,7 @@ const Category = ({ category, locationId, isTakeaway = false, displayOnly = fals
                 {/* Header de categoría estilo referencia */}
                 <motion.div
                     id={`category-${category._id}`}
-                    className="bg-gradient-to-r from-orange-500 to-orange-600 py-3 px-4 mb-4 scroll-mt-48"
+                    className="bg-gradient-to-r from-orange-500 to-orange-600 py-3 px-4 mb-4 scroll-mt-64"
                     initial={{ opacity: 0, x: -20 }}
                     animate={{ opacity: 1, x: 0 }}
                     transition={{ duration: 0.4 }}

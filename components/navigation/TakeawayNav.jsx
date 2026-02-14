@@ -15,7 +15,7 @@ const TakeawayNav = ({ categories = [] }) => {
   const scrollToCategory = (categoryId) => {
     const element = document.getElementById(`category-${categoryId}`);
     if (element) {
-      const offset = 180; // Mayor offset para el nuevo nav
+      const offset = 240; // Mayor offset para el nuevo nav y márgenes
       const elementPosition = element.getBoundingClientRect().top;
       const offsetPosition = elementPosition + window.pageYOffset - offset;
 

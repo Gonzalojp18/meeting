@@ -210,9 +210,9 @@ const ResultContent = () => {
                 </div>
             </div>
 
-            <p className="mt-8 text-sm text-gray-500">
+            {/* <p className="mt-8 text-sm text-gray-500">
                 ¿Tienes problemas? Contáctanos por WhatsApp
-            </p>
+            </p> */}
         </div>
     );
 };

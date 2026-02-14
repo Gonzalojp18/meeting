@@ -366,19 +366,6 @@ export default function UpsellingManager() {
 
     return (
         <div className="space-y-4">
-            {/* Header con título */}
-            <div className="bg-gradient-to-r from-green-50 to-emerald-50 rounded-lg border border-green-200 p-4">
-                <div className="flex items-center gap-3">
-                    <div className="p-2 bg-green-500 rounded-lg">
-                        <MdTrendingUp className="h-6 w-6 text-white" />
-                    </div>
-                    <div>
-                        <h2 className="text-lg font-bold text-gray-900">Upselling Inteligente</h2>
-                        <p className="text-sm text-gray-600">Gestiona las sugerencias automáticas para aumentar el ticket promedio</p>
-                    </div>
-                </div>
-            </div>
-
             {/* Stats Cards - MÁS COMPACTOS */}
             <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
                 <div className="bg-white rounded-lg border border-gray-200 p-3">
