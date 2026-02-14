@@ -179,9 +179,15 @@ const Category = ({ category, locationId, isTakeaway = false, displayOnly = fals
                                                     {itemHasCustomizations && (
                                                         <div className="flex items-center gap-2">
                                                             {quantity > 0 && (
-                                                                <span className="text-xs font-bold text-orange-600 bg-orange-50 px-2 py-1 rounded-full">
-                                                                    {quantity}
-                                                                </span>
+                                                                <>
+                                                                    <button
+                                                                        onClick={() => removeItem(item._id, locationId)}
+                                                                        className="w-7 h-7 bg-orange-100 text-orange-600 rounded-full flex items-center justify-center hover:bg-orange-200 transition-colors"
+                                                                    >
+                                                                        <MdRemove size={18} />
+                                                                    </button>
+                                                                    <span className="font-bold text-sm min-w-[20px] text-center">{quantity}</span>
+                                                                </>
                                                             )}
                                                             <button
                                                                 onClick={() => setModalItem(item)}
@@ -282,12 +288,16 @@ const Category = ({ category, locationId, isTakeaway = false, displayOnly = fals
                                         </div>
                                     )}
 
-                                    {/* Badge de cantidad - Items CON customizations y disponibles */}
+                                    {/* Controles de cantidad - Items CON customizations y disponibles */}
                                     {isTakeaway && isAvailable && itemHasCustomizations && quantity > 0 && (
-                                        <div className="mt-3">
-                                            <span className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-bold bg-orange-100 text-orange-700">
-                                                {quantity} en tu pedido
-                                            </span>
+                                        <div className="flex items-center gap-3 mt-3">
+                                            <button
+                                                onClick={() => removeItem(item._id, locationId)}
+                                                className="p-1 bg-gray-100 rounded-full text-gray-600 hover:bg-orange-100 hover:text-orange-600 transition-colors"
+                                            >
+                                                <MdRemove size={18} />
+                                            </button>
+                                            <span className="font-bold text-sm">{quantity}</span>
                                         </div>
                                     )}
                                 </div>

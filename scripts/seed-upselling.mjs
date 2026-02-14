@@ -65,16 +65,15 @@ const upsellingDefinitions = [
     { name: 'Capuchino + Pain au chocolat', type: 'upsell', category: 'cafeteria', trigger: 'capuchino', suggested: ['pain au chocolat'], copy: 'Merecés algo especial', ticketLevel: 'medio', timing: 'mañana' },
     { name: 'Café Doble + Croissant', type: 'upsell', category: 'cafeteria', trigger: 'café doble', suggested: ['croissant'], copy: 'Energía completa', ticketLevel: 'medio', timing: 'mañana' },
     { name: 'Café para llevar + Chipa', type: 'upsell', category: 'cafeteria', trigger: 'café para llevar', suggested: ['chipa'], copy: 'Para el camino', ticketLevel: 'bajo', timing: 'todo-el-dia' },
-    { name: 'Café + Medialuna Upgrade', type: 'upgrade', category: 'cafeteria', trigger: 'café jarrito mas medialuna', suggested: ['medialuna de manteca', 'medialuna de manteca'], copy: 'Llevá más por poco más', ticketLevel: 'bajo', timing: 'mañana' },
 
     // 🥐 DESAYUNOS (7)
     { name: 'Café Tostadas + Exprimido', type: 'cross-sell', category: 'desayunos', trigger: 'café mas tostadas', suggested: ['naranja'], copy: 'Sumá vitaminas 🍊', ticketLevel: 'medio', timing: 'mañana' },
     { name: 'Exprimido Tostado + Bowl', type: 'upgrade', category: 'desayunos', trigger: 'exprimido mas tostado', suggested: ['bowl de yogurt'], copy: 'Hacelo más saludable', ticketLevel: 'medio', timing: 'mañana' },
-    { name: 'Medialunas + Exprimido', type: 'cross-sell', category: 'desayunos', trigger: 'cafe con leche acompañado con 3 medialunas', suggested: ['naranja'], copy: 'Completá el desayuno', ticketLevel: 'medio', timing: 'mañana' },
+    { name: 'Medialunas + Exprimido', type: 'cross-sell', category: 'desayunos', trigger: 'cafe con leche acompañado con 3 medialunas', suggested: ['Exprimido naranjas'], copy: 'Completá el desayuno', ticketLevel: 'medio', timing: 'mañana' },
     { name: 'Omelette + Café', type: 'cross-sell', category: 'desayunos', trigger: 'omellete', suggested: ['café con leche'], copy: 'Para cerrar perfecto', ticketLevel: 'medio', timing: 'mañana' },
     { name: 'Desayuno Campo + Green', type: 'cross-sell', category: 'desayunos', trigger: 'desayuno de campo', suggested: ['green'], copy: 'El balance ideal', ticketLevel: 'medio', timing: 'mañana' },
     { name: 'Bowl Durazno + Té', type: 'cross-sell', category: 'desayunos', trigger: 'bowl de yogurt duranzo', suggested: ['té'], copy: 'Infusión para acompañar', ticketLevel: 'bajo', timing: 'mañana' },
-    { name: 'Bowl FR + Licuado', type: 'cross-sell', category: 'desayunos', trigger: 'bowl de yogurt frutos rojos', suggested: ['banana'], copy: 'Duplicá la energía', ticketLevel: 'medio', timing: 'mañana' },
+    { name: 'Bowl FR + Licuado', type: 'cross-sell', category: 'desayunos', trigger: 'bowl de yogurt frutos rojos', suggested: ['Licuado banana'], copy: 'Duplicá la energía', ticketLevel: 'medio', timing: 'mañana' },
 
     // 🍔 HAMBURGUESAS (5)
     { name: 'Burger + Cerveza Andes', type: 'cross-sell', category: 'hamburguesas', trigger: 'completa', suggested: ['cerveza andes lata'], copy: '¿Con una birra? 🍺', ticketLevel: 'medio', timing: 'tarde' },
@@ -86,7 +85,7 @@ const upsellingDefinitions = [
     // 🥪 SANDWICHES (7)
     { name: 'Crudo Queso + Limonada', type: 'cross-sell', category: 'sandwiches', trigger: 'de crudo y queso', suggested: ['limonada'], copy: 'Algo fresco', ticketLevel: 'bajo', timing: 'todo-el-dia' },
     { name: 'Jamón Queso + Agua', type: 'cross-sell', category: 'sandwiches', trigger: 'de jamon cocido', suggested: ['agua con y sin gas'], copy: 'Hidratate', ticketLevel: 'bajo', timing: 'todo-el-dia' },
-    { name: 'Mila Simple → Mediano', type: 'upgrade', category: 'sandwiches', trigger: 'simple', suggested: ['mediano'], copy: 'Lleválo con más ingredientes por solo', ticketLevel: 'medio', timing: 'tarde' },
+    { name: 'Mila Simple → Mediano', type: 'upgrade', category: 'sandwiches', trigger: 'simple', suggested: ['mediano'], copy: 'Llevaló con más ingredientes, por muy poco', ticketLevel: 'medio', timing: 'tarde' },
     { name: 'Mila Mediano → Completo', type: 'upgrade', category: 'sandwiches', trigger: 'mediano', suggested: ['completo'], copy: 'Hacelo completo', ticketLevel: 'medio', timing: 'tarde' },
     { name: 'Mila Completo + Corona', type: 'cross-sell', category: 'sandwiches', trigger: 'completo', suggested: ['cerveza corona'], copy: 'El combo perfecto 🍺', ticketLevel: 'medio', timing: 'tarde' },
     { name: 'Tostado + Café', type: 'cross-sell', category: 'sandwiches', trigger: 'tostado en pan arabe', suggested: ['café con leche'], copy: 'Completá la merienda', ticketLevel: 'bajo', timing: 'tarde' },
