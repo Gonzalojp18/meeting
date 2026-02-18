@@ -30,6 +30,7 @@ const UserManagement = ({ locations }) => {
         role: 'staff',
         assignedLocations: []
     });
+    const [submitError, setSubmitError] = useState('');
 
     const handleOpenModal = (user = null) => {
         if (user) {
@@ -51,6 +52,7 @@ const UserManagement = ({ locations }) => {
                 assignedLocations: []
             });
         }
+        setSubmitError('');
         setIsModalOpen(true);
     };
 
@@ -65,6 +67,7 @@ const UserManagement = ({ locations }) => {
 
     const handleSubmit = async (e) => {
         e.preventDefault();
+        setSubmitError('');
         try {
             const authConfig = {
                 headers: { Authorization: `Bearer ${token}` },
@@ -79,7 +82,8 @@ const UserManagement = ({ locations }) => {
             refetch();
         } catch (err) {
             console.error('Error saving user:', err);
-            alert('Error al guardar el usuario');
+            const errorMsg = err.response?.data?.error || 'Error al guardar el usuario';
+            setSubmitError(errorMsg);
         }
     };
 
@@ -209,6 +213,11 @@ const UserManagement = ({ locations }) => {
                 <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
                     <div className="bg-white rounded-2xl shadow-xl w-full max-w-md p-6 max-h-[90vh] overflow-y-auto">
                         <h4 className="text-lg font-bold mb-4">{editingUser ? 'Editar Usuario' : 'Nuevo Usuario'}</h4>
+                        {submitError && (
+                            <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-lg text-red-700 text-sm">
+                                {submitError}
+                            </div>
+                        )}
                         <form onSubmit={handleSubmit} className="space-y-4">
                             <div>
                                 <label className="block text-sm font-medium text-gray-700 mb-1">Nombre</label>
@@ -232,11 +241,14 @@ const UserManagement = ({ locations }) => {
                                 <div>
                                     <label className="block text-sm font-medium text-gray-700 mb-1">Contraseña</label>
                                     <input
-                                        type="password" required
+                                        type="password" required minLength={8}
                                         className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-orange-500"
                                         value={formData.password}
                                         onChange={e => setFormData({ ...formData, password: e.target.value })}
                                     />
+                                    <p className="text-xs text-gray-500 mt-1">
+                                        Min. 8 caracteres, una mayuscula, una minuscula y un numero
+                                    </p>
                                 </div>
                             )}
                             <div>
