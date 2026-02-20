@@ -62,6 +62,7 @@ const AdminPanel = () => {
 
   const [activeTab, setActiveTab] = useState(isStaff ? 'caja' : 'dashboard');
   const [searchTerm, setSearchTerm] = useState('');
+  const [categoryFilter, setCategoryFilter] = useState('');
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   // Stats Dashboard State
@@ -237,16 +238,18 @@ const AdminPanel = () => {
     }
   };
 
-  const filteredCategories = searchTerm === ''
-    ? categories
-    : categories.map(category => {
+  const filteredCategories = categories
+    .filter(category => categoryFilter === '' || category._id === categoryFilter)
+    .map(category => {
+      if (searchTerm === '') return category;
       const categoryItems = category.items || [];
       const filteredItems = categoryItems.filter(item =>
         (item.name || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
         (item.description || '').toLowerCase().includes(searchTerm.toLowerCase())
       );
       return { ...category, items: filteredItems };
-    }).filter(category => (category.items || []).length > 0);
+    })
+    .filter(category => (category.items || []).length > 0);
 
 
   // ========== CONFIGURACIÓN DE TABS DINÁMICA ==========
@@ -628,27 +631,54 @@ const AdminPanel = () => {
           <>
             {/* Search bar mejorado */}
             <div className="mb-6">
-              <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-center justify-between">
-                <div className="relative w-full sm:max-w-md">
-                  <MdSearch className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-gray-400" />
-                  <input
-                    type="text"
-                    value={searchTerm}
-                    onChange={(e) => setSearchTerm(e.target.value)}
-                    placeholder="Buscar productos por nombre o descripción..."
-                    className="w-full pl-12 pr-12 py-3 border border-gray-300 rounded-xl text-sm placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent transition-all shadow-sm"
-                  />
-                  {searchTerm && (
-                    <button
-                      onClick={() => setSearchTerm('')}
-                      className="absolute right-4 top-1/2 -translate-y-1/2 p-1 hover:bg-gray-100 rounded-lg transition-colors"
+              <div className="flex flex-col sm:flex-row gap-3 items-start sm:items-center justify-between">
+                <div className="flex flex-col sm:flex-row gap-3 w-full sm:w-auto">
+                  {/* Buscador por nombre */}
+                  <div className="relative w-full sm:w-72">
+                    <MdSearch className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-gray-400" />
+                    <input
+                      type="text"
+                      value={searchTerm}
+                      onChange={(e) => setSearchTerm(e.target.value)}
+                      placeholder="Buscar por nombre o descripción..."
+                      className="w-full pl-12 pr-12 py-3 border border-gray-300 rounded-xl text-sm placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent transition-all shadow-sm"
+                    />
+                    {searchTerm && (
+                      <button
+                        onClick={() => setSearchTerm('')}
+                        className="absolute right-4 top-1/2 -translate-y-1/2 p-1 hover:bg-gray-100 rounded-lg transition-colors"
+                      >
+                        <MdClear className="h-5 w-5 text-gray-400 hover:text-gray-600" />
+                      </button>
+                    )}
+                  </div>
+
+                  {/* Filtro por categoría */}
+                  <div className="relative w-full sm:w-56">
+                    <MdCategory className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-gray-400 pointer-events-none" />
+                    <select
+                      value={categoryFilter}
+                      onChange={(e) => setCategoryFilter(e.target.value)}
+                      className="w-full pl-12 pr-4 py-3 border border-gray-300 rounded-xl text-sm text-gray-700 focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent transition-all shadow-sm appearance-none bg-white cursor-pointer"
                     >
-                      <MdClear className="h-5 w-5 text-gray-400 hover:text-gray-600" />
-                    </button>
-                  )}
+                      <option value="">Todas las categorías</option>
+                      {categories.map(cat => (
+                        <option key={cat._id} value={cat._id}>{cat.name}</option>
+                      ))}
+                    </select>
+                  </div>
                 </div>
 
-                <div className="flex items-center gap-2 text-sm text-gray-600">
+                <div className="flex items-center gap-2 text-sm text-gray-600 shrink-0">
+                  {(searchTerm || categoryFilter) && (
+                    <button
+                      onClick={() => { setSearchTerm(''); setCategoryFilter(''); }}
+                      className="flex items-center gap-1 px-3 py-1.5 text-xs text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded-lg transition-colors border border-gray-200"
+                    >
+                      <MdClear className="h-3.5 w-3.5" />
+                      Limpiar filtros
+                    </button>
+                  )}
                   <span className="font-medium">{filteredCategories.length}</span>
                   <span>categorías encontradas</span>
                 </div>
@@ -675,14 +705,14 @@ const AdminPanel = () => {
                   <MdSearch className="mx-auto h-16 w-16 text-gray-300 mb-4" />
                   <h3 className="text-lg font-semibold text-gray-900 mb-2">No se encontraron productos</h3>
                   <p className="text-sm text-gray-500 mb-6">
-                    Intenta con otra búsqueda o limpia el filtro para ver todos los productos
+                    Intenta con otra búsqueda o limpia los filtros para ver todos los productos
                   </p>
                   <button
-                    onClick={() => setSearchTerm('')}
+                    onClick={() => { setSearchTerm(''); setCategoryFilter(''); }}
                     className="inline-flex items-center gap-2 px-4 py-2 bg-orange-500 hover:bg-orange-600 text-white font-medium rounded-lg transition-colors"
                   >
                     <MdClear className="h-5 w-5" />
-                    Limpiar búsqueda
+                    Limpiar filtros
                   </button>
                 </div>
               )}
