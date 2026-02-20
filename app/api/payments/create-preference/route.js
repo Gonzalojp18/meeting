@@ -68,17 +68,24 @@ async function validateAndGetRealPrices(items, locationId) {
                 if (group) {
                     const selections = customization.selections
                         || (customization.selected ? [customization.selected] : []);
+                    // Validar todas las selecciones del grupo y agruparlas juntas
+                    const validatedSelections = [];
+                    let groupPriceModifier = 0;
                     for (const selection of selections) {
                         const option = group.options.find(o => o.name === selection);
                         if (option && option.isAvailable !== false) {
-                            // Sumar modificador de precio REAL de la DB
                             itemPrice += (option.priceModifier || 0);
-                            validatedCustomizations.push({
-                                group: group.name,
-                                option: option.name,
-                                priceModifier: option.priceModifier || 0
-                            });
+                            groupPriceModifier += (option.priceModifier || 0);
+                            validatedSelections.push(option.name);
                         }
+                    }
+                    // Mantener todas las selecciones agrupadas bajo el mismo grupo
+                    if (validatedSelections.length > 0) {
+                        validatedCustomizations.push({
+                            group: group.name,
+                            selections: validatedSelections,
+                            priceModifier: groupPriceModifier
+                        });
                     }
                 }
             }

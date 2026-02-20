@@ -93,13 +93,30 @@ export async function POST(req) {
       timestamp: new Date()
     };
 
-    // Si tuvo éxito, marcamos como impresa globalmente (o por rol si quisiéramos ser más finos)
     const update = {
       $push: { printHistory: historyEntry }
     };
 
     if (success) {
-      update.$set = { "printStatus.printed": true, "printStatus.error": false };
+      // Solo marcar como impresa cuando TODAS las impresoras activas de la sede hayan confirmado.
+      // Esto evita que un reinicio del agente deje impresoras sin su ticket.
+      const locationPrinters = await Printer.find({
+        locationId: order.location.locationId,
+        isActive: true
+      });
+      const requiredRoles = [...new Set(locationPrinters.flatMap(p => p.roles))];
+
+      // Roles que ya confirmaron con éxito (historial previo + la confirmación actual)
+      const confirmedRoles = new Set([
+        ...order.printHistory.filter(h => h.status === 'success').map(h => h.role),
+        role
+      ]);
+
+      const allPrinted = requiredRoles.length === 0 || requiredRoles.every(r => confirmedRoles.has(r));
+
+      update.$set = allPrinted
+        ? { "printStatus.printed": true, "printStatus.error": false }
+        : { "printStatus.error": false }; // Limpiar error previo si ahora fue exitoso
     } else {
       update.$set = { "printStatus.error": true, "printStatus.lastError": errorMsg };
     }

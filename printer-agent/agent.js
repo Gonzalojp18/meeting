@@ -171,20 +171,21 @@ function generateTicket(order, role, columns = 32) {
             const dots = '.'.repeat(Math.max(2, columns - line.length - price.length));
             chunks.push(Buffer.from(`${line}${dots}${price}\n`));
         } else {
-            // En cocina/barra mostramos item + customizaciones
             chunks.push(Buffer.from(`${line}\n`));
-            if (item.customizations && item.customizations.length > 0) {
-                item.customizations.forEach(c => {
-                    const group = c.groupName || c.group || '';
-                    const sels = (c.selections && Array.isArray(c.selections) && c.selections.length > 0)
-                        ? c.selections
-                        : (c.selected || c.option ? [c.selected || c.option] : []);
-                    if (sels.length > 0) {
-                        const prefix = group ? group + ': ' : '';
-                        chunks.push(Buffer.from(`  > ${prefix}${sels.join(', ')}\n`));
-                    }
-                });
-            }
+        }
+
+        // Mostrar customizaciones en todos los tickets (cocina, barra y caja)
+        if (item.customizations && item.customizations.length > 0) {
+            item.customizations.forEach(c => {
+                const group = c.groupName || c.group || '';
+                const sels = (c.selections && Array.isArray(c.selections) && c.selections.length > 0)
+                    ? c.selections
+                    : (c.selected || c.option ? [c.selected || c.option] : []);
+                if (sels.length > 0) {
+                    const prefix = group ? group + ': ' : '';
+                    chunks.push(Buffer.from(`  > ${prefix}${sels.join(', ')}\n`));
+                }
+            });
         }
     });
 
