@@ -10,16 +10,20 @@ import { MdEdit, MdDelete, MdPersonAdd } from 'react-icons/md';
 const UserManagement = ({ locations }) => {
     const { data: session, status } = useSession();
     const token = session?.user?.token;
-    const isAdmin = session?.user?.role === 'admin';
+    const isSuperAdmin = session?.user?.role === 'superadmin';
+    const isAdmin = session?.user?.role === 'admin' || isSuperAdmin;
     const isManager = session?.user?.role === 'manager';
     const canManageUsers = isAdmin || isManager;
 
     // Solo hacer fetch cuando la sesión esté lista y el usuario tenga permisos
     const shouldFetch = status === 'authenticated' && canManageUsers;
-    const { data: users, loading, error, refetch } = useFetch(
+    const { data: rawUsers, loading, error, refetch } = useFetch(
         shouldFetch ? `${API_URI}/api/admin/users` : null,
         token
     );
+
+    // Safety net: never show superadmin accounts in the frontend regardless of API response
+    const users = rawUsers?.filter(u => u.role !== 'superadmin');
 
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [editingUser, setEditingUser] = useState(null);
@@ -158,8 +162,7 @@ const UserManagement = ({ locations }) => {
                                 <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{user.name}</td>
                                 <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{user.email}</td>
                                 <td className="px-6 py-4 whitespace-nowrap">
-                                    <span className={`px-2 py-1 text-xs font-bold rounded-full ${
-                                        user.role === 'admin'
+                                    <span className={`px-2 py-1 text-xs font-bold rounded-full ${user.role === 'admin'
                                             ? 'bg-purple-100 text-purple-700'
                                             : user.role === 'manager'
                                                 ? 'bg-blue-100 text-blue-700'
@@ -282,11 +285,10 @@ const UserManagement = ({ locations }) => {
                                         {locations?.map((loc, index) => (
                                             <label
                                                 key={loc.nameId || loc._id || `loc-${index}`}
-                                                className={`flex items-center gap-3 p-3 border-2 rounded-lg cursor-pointer transition-all ${
-                                                    formData.assignedLocations.includes(loc.nameId)
+                                                className={`flex items-center gap-3 p-3 border-2 rounded-lg cursor-pointer transition-all ${formData.assignedLocations.includes(loc.nameId)
                                                         ? 'border-orange-500 bg-orange-50'
                                                         : 'border-gray-200 hover:border-gray-300 hover:bg-gray-50'
-                                                }`}
+                                                    }`}
                                             >
                                                 <input
                                                     type="checkbox"

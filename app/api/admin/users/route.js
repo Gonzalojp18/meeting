@@ -19,8 +19,17 @@ export async function GET() {
             return NextResponse.json({ error: 'No autorizado' }, { status: 401 });
         }
 
+        // Siempre verificamos el rol real desde la DB (no confiamos solo en el token JWT)
+        // Esto cubre el caso en que el token es viejo y el rol fue actualizado
+        const requestingUser = await User.findById(session.user.id, 'role').lean();
+        const actualRole = requestingUser?.role || session.user.role;
+
+        if (!ALLOWED_ROLES.includes(actualRole)) {
+            return NextResponse.json({ error: 'No autorizado' }, { status: 401 });
+        }
+
         // Superadmin accounts are invisible to non-superadmin roles (security by obscurity)
-        const filter = session.user.role === 'superadmin'
+        const filter = actualRole === 'superadmin'
             ? {}
             : { role: { $ne: 'superadmin' } };
 

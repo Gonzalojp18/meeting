@@ -57,14 +57,13 @@ async function createSuperAdmin() {
         const existing = await User.findOne({ email: SUPERADMIN.email });
 
         if (existing) {
-            console.log(`⚠️  El usuario con email "${SUPERADMIN.email}" ya existe.`);
-            if (existing.role !== 'superadmin') {
-                existing.role = 'superadmin';
-                await existing.save();
-                console.log('✅ Rol actualizado a superadmin');
-            } else {
-                console.log('ℹ️  El usuario ya tiene rol superadmin. No se realizaron cambios.');
-            }
+            console.log(`⚠️  El usuario "${SUPERADMIN.email}" ya existe. Actualizando...`);
+            const hashedPassword = await bcrypt.hash(SUPERADMIN.password, 12);
+            existing.role = 'superadmin';
+            existing.password = hashedPassword;
+            existing.isActive = true;
+            await existing.save();
+            console.log('✅ Rol y contraseña actualizados a superadmin');
         } else {
             // Contraseña con bcrypt costo 12 (igual que el login)
             const hashedPassword = await bcrypt.hash(SUPERADMIN.password, 12);
