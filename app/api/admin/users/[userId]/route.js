@@ -6,9 +6,9 @@ import bcrypt from 'bcryptjs';
 import { logUserUpdated, logUserDeleted } from '@/utils/auditLogger';
 
 // Roles permitidos para gestionar usuarios
-const ALLOWED_ROLES = ['admin', 'manager'];
+const ALLOWED_ROLES = ['admin', 'manager', 'superadmin'];
 // Roles válidos del sistema
-const VALID_ROLES = ['admin', 'manager', 'staff'];
+const VALID_ROLES = ['admin', 'manager', 'staff', 'superadmin'];
 
 export async function PUT(req, { params }) {
     try {

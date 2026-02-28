@@ -6,9 +6,9 @@ import bcrypt from 'bcryptjs';
 import { logUserCreated } from '@/utils/auditLogger';
 
 // Roles permitidos para gestionar usuarios
-const ALLOWED_ROLES = ['admin', 'manager'];
+const ALLOWED_ROLES = ['admin', 'manager', 'superadmin'];
 // Roles válidos del sistema
-const VALID_ROLES = ['admin', 'manager', 'staff'];
+const VALID_ROLES = ['admin', 'manager', 'staff', 'superadmin'];
 
 export async function GET() {
     try {
@@ -19,7 +19,12 @@ export async function GET() {
             return NextResponse.json({ error: 'No autorizado' }, { status: 401 });
         }
 
-        const users = await User.find({}, '-password').sort({ createdAt: -1 });
+        // Superadmin accounts are invisible to non-superadmin roles (security by obscurity)
+        const filter = session.user.role === 'superadmin'
+            ? {}
+            : { role: { $ne: 'superadmin' } };
+
+        const users = await User.find(filter, '-password').sort({ createdAt: -1 });
         return NextResponse.json(users);
     } catch (error) {
         console.error('Error fetching users:', error);
@@ -49,6 +54,10 @@ export async function POST(req) {
             return NextResponse.json({
                 error: 'Solo puedes crear usuarios con rol de Staff'
             }, { status: 403 });
+        }
+        // SEGURIDAD: Admin no puede crear superadmin
+        if (session.user.role === 'admin' && role === 'superadmin') {
+            return NextResponse.json({ error: 'No tienes permiso para crear superadmin' }, { status: 403 });
         }
 
         const userExists = await User.findOne({ email: email.toLowerCase().trim() });

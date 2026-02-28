@@ -24,8 +24,9 @@ export async function GET(request) {
         await dbConnect();
         const session = await auth();
 
-        // Solo admin puede acceder
-        if (!session || session.user.role !== 'admin') {
+        // Solo admin/superadmin puede acceder
+        const ALLOWED_ROLES = ['admin', 'superadmin'];
+        if (!session || !ALLOWED_ROLES.includes(session.user.role)) {
             return NextResponse.json(
                 { error: 'No autorizado. Se requiere rol de administrador.' },
                 { status: 401 }

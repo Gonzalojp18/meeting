@@ -33,7 +33,7 @@ export async function PUT(req) {
     const token = authHeader.split(' ')[1];
     try {
       const decoded = jwt.verify(token, process.env.JWT_SECRET);
-      if (decoded.role !== 'admin') {
+      if (!['admin', 'superadmin'].includes(decoded.role)) {
         return NextResponse.json({ error: 'No autorizado' }, { status: 401 });
       }
     } catch {

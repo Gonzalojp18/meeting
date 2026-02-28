@@ -8,7 +8,8 @@ export async function GET(req) {
         await dbConnect();
         const session = await auth();
 
-        if (!session || session.user.role !== 'admin') {
+        const ALLOWED_ROLES = ['admin', 'superadmin'];
+        if (!session || !ALLOWED_ROLES.includes(session.user.role)) {
             return NextResponse.json({ error: 'No autorizado' }, { status: 401 });
         }
 

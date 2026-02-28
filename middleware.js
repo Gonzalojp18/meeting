@@ -122,8 +122,10 @@ export default async function middleware(request) {
 
             // Verificar rol para rutas de admin
             if (isAdminRoute) {
-                const allowedRoles = ['admin', 'staff', 'manager'];
-                if (!allowedRoles.includes(session.user?.role)) {
+                const role = session.user?.role;
+                const allowedRoles = ['admin', 'staff', 'manager', 'superadmin'];
+
+                if (!allowedRoles.includes(role)) {
                     // Usuario autenticado pero sin permisos
                     if (pathname.startsWith('/api/')) {
                         return NextResponse.json(
@@ -132,6 +134,21 @@ export default async function middleware(request) {
                         );
                     }
                     return NextResponse.redirect(new URL('/', request.url));
+                }
+
+                // Protección extra: /superadmin y /api/superadmin solo para superadmin
+                const isSuperAdminRoute =
+                    pathname.startsWith('/superadmin') ||
+                    pathname.startsWith('/api/superadmin');
+
+                if (isSuperAdminRoute && role !== 'superadmin') {
+                    if (pathname.startsWith('/api/')) {
+                        return NextResponse.json(
+                            { error: 'Acceso exclusivo para superadmin.' },
+                            { status: 403 }
+                        );
+                    }
+                    return NextResponse.redirect(new URL('/admin', request.url));
                 }
             }
 

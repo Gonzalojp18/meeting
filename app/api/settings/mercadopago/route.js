@@ -28,7 +28,7 @@ function verifyAdmin(req) {
   const token = authHeader.split(' ')[1];
   try {
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
-    if (decoded.role !== 'admin') return null;
+    if (decoded.role !== 'admin' && decoded.role !== 'superadmin') return null;
     return decoded;
   } catch {
     return null;
