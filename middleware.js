@@ -25,6 +25,7 @@ const PUBLIC_API_ROUTES = [
     '/api/orders/by-payment',
     '/api/auth',
     '/api/print-jobs',
+    '/api/health',
 ];
 
 // APIs de menú: GET es público, POST/PUT/DELETE requiere auth
