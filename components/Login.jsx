@@ -35,16 +35,7 @@ const Login = () => {
       });
 
       if (result.ok) {
-        // Verificar si el email está en la whitelist de superadmin
-        const superadminEmails = process.env.NEXT_PUBLIC_SUPERADMIN_EMAILS?.split(',').map(e => e.trim()) || [];
-        const isSuperAdmin = superadminEmails.includes(credentials.email.toLowerCase());
-
-        // Redirigir según el rol
-        if (isSuperAdmin) {
-          router.push('/superadmin');
-        } else {
-          router.push('/');
-        }
+        router.push('/');
       } else {
         setError(result.error || 'Credenciales incorrectas');
       }

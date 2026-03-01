@@ -23,7 +23,8 @@ const Register = () => {
         setLoading(true)
 
         try {
-            const res = await axios.post(`${API_URI}/api/auth/register`, formData)
+            const registrationCode = localStorage.getItem('admin') || '';
+            const res = await axios.post(`${API_URI}/api/auth/register`, { ...formData, registrationCode })
 
             // Después de registrar, iniciar sesión automáticamente
             const result = await signIn('credentials', {

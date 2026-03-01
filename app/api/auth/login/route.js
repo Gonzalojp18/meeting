@@ -4,8 +4,11 @@ import User from '@/models/User';
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
 
-// 🔒 SECURITY: Rate limiting en memoria (VULN-003)
-// Para producción con múltiples instancias, usar Redis
+// 🔒 SECURITY: Rate limiting en memoria por IP y por email
+// NOTA: En Vercel serverless cada instancia tiene su propio Map.
+// Para rate limiting distribuido real usar Upstash Redis.
+// Esta implementación protege dentro de cada instancia y es suficiente
+// para ataques desde una misma IP o contra una misma cuenta.
 const loginAttempts = new Map();
 const MAX_ATTEMPTS = 5;
 const WINDOW_MS = 15 * 60 * 1000; // 15 minutos
@@ -13,28 +16,22 @@ const WINDOW_MS = 15 * 60 * 1000; // 15 minutos
 function checkRateLimit(identifier) {
     const now = Date.now();
     const attempts = loginAttempts.get(identifier) || [];
-
-    // Filtrar solo intentos dentro de la ventana de tiempo
     const recentAttempts = attempts.filter(t => now - t < WINDOW_MS);
 
     if (recentAttempts.length >= MAX_ATTEMPTS) {
-        const oldestAttempt = recentAttempts[0];
-        const resetTime = Math.ceil((oldestAttempt + WINDOW_MS - now) / 1000 / 60);
+        const resetTime = Math.ceil((recentAttempts[0] + WINDOW_MS - now) / 1000 / 60);
         return { blocked: true, resetInMinutes: resetTime };
     }
 
-    // Registrar nuevo intento
     recentAttempts.push(now);
     loginAttempts.set(identifier, recentAttempts);
 
-    // Limpiar entradas antiguas periódicamente (cada 100 requests)
     if (loginAttempts.size > 1000) {
         for (const [key, times] of loginAttempts.entries()) {
-            const recent = times.filter(t => now - t < WINDOW_MS);
-            if (recent.length === 0) {
+            if (times.filter(t => now - t < WINDOW_MS).length === 0) {
                 loginAttempts.delete(key);
             } else {
-                loginAttempts.set(key, recent);
+                loginAttempts.set(key, times.filter(t => now - t < WINDOW_MS));
             }
         }
     }
@@ -55,19 +52,13 @@ export async function POST(req) {
     try {
         // 🔒 SECURITY: Verificar rate limit antes de cualquier operación
         const clientIP = getClientIP(req);
-        const rateCheck = checkRateLimit(clientIP);
+        const ipCheck = checkRateLimit(`ip:${clientIP}`);
 
-        if (rateCheck.blocked) {
+        if (ipCheck.blocked) {
             console.warn(`[LOGIN SECURITY] Rate limit exceeded for IP: ${clientIP}`);
             return NextResponse.json(
-                { error: { message: `Demasiados intentos. Intenta de nuevo en ${rateCheck.resetInMinutes} minutos.` } },
-                {
-                    status: 429,
-                    headers: {
-                        'Retry-After': String(rateCheck.resetInMinutes * 60),
-                        'X-RateLimit-Remaining': '0'
-                    }
-                }
+                { error: { message: `Demasiados intentos. Intenta de nuevo en ${ipCheck.resetInMinutes} minutos.` } },
+                { status: 429, headers: { 'Retry-After': String(ipCheck.resetInMinutes * 60) } }
             );
         }
 
@@ -84,6 +75,17 @@ export async function POST(req) {
 
         // Normalizar email
         const normalizedEmail = email.toLowerCase().trim();
+
+        // 🔒 Rate limit adicional por email (protege cuentas específicas)
+        const emailCheck = checkRateLimit(`email:${normalizedEmail}`);
+        if (emailCheck.blocked) {
+            console.warn(`[LOGIN SECURITY] Rate limit exceeded for email: ${normalizedEmail}`);
+            return NextResponse.json(
+                { error: { message: `Demasiados intentos. Intenta de nuevo en ${emailCheck.resetInMinutes} minutos.` } },
+                { status: 429, headers: { 'Retry-After': String(emailCheck.resetInMinutes * 60) } }
+            );
+        }
+
         const user = await User.findOne({ email: normalizedEmail });
 
         // 🔒 SECURITY: Mensaje genérico para no revelar si el email existe

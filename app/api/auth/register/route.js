@@ -8,7 +8,16 @@ export async function POST(req) {
         await dbConnect();
 
         // 🔒 SECURITY: No aceptamos 'role' del cliente - solo name, email, password
-        const { name, email, password } = await req.json();
+        const { name, email, password, registrationCode } = await req.json();
+
+        // 🔒 Validar código de registro server-side
+        const validCode = process.env.ADMIN_REGISTRATION_CODE;
+        if (!validCode || registrationCode !== validCode) {
+            return NextResponse.json(
+                { error: { message: 'Código de registro inválido' } },
+                { status: 403 }
+            );
+        }
 
         if (!name || !email || !password) {
             return NextResponse.json(
