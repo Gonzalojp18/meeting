@@ -3,17 +3,41 @@ import dbConnect from '@/utils/dbConnect';
 import User from '@/models/User';
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
+import { Ratelimit } from '@upstash/ratelimit';
+import { Redis } from '@upstash/redis';
 
-// 🔒 SECURITY: Rate limiting en memoria por IP y por email
-// NOTA: En Vercel serverless cada instancia tiene su propio Map.
-// Para rate limiting distribuido real usar Upstash Redis.
-// Esta implementación protege dentro de cada instancia y es suficiente
-// para ataques desde una misma IP o contra una misma cuenta.
+// 🔒 SECURITY: Rate limiting distribuido con Upstash Redis
+// Funciona globalmente en todas las instancias de Vercel (serverless)
+// Fallback a in-memory si Redis no está configurado (entorno local sin vars)
+
+let ipRatelimit = null;
+let emailRatelimit = null;
+
+if (process.env.UPSTASH_REDIS_REST_URL && process.env.UPSTASH_REDIS_REST_TOKEN) {
+    const redis = new Redis({
+        url: process.env.UPSTASH_REDIS_REST_URL,
+        token: process.env.UPSTASH_REDIS_REST_TOKEN,
+    });
+
+    ipRatelimit = new Ratelimit({
+        redis,
+        limiter: Ratelimit.slidingWindow(5, '15 m'),
+        prefix: 'rl:ip',
+    });
+
+    emailRatelimit = new Ratelimit({
+        redis,
+        limiter: Ratelimit.slidingWindow(5, '15 m'),
+        prefix: 'rl:email',
+    });
+}
+
+// Fallback in-memory para desarrollo local
 const loginAttempts = new Map();
 const MAX_ATTEMPTS = 5;
-const WINDOW_MS = 15 * 60 * 1000; // 15 minutos
+const WINDOW_MS = 15 * 60 * 1000;
 
-function checkRateLimit(identifier) {
+function checkRateLimitMemory(identifier) {
     const now = Date.now();
     const attempts = loginAttempts.get(identifier) || [];
     const recentAttempts = attempts.filter(t => now - t < WINDOW_MS);
@@ -25,37 +49,43 @@ function checkRateLimit(identifier) {
 
     recentAttempts.push(now);
     loginAttempts.set(identifier, recentAttempts);
-
-    if (loginAttempts.size > 1000) {
-        for (const [key, times] of loginAttempts.entries()) {
-            if (times.filter(t => now - t < WINDOW_MS).length === 0) {
-                loginAttempts.delete(key);
-            } else {
-                loginAttempts.set(key, times.filter(t => now - t < WINDOW_MS));
-            }
-        }
-    }
-
     return { blocked: false, remaining: MAX_ATTEMPTS - recentAttempts.length };
 }
 
-function getClientIP(req) {
-    // Obtener IP real considerando proxies
-    const forwarded = req.headers.get('x-forwarded-for');
-    if (forwarded) {
-        return forwarded.split(',')[0].trim();
+async function checkRateLimit(identifier, limiter) {
+    // Redis distribuido disponible
+    if (limiter) {
+        try {
+            const { success, reset } = await limiter.limit(identifier);
+            if (!success) {
+                const resetInMinutes = Math.ceil((reset - Date.now()) / 1000 / 60);
+                return { blocked: true, resetInMinutes: Math.max(1, resetInMinutes) };
+            }
+            return { blocked: false };
+        } catch (err) {
+            // Si Redis falla, log y continuar (fail open — evita bloquear logins legítimos)
+            console.error('[RATELIMIT] Redis error, using memory fallback:', err.message);
+        }
     }
+
+    // Fallback in-memory
+    return checkRateLimitMemory(identifier);
+}
+
+function getClientIP(req) {
+    const forwarded = req.headers.get('x-forwarded-for');
+    if (forwarded) return forwarded.split(',')[0].trim();
     return req.headers.get('x-real-ip') || 'unknown';
 }
 
 export async function POST(req) {
     try {
-        // 🔒 SECURITY: Verificar rate limit antes de cualquier operación
         const clientIP = getClientIP(req);
-        const ipCheck = checkRateLimit(`ip:${clientIP}`);
 
+        // 🔒 Rate limit por IP (global entre todas las instancias de Vercel)
+        const ipCheck = await checkRateLimit(clientIP, ipRatelimit);
         if (ipCheck.blocked) {
-            console.warn(`[LOGIN SECURITY] Rate limit exceeded for IP: ${clientIP}`);
+            console.warn(`[LOGIN SECURITY] Rate limit por IP: ${clientIP}`);
             return NextResponse.json(
                 { error: { message: `Demasiados intentos. Intenta de nuevo en ${ipCheck.resetInMinutes} minutos.` } },
                 { status: 429, headers: { 'Retry-After': String(ipCheck.resetInMinutes * 60) } }
@@ -73,13 +103,12 @@ export async function POST(req) {
             );
         }
 
-        // Normalizar email
         const normalizedEmail = email.toLowerCase().trim();
 
-        // 🔒 Rate limit adicional por email (protege cuentas específicas)
-        const emailCheck = checkRateLimit(`email:${normalizedEmail}`);
+        // 🔒 Rate limit por email (protege cuentas específicas de fuerza bruta)
+        const emailCheck = await checkRateLimit(normalizedEmail, emailRatelimit);
         if (emailCheck.blocked) {
-            console.warn(`[LOGIN SECURITY] Rate limit exceeded for email: ${normalizedEmail}`);
+            console.warn(`[LOGIN SECURITY] Rate limit por email: ${normalizedEmail}`);
             return NextResponse.json(
                 { error: { message: `Demasiados intentos. Intenta de nuevo en ${emailCheck.resetInMinutes} minutos.` } },
                 { status: 429, headers: { 'Retry-After': String(emailCheck.resetInMinutes * 60) } }
@@ -88,7 +117,7 @@ export async function POST(req) {
 
         const user = await User.findOne({ email: normalizedEmail });
 
-        // 🔒 SECURITY: Mensaje genérico para no revelar si el email existe
+        // 🔒 Mensaje genérico — no revela si el email existe o no
         if (!user || !(await bcrypt.compare(password, user.password))) {
             return NextResponse.json(
                 { error: { message: 'Credenciales inválidas' } },
@@ -96,7 +125,6 @@ export async function POST(req) {
             );
         }
 
-        // 🔒 SECURITY: Verificar que el usuario esté activo
         if (user.isActive === false) {
             return NextResponse.json(
                 { error: { message: 'Cuenta desactivada. Contacta al administrador.' } },
@@ -104,7 +132,6 @@ export async function POST(req) {
             );
         }
 
-        // 🔒 SECURITY: Reducir expiración de JWT de 30d a 8h (VULN-004)
         const token = jwt.sign(
             { userId: user._id, role: user.role, assignedLocations: user.assignedLocations },
             process.env.JWT_SECRET,
@@ -118,7 +145,7 @@ export async function POST(req) {
                 name: user.name,
                 email: user.email,
                 role: user.role,
-                assignedLocations: user.assignedLocations
+                assignedLocations: user.assignedLocations,
             },
         });
     } catch (error) {
