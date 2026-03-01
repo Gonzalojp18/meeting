@@ -54,7 +54,22 @@ export async function PUT(req, { params }) {
         user.assignedLocations = assignedLocations !== undefined ? assignedLocations : user.assignedLocations;
 
         if (password) {
-            user.password = await bcrypt.hash(password, 10);
+            if (password.length < 8) {
+                return NextResponse.json({ error: 'La contraseña debe tener mínimo 8 caracteres' }, { status: 400 });
+            }
+            if (!/[A-Z]/.test(password)) {
+                return NextResponse.json({ error: 'La contraseña debe incluir al menos una mayúscula' }, { status: 400 });
+            }
+            if (!/[a-z]/.test(password)) {
+                return NextResponse.json({ error: 'La contraseña debe incluir al menos una minúscula' }, { status: 400 });
+            }
+            if (!/[0-9]/.test(password)) {
+                return NextResponse.json({ error: 'La contraseña debe incluir al menos un número' }, { status: 400 });
+            }
+            if (!/[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?]/.test(password)) {
+                return NextResponse.json({ error: 'La contraseña debe incluir al menos un carácter especial' }, { status: 400 });
+            }
+            user.password = await bcrypt.hash(password, 12);
         }
 
         await user.save();

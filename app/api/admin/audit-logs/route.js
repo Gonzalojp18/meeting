@@ -43,35 +43,53 @@ export async function GET(request) {
         // Construir filtros
         const filters = {};
 
-        // Filtro por usuario
+        // Filtro por usuario — validar ObjectId para prevenir NoSQL injection
         const userId = searchParams.get('userId');
         if (userId) {
+            if (!/^[a-f\d]{24}$/i.test(userId)) {
+                return NextResponse.json({ error: 'userId inválido' }, { status: 400 });
+            }
             filters['performedBy.userId'] = userId;
         }
 
-        // Filtro por acción
+        // Filtro por acción — solo letras mayúsculas y guión bajo
+        const VALID_ACTIONS = ['CREATE', 'UPDATE', 'DELETE', 'LOGIN', 'LOGOUT', 'REFUND', 'PRINT', 'CANCEL', 'RESTORE', 'EXPORT'];
         const action = searchParams.get('action');
         if (action) {
-            filters.action = action.toUpperCase();
+            const normalizedAction = action.toUpperCase().replace(/[^A-Z_]/g, '');
+            if (!VALID_ACTIONS.includes(normalizedAction)) {
+                return NextResponse.json({ error: 'Acción inválida' }, { status: 400 });
+            }
+            filters.action = normalizedAction;
         }
 
-        // Filtro por entidad
+        // Filtro por entidad — solo letras minúsculas
         const entity = searchParams.get('entity');
         if (entity) {
-            filters.entity = entity.toLowerCase();
+            const sanitizedEntity = entity.toLowerCase().replace(/[^a-z_]/g, '');
+            if (!sanitizedEntity || sanitizedEntity.length > 30) {
+                return NextResponse.json({ error: 'Entidad inválida' }, { status: 400 });
+            }
+            filters.entity = sanitizedEntity;
         }
 
-        // Filtro por rango de fechas
+        // Filtro por rango de fechas — validar que sean fechas reales
         const startDate = searchParams.get('startDate');
         const endDate = searchParams.get('endDate');
         if (startDate || endDate) {
             filters.createdAt = {};
             if (startDate) {
-                filters.createdAt.$gte = new Date(startDate);
+                const parsedStart = new Date(startDate);
+                if (isNaN(parsedStart.getTime())) {
+                    return NextResponse.json({ error: 'startDate inválida' }, { status: 400 });
+                }
+                filters.createdAt.$gte = parsedStart;
             }
             if (endDate) {
-                // Añadir 1 día para incluir todo el día final
                 const end = new Date(endDate);
+                if (isNaN(end.getTime())) {
+                    return NextResponse.json({ error: 'endDate inválida' }, { status: 400 });
+                }
                 end.setDate(end.getDate() + 1);
                 filters.createdAt.$lt = end;
             }

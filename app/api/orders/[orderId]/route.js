@@ -14,7 +14,32 @@ export async function PATCH(req, { params }) {
         }
 
         const { orderId } = await params;
+
+        // Validar orderId
+        if (!/^[a-f\d]{24}$/i.test(orderId)) {
+            return NextResponse.json({ error: 'ID de pedido inválido' }, { status: 400 });
+        }
+
         const updates = await req.json();
+
+        // Validar valores permitidos de status
+        const VALID_STATUSES = ['pending', 'confirmed', 'preparing', 'ready', 'completed', 'cancelled'];
+        if (updates.status && !VALID_STATUSES.includes(updates.status)) {
+            return NextResponse.json({ error: 'Estado de pedido inválido' }, { status: 400 });
+        }
+
+        // Validar valores permitidos de paymentStatus
+        const VALID_PAYMENT_STATUSES = ['pending', 'approved', 'rejected', 'refunded', 'cancelled', 'in_process'];
+        if (updates.paymentStatus && !VALID_PAYMENT_STATUSES.includes(updates.paymentStatus)) {
+            return NextResponse.json({ error: 'Estado de pago inválido' }, { status: 400 });
+        }
+
+        // Validar longitud de adminNotes
+        if (updates.adminNotes !== undefined) {
+            if (typeof updates.adminNotes !== 'string' || updates.adminNotes.length > 500) {
+                return NextResponse.json({ error: 'Las notas no pueden superar 500 caracteres' }, { status: 400 });
+            }
+        }
 
         const order = await Order.findById(orderId);
         if (!order) {
@@ -33,10 +58,9 @@ export async function PATCH(req, { params }) {
         // Update fields
         const previousStatus = order.status;
 
-        // Update fields
         if (updates.status) order.status = updates.status;
         if (updates.paymentStatus) order.paymentStatus = updates.paymentStatus;
-        if (updates.adminNotes) order.adminNotes = updates.adminNotes;
+        if (updates.adminNotes !== undefined) order.adminNotes = updates.adminNotes.trim();
 
         // Auto-set timestamps
         if (updates.status === 'completed') order.completedAt = new Date();

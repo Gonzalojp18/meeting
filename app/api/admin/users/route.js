@@ -87,6 +87,9 @@ export async function POST(req) {
         if (!/[0-9]/.test(password)) {
             return NextResponse.json({ error: 'La contraseña debe incluir al menos un número' }, { status: 400 });
         }
+        if (!/[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?]/.test(password)) {
+            return NextResponse.json({ error: 'La contraseña debe incluir al menos un carácter especial' }, { status: 400 });
+        }
 
         // 🔒 SECURITY: Aumentar bcrypt cost factor a 12 (VULN-013)
         const hashedPassword = await bcrypt.hash(password, 12);

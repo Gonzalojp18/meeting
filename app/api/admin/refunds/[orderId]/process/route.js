@@ -25,73 +25,64 @@ export async function POST(req, { params }) {
         }
 
         const { orderId } = await params;
+
+        // Validar orderId
+        if (!/^[a-f\d]{24}$/i.test(orderId)) {
+            return NextResponse.json({ error: 'ID de pedido inválido' }, { status: 400 });
+        }
+
         const body = await req.json();
         const { notes, confirmAmount } = body;
 
-        // Buscar pedido
-        const order = await Order.findById(orderId);
-
-        if (!order) {
-            return NextResponse.json(
-                { error: 'Pedido no encontrado' },
-                { status: 404 }
-            );
+        // Validar notas — longitud máxima
+        if (notes && (typeof notes !== 'string' || notes.length > 500)) {
+            return NextResponse.json({ error: 'Las notas no pueden superar 500 caracteres' }, { status: 400 });
         }
 
-        // Validar que esté cancelado
-        if (order.status !== 'cancelled') {
-            return NextResponse.json(
-                { error: 'El pedido no está cancelado' },
-                { status: 400 }
-            );
+        // Verificar precondiciones antes del lock atómico
+        const preCheck = await Order.findById(orderId).lean();
+        if (!preCheck) {
+            return NextResponse.json({ error: 'Pedido no encontrado' }, { status: 404 });
         }
-
-        // Validar que el refund esté pendiente
-        if (order.refund?.status !== 'pending') {
-            return NextResponse.json(
-                { error: 'Este reembolso ya fue procesado o no está pendiente' },
-                { status: 400 }
-            );
+        if (preCheck.status !== 'cancelled') {
+            return NextResponse.json({ error: 'El pedido no está cancelado' }, { status: 400 });
         }
-
-        // Validación doble de seguridad: confirmar monto
-        if (confirmAmount !== order.total) {
-            console.warn(`[REFUND] Intento de reembolso con monto incorrecto. Order: ${order.orderNumber}, Esperado: ${order.total}, Recibido: ${confirmAmount}`);
-            return NextResponse.json(
-                { error: 'El monto de confirmación no coincide con el total del pedido' },
-                { status: 400 }
-            );
+        if (confirmAmount !== preCheck.total) {
+            console.warn(`[REFUND] Monto incorrecto. Order: ${preCheck.orderNumber}, Esperado: ${preCheck.total}, Recibido: ${confirmAmount}`);
+            return NextResponse.json({ error: 'El monto de confirmación no coincide con el total del pedido' }, { status: 400 });
         }
-
-        // Validar que no hayan pasado 180 días (política de MercadoPago)
-        const daysSinceCreation = (new Date() - new Date(order.createdAt)) / (1000 * 60 * 60 * 24);
+        const daysSinceCreation = (new Date() - new Date(preCheck.createdAt)) / (1000 * 60 * 60 * 24);
         if (daysSinceCreation > 180) {
-            order.refund.status = 'failed';
-            order.refund.errorMessage = 'El plazo de 180 días para reembolsos ha expirado';
-            order.refund.processedAt = new Date();
-            order.refund.processedBy = {
-                userId: session.user.id,
-                userName: session.user.name,
-                userRole: session.user.role
-            };
-            if (notes) order.refund.notes = notes;
-            await order.save();
-
             return NextResponse.json(
                 { error: 'No se puede procesar el reembolso: han pasado más de 180 días desde la creación del pedido' },
                 { status: 400 }
             );
         }
 
-        // Actualizar estado a "processing"
-        order.refund.status = 'processing';
-        order.refund.processedBy = {
-            userId: session.user.id,
-            userName: session.user.name,
-            userRole: session.user.role
-        };
-        if (notes) order.refund.notes = notes;
-        await order.save();
+        // 🔒 OPERACIÓN ATÓMICA — previene race condition entre dos admins simultáneos
+        // Solo actualiza si refund.status === 'pending'. Si otro request ya lo cambió, devuelve null.
+        const order = await Order.findOneAndUpdate(
+            { _id: orderId, 'refund.status': 'pending' },
+            {
+                $set: {
+                    'refund.status': 'processing',
+                    'refund.processedBy': {
+                        userId: session.user.id,
+                        userName: session.user.name,
+                        userRole: session.user.role,
+                    },
+                    ...(notes && { 'refund.notes': notes.trim() }),
+                }
+            },
+            { new: true }
+        );
+
+        if (!order) {
+            return NextResponse.json(
+                { error: 'Este reembolso ya fue procesado o no está pendiente' },
+                { status: 400 }
+            );
+        }
 
         console.log(`[REFUND] Iniciando proceso de reembolso para orden ${order.orderNumber} por ${session.user.name} (${session.user.role})`);
 

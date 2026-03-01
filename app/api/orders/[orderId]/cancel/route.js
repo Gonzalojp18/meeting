@@ -1,27 +1,49 @@
 import { NextResponse } from 'next/server';
 import dbConnect from '@/utils/dbConnect';
 import Order from '@/models/Order';
+import { Ratelimit } from '@upstash/ratelimit';
+import { Redis } from '@upstash/redis';
 
-// Rate limiting simple con Map en memoria
-// En producción usar Redis o similar
+// 🔒 Rate limiting distribuido con Upstash Redis
+// Fallback a in-memory si Redis no está configurado (dev local)
+let cancelRatelimit = null;
+
+if (process.env.UPSTASH_REDIS_REST_URL && process.env.UPSTASH_REDIS_REST_TOKEN) {
+    const redis = new Redis({
+        url: process.env.UPSTASH_REDIS_REST_URL,
+        token: process.env.UPSTASH_REDIS_REST_TOKEN,
+    });
+    cancelRatelimit = new Ratelimit({
+        redis,
+        limiter: Ratelimit.slidingWindow(3, '10 m'),
+        prefix: 'rl:cancel',
+    });
+}
+
+// Fallback in-memory
 const rateLimitMap = new Map();
-const RATE_LIMIT_WINDOW = 10 * 60 * 1000; // 10 minutos
+const RATE_LIMIT_WINDOW = 10 * 60 * 1000;
 const MAX_ATTEMPTS = 3;
 
-function checkRateLimit(identifier) {
+function checkRateLimitMemory(identifier) {
     const now = Date.now();
-    const attempts = rateLimitMap.get(identifier) || [];
-
-    // Limpiar intentos antiguos
-    const recentAttempts = attempts.filter(time => now - time < RATE_LIMIT_WINDOW);
-
-    if (recentAttempts.length >= MAX_ATTEMPTS) {
-        return false; // Rate limit exceeded
-    }
-
-    recentAttempts.push(now);
-    rateLimitMap.set(identifier, recentAttempts);
+    const attempts = (rateLimitMap.get(identifier) || []).filter(t => now - t < RATE_LIMIT_WINDOW);
+    if (attempts.length >= MAX_ATTEMPTS) return false;
+    attempts.push(now);
+    rateLimitMap.set(identifier, attempts);
     return true;
+}
+
+async function checkRateLimit(ip) {
+    if (cancelRatelimit) {
+        try {
+            const { success } = await cancelRatelimit.limit(ip);
+            return success;
+        } catch (err) {
+            console.error('[CANCEL RATELIMIT] Redis error, using memory fallback:', err.message);
+        }
+    }
+    return checkRateLimitMemory(ip);
 }
 
 // @desc Cancel order by customer (within 5 minutes)
@@ -31,8 +53,13 @@ export async function PATCH(req, { params }) {
     try {
         await dbConnect();
         const { orderId } = await params;
-        const body = await req.json();
 
+        // Validar orderId
+        if (!/^[a-f\d]{24}$/i.test(orderId)) {
+            return NextResponse.json({ error: 'ID de pedido inválido' }, { status: 400 });
+        }
+
+        const body = await req.json();
         const { phone, email, reason } = body;
 
         // Validación básica
@@ -43,11 +70,17 @@ export async function PATCH(req, { params }) {
             );
         }
 
-        // Rate limiting por IP
-        const forwardedFor = req.headers.get('x-forwarded-for');
-        const ip = forwardedFor ? forwardedFor.split(',')[0] : 'unknown';
+        // Validar longitud de reason
+        if (reason && (typeof reason !== 'string' || reason.length > 300)) {
+            return NextResponse.json({ error: 'El motivo no puede superar 300 caracteres' }, { status: 400 });
+        }
 
-        if (!checkRateLimit(ip)) {
+        // Rate limiting por IP — distribuido globalmente en Vercel
+        const forwardedFor = req.headers.get('x-forwarded-for');
+        const ip = forwardedFor ? forwardedFor.split(',')[0].trim() : 'unknown';
+
+        const allowed = await checkRateLimit(ip);
+        if (!allowed) {
             return NextResponse.json(
                 { error: 'Demasiados intentos de cancelación. Por favor intenta más tarde.' },
                 { status: 429 }
@@ -69,7 +102,7 @@ export async function PATCH(req, { params }) {
         const emailMatch = email && order.customer.email?.toLowerCase() === email.toLowerCase();
 
         if (!phoneMatch && !emailMatch) {
-            console.warn(`[CANCEL] Intento de cancelación con datos incorrectos para orden ${order.orderNumber} desde IP ${ip}`);
+            console.warn(`[CANCEL] Datos incorrectos para orden ${order.orderNumber} desde IP ${ip}`);
             return NextResponse.json(
                 { error: 'Los datos proporcionados no coinciden con el pedido' },
                 { status: 403 }
@@ -78,10 +111,7 @@ export async function PATCH(req, { params }) {
 
         // Validar que no esté ya cancelado
         if (order.status === 'cancelled') {
-            return NextResponse.json(
-                { error: 'Este pedido ya fue cancelado' },
-                { status: 400 }
-            );
+            return NextResponse.json({ error: 'Este pedido ya fue cancelado' }, { status: 400 });
         }
 
         // Validar que no esté ya reembolsado/procesado
@@ -92,7 +122,7 @@ export async function PATCH(req, { params }) {
             );
         }
 
-        // Validar estado del pedido (solo pending o confirmed)
+        // Validar estado del pedido
         if (order.status !== 'pending' && order.status !== 'confirmed') {
             return NextResponse.json(
                 { error: 'No se puede cancelar un pedido que ya está en preparación o completado' },
@@ -101,10 +131,7 @@ export async function PATCH(req, { params }) {
         }
 
         // Validar ventana de 5 minutos
-        const createdAt = new Date(order.createdAt);
-        const now = new Date();
-        const minutesElapsed = (now - createdAt) / 1000 / 60;
-
+        const minutesElapsed = (new Date() - new Date(order.createdAt)) / 1000 / 60;
         if (minutesElapsed > 5) {
             return NextResponse.json(
                 { error: 'El tiempo límite para cancelar (5 minutos) ha expirado' },
@@ -112,7 +139,7 @@ export async function PATCH(req, { params }) {
             );
         }
 
-        // Validar que el pago esté aprobado o pendiente
+        // Validar estado de pago
         if (order.paymentStatus !== 'approved' && order.paymentStatus !== 'pending') {
             return NextResponse.json(
                 { error: 'No se puede cancelar este pedido debido a su estado de pago' },
@@ -123,9 +150,7 @@ export async function PATCH(req, { params }) {
         // Actualizar pedido
         order.status = 'cancelled';
         order.cancelledAt = new Date();
-        order.cancellationReason = reason || 'Cancelado por el cliente';
-
-        // Iniciar proceso de reembolso
+        order.cancellationReason = reason ? reason.trim() : 'Cancelado por el cliente';
         order.refund = {
             status: 'pending',
             requestedAt: new Date(),
@@ -135,15 +160,13 @@ export async function PATCH(req, { params }) {
                 email: order.customer.email
             },
             amount: order.total,
-            reason: reason || 'Cancelación del cliente dentro de los 5 minutos'
+            reason: reason ? reason.trim() : 'Cancelación del cliente dentro de los 5 minutos'
         };
-
-        // Marcar como no contable para estadísticas
         order.canBeCounted = false;
 
         await order.save();
 
-        console.log(`[CANCEL] ✅ Pedido ${order.orderNumber} cancelado por cliente. IP: ${ip}, Tiempo transcurrido: ${minutesElapsed.toFixed(2)} min`);
+        console.log(`[CANCEL] ✅ Pedido ${order.orderNumber} cancelado. IP: ${ip}, Tiempo: ${minutesElapsed.toFixed(2)} min`);
 
         return NextResponse.json({
             success: true,
