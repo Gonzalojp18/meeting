@@ -1,7 +1,10 @@
 import { NextResponse } from 'next/server';
 import dbConnect from '@/utils/dbConnect';
 import Order from '@/models/Order';
+import Counter from '@/models/Counter';
 import { auth } from '@/auth';
+import { Ratelimit } from '@upstash/ratelimit';
+import { Redis } from '@upstash/redis';
 import { executePrintSaga } from '@/lib/print/saga';
 import { trackCustomer } from '@/utils/customerTracking';
 
@@ -40,14 +43,49 @@ export async function GET(req) {
     }
 }
 
+// 🔒 Rate limiting distribuido con Upstash Redis
+// 5 pedidos por minuto por IP para evitar spam/bots
+const ratelimit = new Ratelimit({
+    redis: new Redis({
+        url: process.env.UPSTASH_REDIS_REST_URL || '',
+        token: process.env.UPSTASH_REDIS_REST_TOKEN || '',
+    }),
+    limiter: Ratelimit.slidingWindow(5, '1 m'),
+    analytics: true,
+});
+
 export async function POST(req) {
     try {
         await dbConnect();
+
+        // Rate Limiting Check
+        if (process.env.UPSTASH_REDIS_REST_URL && process.env.UPSTASH_REDIS_REST_TOKEN) {
+            const ip = req.headers.get('x-forwarded-for') ||
+                req.headers.get('x-real-ip') ||
+                '127.0.0.1';
+
+            const identifier = `order_create_${ip}`;
+            const { success } = await ratelimit.limit(identifier);
+
+            if (!success) {
+                return NextResponse.json(
+                    { error: 'Demasiadas peticiones. Por favor, espera un momento.' },
+                    { status: 429 }
+                );
+            }
+        }
+
         const data = await req.json();
 
-        // Generate order number (simple version for now)
-        const orderCount = await Order.countDocuments();
-        const orderNumber = `ORD-${Date.now()}-${orderCount + 1}`;
+        // Atómica: Incremento garantizado libre de condiciones de carrera
+        const counter = await Counter.findOneAndUpdate(
+            { _id: 'orderId' },
+            { $inc: { seq: 1 } },
+            { new: true, upsert: true }
+        );
+
+        const timestampStr = Date.now().toString().slice(-6);
+        const orderNumber = `ORD-${timestampStr}-${counter.seq}`;
 
         const newOrder = new Order({
             ...data,
