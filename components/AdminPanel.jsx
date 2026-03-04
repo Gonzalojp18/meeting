@@ -18,6 +18,7 @@ import TicketHistory from './admin/TicketHistory';
 import StaffAvailability from './admin/StaffAvailability';
 import AuditLogViewer from './admin/AuditLogViewer';
 import RefundManagement from './admin/RefundManagement';
+import AdminOperationsKpi from './admin/AdminOperationsKpi';
 import { useFetch } from '../hooks/useFetch';
 import axios from 'axios';
 import { handleAxiosError } from '../utils/handleAxiosError';
@@ -259,6 +260,7 @@ const AdminPanel = () => {
   // Admin y Manager tienen acceso completo (excepto MP Settings para manager)
   if (hasFullAccess) {
     tabs.push({ id: 'dashboard', label: 'Dashboard', icon: MdDashboard });
+    tabs.push({ id: 'metricas', label: 'Métricas', icon: MdShowChart });
     tabs.push({ id: 'products', label: 'Productos', icon: MdRestaurantMenu });
     tabs.push({ id: 'categories', label: 'Categorías', icon: MdCategory });
     tabs.push({ id: 'upselling', label: 'Upselling', icon: MdAutoGraph });
@@ -627,7 +629,26 @@ const AdminPanel = () => {
           </div>
         )}
 
-        {/* ========== PRODUCTOS TAB ========== */}
+        {/* ========== MÉTRICAS OPERACIONALES TAB (Admin y Manager) ========== */}
+        {activeTab === 'metricas' && hasFullAccess && (
+          <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
+            <div className="bg-gradient-to-r from-orange-50 to-amber-50 border-b border-orange-100 p-6">
+              <div className="flex items-center justify-between">
+                <div>
+                  <h2 className="text-xl font-bold text-gray-900 mb-1">Métricas Operacionales</h2>
+                  <p className="text-sm text-gray-600">Órdenes por hora y tiempos de preparación de tu sede</p>
+                </div>
+                <div className="p-4 bg-orange-500 rounded-xl shadow-lg">
+                  <MdShowChart className="h-8 w-8 text-white" />
+                </div>
+              </div>
+            </div>
+            <div className="p-6 lg:p-8">
+              <AdminOperationsKpi />
+            </div>
+          </div>
+        )}
+
         {activeTab === 'products' && (
           <>
             {/* Search bar mejorado */}
