@@ -161,9 +161,19 @@ const orderSchema = new mongoose.Schema(
     },
 
     // Timestamps adicionales
+    confirmedAt: Date,      // Momento en que el restaurante confirma la orden
+    readyAt: Date,          // Momento en que el pedido está listo
+    deliveredAt: Date,      // Momento de entrega/retiro
     completedAt: Date,
     cancelledAt: Date,
     cancellationReason: String,
+
+    // Canal de origen del pedido
+    source: {
+      type: String,
+      enum: ['qr', 'link', 'direct'],
+      default: 'link',
+    },
 
     // Confirmación de retiro por cliente
     customerPickupConfirmed: {
@@ -238,5 +248,6 @@ const orderSchema = new mongoose.Schema(
 orderSchema.index({ 'refund.status': 1, createdAt: -1 });
 orderSchema.index({ canBeCounted: 1, createdAt: -1 });
 orderSchema.index({ status: 1, 'location.locationId': 1 });
+orderSchema.index({ 'customer.phone': 1, createdAt: -1 }); // Para métricas de recurrencia
 
 export default mongoose.models.Order || mongoose.model("Order", orderSchema);

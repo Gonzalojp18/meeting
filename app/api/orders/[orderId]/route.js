@@ -62,7 +62,10 @@ export async function PATCH(req, { params }) {
         if (updates.paymentStatus) order.paymentStatus = updates.paymentStatus;
         if (updates.adminNotes !== undefined) order.adminNotes = updates.adminNotes.trim();
 
-        // Auto-set timestamps
+        // Auto-set timestamps operativos según transición de estado
+        if (updates.status === 'confirmed' && !order.confirmedAt) order.confirmedAt = new Date();
+        if (updates.status === 'ready' && !order.readyAt) order.readyAt = new Date();
+        if (updates.status === 'completed' && !order.deliveredAt) order.deliveredAt = new Date();
         if (updates.status === 'completed') order.completedAt = new Date();
         if (updates.status === 'cancelled') order.cancelledAt = new Date();
 
