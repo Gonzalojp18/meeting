@@ -1,17 +1,18 @@
+/**
+ * utils/customerTracking.js
+ *
+ * 🔒 SEGURIDAD: Los datos de clientes se almacenan cifrados en MongoDB.
+ * Las búsquedas se realizan por phoneHash / emailHash (HMAC-SHA256 determinístico)
+ * para no tener que descifrar todos los registros.
+ */
+
 import Customer from '@/models/Customer';
 import dbConnect from './dbConnect';
+import { hashForSearch } from './encryption';
 
 /**
- * Tracking de clientes únicos
- * Se llama automáticamente al crear una orden
- * 
- * @param {Object} orderData - Datos de la orden
- * @param {string} orderData.phone - Teléfono del cliente
- * @param {string} orderData.email - Email del cliente (opcional)
- * @param {string} orderData.name - Nombre
- * @param {string} orderData.lastname - Apellido
- * @param {number} orderData.total - Total de la orden
- * @param {string} orderData.locationId - ID de la locación
+ * Tracking de clientes únicos.
+ * Se llama automáticamente al crear una orden.
  */
 export async function trackCustomer(orderData) {
     try {
@@ -24,71 +25,80 @@ export async function trackCustomer(orderData) {
             return null;
         }
 
-        // Upsert del cliente
+        // 🔒 Buscar por hash determinístico — no por valor cifrado
+        const phoneHash = hashForSearch(phone);
+        const emailHash = email ? hashForSearch(email) : undefined;
+
+        // Construir el $set con los datos que se quieren actualizar
+        // El pre-save hook del modelo se encargará de cifrarlos antes de guardar
+        const updateSet = {
+            lastOrderDate: new Date(),
+        };
+        if (name) updateSet.name = name;
+        if (lastname) updateSet.lastname = lastname;
+        if (email) updateSet.email = email;
+        if (emailHash) updateSet.emailHash = emailHash;
+
+        // Upsert: buscar por phoneHash, actualizar o crear
         const customer = await Customer.findOneAndUpdate(
-            { phone },
+            { phoneHash },
             {
-                $set: {
-                    email: email || undefined,
-                    name: name || undefined,
-                    lastname: lastname || undefined,
-                    lastOrderDate: new Date()
-                },
+                $set: updateSet,
                 $inc: {
                     totalOrders: 1,
-                    totalSpent: total || 0
+                    totalSpent: total || 0,
                 },
                 $setOnInsert: {
-                    firstOrderDate: new Date()
-                }
+                    phone,        // el pre-save hook cifrará esto al crear
+                    phoneHash,
+                    firstOrderDate: new Date(),
+                },
             },
             {
                 upsert: true,
                 new: true,
-                runValidators: true
+                runValidators: false, // pre-save hooks manejan la lógica
             }
         );
 
         // Actualizar stats por locación
-        if (locationId) {
+        if (locationId && customer) {
             const locationIndex = customer.locations.findIndex(
                 loc => loc.locationId === locationId
             );
 
             if (locationIndex >= 0) {
-                // Actualizar locación existente
                 customer.locations[locationIndex].orderCount += 1;
                 customer.locations[locationIndex].totalSpent += total || 0;
                 customer.locations[locationIndex].lastOrderDate = new Date();
             } else {
-                // Agregar nueva locación
                 customer.locations.push({
                     locationId,
                     orderCount: 1,
                     totalSpent: total || 0,
-                    lastOrderDate: new Date()
+                    lastOrderDate: new Date(),
                 });
             }
 
             await customer.save();
         }
 
-        console.log(`[trackCustomer] Customer ${phone} tracked successfully`);
         return customer;
     } catch (error) {
         console.error('[trackCustomer] Error:', error);
-        // No lanzar error para no bloquear el flujo de creación de órdenes
         return null;
     }
 }
 
 /**
- * Obtener stats de un cliente específico
+ * Obtener stats de un cliente por teléfono.
+ * Busca por phoneHash para no descifrar toda la colección.
  */
 export async function getCustomerStats(phone) {
     try {
         await dbConnect();
-        return await Customer.findOne({ phone }).lean();
+        const phoneHash = hashForSearch(phone);
+        return await Customer.findOne({ phoneHash }).lean();
     } catch (error) {
         console.error('[getCustomerStats] Error:', error);
         return null;

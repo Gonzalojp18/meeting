@@ -1,4 +1,8 @@
 import mongoose from "mongoose";
+import { encrypt, decrypt, hashForSearch } from '@/utils/encryption';
+
+// Campos PII del cliente que se cifran antes de guardar
+const CUSTOMER_PII = ['name', 'lastname', 'phone', 'email'];
 
 const orderSchema = new mongoose.Schema(
   {
@@ -24,6 +28,11 @@ const orderSchema = new mongoose.Schema(
       phone: {
         type: String,
         required: [true, "El teléfono es requerido"],
+        trim: true,
+      },
+      // Hash determinístico para búsquedas (HMAC-SHA256) — no almacena el teléfono real
+      phoneHash: {
+        type: String,
         trim: true,
       },
       email: {
@@ -248,6 +257,63 @@ const orderSchema = new mongoose.Schema(
 orderSchema.index({ 'refund.status': 1, createdAt: -1 });
 orderSchema.index({ canBeCounted: 1, createdAt: -1 });
 orderSchema.index({ status: 1, 'location.locationId': 1 });
-orderSchema.index({ 'customer.phone': 1, createdAt: -1 }); // Para métricas de recurrencia
+orderSchema.index({ 'customer.phoneHash': 1, createdAt: -1 }); // Para métricas de recurrencia
+
+// ─── Hooks de cifrado PII ─────────────────────────────────────────────────────
+
+/**
+ * Pre-save: cifrar datos PII del cliente antes de guardar en MongoDB.
+ * Solo cifra si el campo fue modificado (evita doble cifrado).
+ */
+orderSchema.pre('save', function (next) {
+  try {
+    if (this.isModified('customer')) {
+      const c = this.customer;
+      if (c.name) c.name = encrypt(c.name);
+      if (c.lastname) c.lastname = encrypt(c.lastname);
+      if (c.phone) {
+        // Guardar hash determinístico para búsquedas de recurrencia
+        c.phoneHash = hashForSearch(c.phone);
+        c.phone = encrypt(c.phone);
+      }
+      if (c.email) c.email = encrypt(c.email);
+
+      // Cifrar también los datos de reembolso si existen
+      if (this.refund?.requestedBy?.phone) {
+        this.refund.requestedBy.phone = encrypt(this.refund.requestedBy.phone);
+      }
+      if (this.refund?.requestedBy?.email) {
+        this.refund.requestedBy.email = encrypt(this.refund.requestedBy.email);
+      }
+    }
+    next();
+  } catch (err) {
+    next(err);
+  }
+});
+
+/**
+ * Descifrar los PII del cliente de una orden.
+ */
+function decryptOrder(doc) {
+  if (!doc) return doc;
+  const c = doc.customer;
+  if (c) {
+    CUSTOMER_PII.forEach(field => {
+      if (c[field]) c[field] = decrypt(c[field]);
+    });
+  }
+  if (doc.refund?.requestedBy) {
+    const rb = doc.refund.requestedBy;
+    if (rb.phone) rb.phone = decrypt(rb.phone);
+    if (rb.email) rb.email = decrypt(rb.email);
+  }
+  return doc;
+}
+
+orderSchema.post('find', function (docs) { docs.forEach(decryptOrder); });
+orderSchema.post('findOne', function (doc) { decryptOrder(doc); });
+orderSchema.post('findOneAndUpdate', function (doc) { decryptOrder(doc); });
+orderSchema.post('save', function (doc) { decryptOrder(doc); });
 
 export default mongoose.models.Order || mongoose.model("Order", orderSchema);

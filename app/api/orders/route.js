@@ -5,8 +5,8 @@ import Counter from '@/models/Counter';
 import { auth } from '@/auth';
 import { Ratelimit } from '@upstash/ratelimit';
 import { Redis } from '@upstash/redis';
-import { executePrintSaga } from '@/lib/print/saga';
 import { trackCustomer } from '@/utils/customerTracking';
+import { createOrderSchema, parseBody } from '@/lib/schemas';
 
 export async function GET(req) {
     try {
@@ -26,9 +26,10 @@ export async function GET(req) {
 
         // Check permissions
         const isOwner = session.user.role === 'admin';
+        const isManager = session.user.role === 'manager';
         const isStaffForLocation = session.user.role === 'staff' && session.user.assignedLocations?.includes(locationId);
 
-        if (!isOwner && !isStaffForLocation) {
+        if (!isOwner && !isManager && !isStaffForLocation) {
             return NextResponse.json({ error: 'No tienes permiso para esta sede' }, { status: 403 });
         }
 
@@ -58,7 +59,7 @@ export async function POST(req) {
     try {
         await dbConnect();
 
-        // Rate Limiting Check
+        // 🔒 Rate Limiting Check
         if (process.env.UPSTASH_REDIS_REST_URL && process.env.UPSTASH_REDIS_REST_TOKEN) {
             const ip = req.headers.get('x-forwarded-for') ||
                 req.headers.get('x-real-ip') ||
@@ -75,7 +76,12 @@ export async function POST(req) {
             }
         }
 
-        const data = await req.json();
+        // 🔒 Validación de inputs con Zod (evita mass assignment y datos malformados)
+        const rawBody = await req.json();
+        const parsed = parseBody(rawBody, createOrderSchema);
+        if (parsed.error) return parsed.response;
+
+        const { customerData, items, location, deliveryMethod, deliveryAddress, notes, total, source } = parsed.data;
 
         // Atómica: Incremento garantizado libre de condiciones de carrera
         const counter = await Counter.findOneAndUpdate(
@@ -87,43 +93,41 @@ export async function POST(req) {
         const timestampStr = Date.now().toString().slice(-6);
         const orderNumber = `ORD-${timestampStr}-${counter.seq}`;
 
+        // 🔒 Solo usamos campos validados — eliminado spread del body del cliente
         const newOrder = new Order({
-            ...data,
+            customer: {
+                name: customerData.name,
+                lastname: customerData.lastname || '',
+                phone: customerData.phone,
+                email: customerData.email || '',
+            },
+            items,
+            location,
+            deliveryMethod,
+            deliveryAddress: deliveryAddress || '',
+            notes: notes || '',
+            total,
+            source: source || 'direct',
             orderNumber,
             status: 'pending',
-            paymentStatus: 'pending'
+            paymentStatus: 'pending',
         });
 
         await newOrder.save();
 
         // Track customer (async, no bloquea el flujo)
         trackCustomer({
-            phone: data.customerData?.phone,
-            email: data.customerData?.email,
-            name: data.customerData?.name,
-            lastname: data.customerData?.lastname,
-            total: data.total,
-            locationId: data.location?.locationId
+            phone: customerData?.phone,
+            email: customerData?.email,
+            name: customerData?.name,
+            lastname: customerData?.lastname,
+            total,
+            locationId: location?.locationId
         }).catch(err => console.error('[Order POST] trackCustomer error:', err));
-
-        // Disparar impresora automáticamente (Bypass MP para pruebas)
-        /* 
-           COMENTADO PARA CLOUD:
-           El Agente de Impresión local se encarga de esto mediante polling.
-           Si mantenemos esta llamada, el checkout se queda esperando a una impresora
-           que no puede alcanzar (Hostinger -> Local IP) y da timeout.
-           
-        try {
-            // Rol: cashier (Caja) al crear el pedido
-            await executePrintSaga(newOrder._id, { type: 'cashier', template: 'CASHIER_TICKET' });
-        } catch (printError) {
-            console.error('Error al imprimir pedido directo:', printError);
-        }
-        */
 
         return NextResponse.json(newOrder, { status: 201 });
     } catch (error) {
-        // 🔒 SECURITY: Only log to console, don't write to files (VULN-008)
+        // 🔒 SECURITY: Solo log interno, no exponer detalles al cliente
         console.error('Error creating order:', error.message);
         return NextResponse.json({ error: 'Error al crear el pedido' }, { status: 500 });
     }

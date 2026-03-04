@@ -10,53 +10,81 @@ function getEncryptionKey() {
   if (!secret) {
     throw new Error('AUTH_SECRET no está configurado en las variables de entorno');
   }
-  // Derivar una clave de 32 bytes a partir del secret
   return crypto.createHash('sha256').update(secret).digest();
 }
 
 /**
- * Encripta un texto plano usando AES-256-GCM
+ * Genera un hash determinístico (HMAC-SHA256) para búsquedas en DB.
+ * A diferencia del AES-GCM (IV aleatorio → ciphertext distinto cada vez),
+ * produce siempre el mismo resultado → permite unique indexes y queries exactas.
+ *
+ * @param {string} value - Valor a hashear (email, teléfono)
+ * @returns {string|null} - Hash hexadecimal de 64 chars
+ */
+export function hashForSearch(value) {
+  if (!value) return null;
+  const secret = process.env.AUTH_SECRET;
+  if (!secret) throw new Error('AUTH_SECRET no configurado');
+  return crypto.createHmac('sha256', secret)
+    .update(String(value).toLowerCase().trim())
+    .digest('hex');
+}
+
+/**
+ * Encripta un texto plano usando AES-256-GCM.
  * @param {string} plainText - Texto a encriptar
- * @returns {string} - Texto encriptado en formato: iv:encrypted:tag (hex)
+ * @returns {string} - Formato: iv:encrypted:tag (hex)
  */
 export function encrypt(plainText) {
+  if (!plainText) return plainText;
   const key = getEncryptionKey();
   const iv = crypto.randomBytes(IV_LENGTH);
   const cipher = crypto.createCipheriv(ALGORITHM, key, iv);
 
-  let encrypted = cipher.update(plainText, 'utf8', 'hex');
+  let encrypted = cipher.update(String(plainText), 'utf8', 'hex');
   encrypted += cipher.final('hex');
-
   const tag = cipher.getAuthTag();
 
-  // Formato: iv:encrypted:tag
   return `${iv.toString('hex')}:${encrypted}:${tag.toString('hex')}`;
 }
 
 /**
- * Desencripta un texto encriptado con AES-256-GCM
- * @param {string} encryptedText - Texto encriptado en formato iv:encrypted:tag
+ * Desencripta un texto cifrado con AES-256-GCM.
+ * Si el valor no parece cifrado (sin formato iv:enc:tag), lo devuelve tal cual.
+ * Esto permite migración gradual: datos viejos en texto plano conviven
+ * con datos nuevos cifrados sin romper lecturas.
+ *
+ * @param {string} encryptedText - Formato iv:encrypted:tag
  * @returns {string} - Texto plano
  */
 export function decrypt(encryptedText) {
+  if (!encryptedText) return encryptedText;
+
+  // Si no tiene el formato iv:enc:tag — es dato legado en texto plano, retornar tal cual
+  const parts = encryptedText.split(':');
+  if (parts.length !== 3) return encryptedText;
+
   const key = getEncryptionKey();
-  const [ivHex, encrypted, tagHex] = encryptedText.split(':');
+  const [ivHex, encrypted, tagHex] = parts;
 
-  const iv = Buffer.from(ivHex, 'hex');
-  const tag = Buffer.from(tagHex, 'hex');
+  try {
+    const iv = Buffer.from(ivHex, 'hex');
+    const tag = Buffer.from(tagHex, 'hex');
 
-  const decipher = crypto.createDecipheriv(ALGORITHM, key, iv);
-  decipher.setAuthTag(tag);
+    const decipher = crypto.createDecipheriv(ALGORITHM, key, iv);
+    decipher.setAuthTag(tag);
 
-  let decrypted = decipher.update(encrypted, 'hex', 'utf8');
-  decrypted += decipher.final('utf8');
-
-  return decrypted;
+    let decrypted = decipher.update(encrypted, 'hex', 'utf8');
+    decrypted += decipher.final('utf8');
+    return decrypted;
+  } catch {
+    // Si falla el descifrado, devolver tal cual (dato legado)
+    return encryptedText;
+  }
 }
 
 /**
- * Enmascara un token/key para mostrar en el frontend
- * Muestra solo los últimos 8 caracteres
+ * Enmascara un token/key para mostrar en el frontend.
  * @param {string} value - Valor a enmascarar
  * @returns {string} - Valor enmascarado
  */
