@@ -6,6 +6,7 @@ import { handleAxiosError } from '../utils/handleAxiosError'
 import { signIn } from 'next-auth/react';
 import API_URI from '../utils/getApiUri'
 import { MdVisibility, MdVisibilityOff } from 'react-icons/md';
+import PoweredByTakeasy from './footer/PoweredByTakeasy';
 
 const Register = () => {
     const [formData, setFormData] = useState({
@@ -120,6 +121,11 @@ const Register = () => {
                         </button>
                     </div>
                 </form>
+            </div>
+
+            {/* TakeasyGO Network Badge */}
+            <div className="flex justify-center mt-6">
+                <PoweredByTakeasy variant="light" label="network" />
             </div>
         </div>
     );

@@ -1,5 +1,6 @@
 'use client'
 import React, { useState, useEffect, useMemo } from 'react';
+import PoweredByTakeasy from './footer/PoweredByTakeasy';
 import CategoryItems from './admin/CategoryItems';
 import CategoryManager from './admin/CategoryManager';
 // import PromotionManager from './PromotionManager';
@@ -938,8 +939,13 @@ const AdminPanel = () => {
             </div>
           )
         }
-      </main >
-    </div >
+      </main>
+
+      {/* ========== TAKEASYGO NETWORK FOOTER ========== */}
+      <footer className="hidden lg:flex items-center justify-center py-3 border-t border-gray-100 bg-white">
+        <PoweredByTakeasy variant="light" label="network" />
+      </footer>
+    </div>
   );
 };
 

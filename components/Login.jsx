@@ -5,6 +5,7 @@ import { signIn } from 'next-auth/react';
 import Image from 'next/image';
 import Link from 'next/link';
 import { MdVisibility, MdVisibilityOff, MdEmail, MdLock, MdArrowBack, MdKey } from 'react-icons/md';
+import PoweredByTakeasy from './footer/PoweredByTakeasy';
 
 const Login = () => {
   const [credentials, setCredentials] = useState({ email: '', password: '' });
@@ -211,6 +212,11 @@ const Login = () => {
           )}
         </div>
       </main>
+
+      {/* TakeasyGO Network Footer */}
+      <footer className="flex justify-center pb-6">
+        <PoweredByTakeasy variant="light" label="network" />
+      </footer>
     </div>
   );
 };

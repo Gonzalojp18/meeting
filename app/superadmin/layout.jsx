@@ -3,6 +3,7 @@ import { redirect } from 'next/navigation';
 import Link from 'next/link';
 import { MdDashboard, MdLocationOn, MdPeople, MdBarChart, MdLogout } from 'react-icons/md';
 import { isSuperAdmin } from '@/middleware/superadmin';
+import PoweredByTakeasy from '@/components/footer/PoweredByTakeasy';
 
 export default async function SuperAdminLayout({ children }) {
     const session = await auth();
@@ -26,6 +27,10 @@ export default async function SuperAdminLayout({ children }) {
                                 <h1 className="text-2xl font-bold">SuperAdmin Panel</h1>
                                 <p className="text-sm text-purple-100">Sistema de control maestro</p>
                             </div>
+                        </div>
+                        {/* TakeasyGO Badge */}
+                        <div className="hidden sm:flex items-center">
+                            <PoweredByTakeasy variant="dark" label="network" />
                         </div>
                         <div className="flex items-center gap-4">
                             <span className="text-sm text-purple-100">
@@ -67,6 +72,11 @@ export default async function SuperAdminLayout({ children }) {
             <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
                 {children}
             </main>
+
+            {/* TakeasyGO Footer */}
+            <footer className="flex items-center justify-center py-4 border-t border-gray-200 bg-white mt-8">
+                <PoweredByTakeasy variant="light" label="network" />
+            </footer>
         </div>
     );
 }

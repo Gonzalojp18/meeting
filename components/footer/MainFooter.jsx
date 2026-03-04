@@ -1,8 +1,8 @@
 import React from 'react';
 import Image from 'next/image';
 import MenuGallery from './MenuGallery';
-
 import SocialLinks from './SocialLinks';
+import PoweredByTakeasy from './PoweredByTakeasy';
 
 const featuredDishes = [
     {
@@ -89,13 +89,26 @@ const MainFooter = () => {
                     </div>
                 </div>
 
-                {/* Copyright */}
-                <div className="mt-12 pt-8 border-t border-gray-800 text-center text-gray-400 text-sm">
-                    © {new Date().getFullYear()} Meeting Resto & Bar. Todos los derechos reservados.
+                {/* Copyright & Branding */}
+                <div className="mt-12 pt-8 border-t border-gray-800 text-center text-gray-400 text-sm space-y-4">
+                    <p>© {new Date().getFullYear()} Meeting Resto &amp; Bar. Todos los derechos reservados.</p>
 
-                    <br />
+                    {/* TakeasyGO Network Badge */}
+                    <div className="flex justify-center">
+                        <PoweredByTakeasy variant="dark" label="network" />
+                    </div>
 
-                    © Copyright - Desarrollado y gestionado por Click and Think. Encontrános en <a href="https://www.instagram.com/clickandthinkai/" target="_blank">www.clickthinkai.com</a>
+                    <p className="text-xs text-gray-600">
+                        Desarrollado y gestionado por{' '}
+                        <a
+                            href="https://www.instagram.com/clickandthinkai/"
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="hover:text-gray-400 transition-colors underline underline-offset-2"
+                        >
+                            @clickandthinkai
+                        </a>
+                    </p>
                 </div>
             </div>
         </footer>
