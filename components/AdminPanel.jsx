@@ -19,6 +19,7 @@ import StaffAvailability from './admin/StaffAvailability';
 import AuditLogViewer from './admin/AuditLogViewer';
 import RefundManagement from './admin/RefundManagement';
 import AdminOperationsKpi from './admin/AdminOperationsKpi';
+import HelpButton from './help/HelpButton';
 import { useFetch } from '../hooks/useFetch';
 import axios from 'axios';
 import { handleAxiosError } from '../utils/handleAxiosError';
@@ -336,6 +337,8 @@ const AdminPanel = () => {
                   </p>
                 </div>
               </div>
+
+              <HelpButton />
 
               <button
                 onClick={handleLogout}

@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { MdDashboard, MdLocationOn, MdPeople, MdBarChart, MdLogout } from 'react-icons/md';
 import { isSuperAdmin } from '@/middleware/superadmin';
 import PoweredByTakeasy from '@/components/footer/PoweredByTakeasy';
+import SuperAdminHelpButton from '@/components/help/SuperAdminHelpButton';
 
 export default async function SuperAdminLayout({ children }) {
     const session = await auth();
@@ -36,6 +37,7 @@ export default async function SuperAdminLayout({ children }) {
                             <span className="text-sm text-purple-100">
                                 {session.user.name || session.user.email}
                             </span>
+                            <SuperAdminHelpButton />
                             <Link
                                 href="/api/auth/signout"
                                 className="flex items-center gap-2 px-4 py-2 bg-white/10 hover:bg-white/20 rounded-lg transition-colors"

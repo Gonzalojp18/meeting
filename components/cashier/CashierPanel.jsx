@@ -24,6 +24,7 @@ import {
     MdNotifications,
     MdNotificationsOff
 } from 'react-icons/md';
+import HelpButton from '../help/HelpButton';
 
 const ORDER_STATUSES = {
     pending: { label: 'Pendiente', color: 'bg-yellow-100 text-yellow-800', icon: MdAccessTime },
@@ -237,15 +238,16 @@ const CashierPanel = ({ standalone = true }) => {
 
                             <button
                                 onClick={() => setSoundEnabled(!soundEnabled)}
-                                className={`p-2 rounded-lg transition-colors ${
-                                    soundEnabled
+                                className={`p-2 rounded-lg transition-colors ${soundEnabled
                                         ? 'bg-green-600 hover:bg-green-700'
                                         : 'bg-gray-700 hover:bg-gray-600'
-                                }`}
+                                    }`}
                                 title={soundEnabled ? 'Sonido activado - Click para silenciar' : 'Sonido desactivado - Click para activar'}
                             >
                                 {soundEnabled ? <MdNotifications size={24} /> : <MdNotificationsOff size={24} />}
                             </button>
+
+                            <HelpButton className="text-white hover:bg-gray-700 hover:text-white" />
 
                             <button
                                 onClick={handleLogout}
@@ -338,11 +340,10 @@ const CashierPanel = ({ standalone = true }) => {
                                 <>
                                     <button
                                         onClick={() => setSoundEnabled(!soundEnabled)}
-                                        className={`p-2 rounded-xl border transition-all shadow-sm flex-shrink-0 ${
-                                            soundEnabled
+                                        className={`p-2 rounded-xl border transition-all shadow-sm flex-shrink-0 ${soundEnabled
                                                 ? 'bg-green-50 text-green-600 border-green-200 hover:bg-green-100'
                                                 : 'bg-gray-50 text-gray-400 border-gray-200 hover:bg-gray-100'
-                                        }`}
+                                            }`}
                                         title={soundEnabled ? 'Sonido activado' : 'Sonido desactivado'}
                                     >
                                         {soundEnabled ? <MdNotifications size={20} /> : <MdNotificationsOff size={20} />}
