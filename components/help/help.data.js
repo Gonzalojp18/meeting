@@ -581,6 +581,68 @@ Las ventas generadas por upselling se marcan como "upsell" en los reportes, dife
             },
         ],
     },
+    {
+        id: 'ico',
+        title: 'Índice de Consistencia Operativa',
+        emoji: '📊',
+        color: 'purple',
+        roles: ['superadmin'],
+        articles: [
+            {
+                id: 'ico-overview',
+                title: '¿Qué es el ICO?',
+                content: `El Índice de Consistencia Operativa (ICO) es un score interno de 0 a 100 que mide la salud estructural de la operación de una sede.
+
+No es una calificación pública. No son estrellas. No es reputación social.
+
+Es diagnóstico operativo. Sirve para detectar desorden antes de que explote, ajustar tiempos y evaluar si una sede está lista para escalar.`,
+            },
+            {
+                id: 'ico-dimensiones',
+                title: 'Las 5 dimensiones del ICO',
+                content: `El score se construye combinando cinco dimensiones, cada una con un peso diferente:`,
+                steps: [
+                    '🟡 **Cumplimiento de tiempos (30%)** — Porcentaje de órdenes completadas en 20 minutos o menos.',
+                    '🟠 **Consistencia / Desviación estándar (25%)** — Mide la variabilidad de los tiempos. Un promedio de 18 min con oscilación entre 5 y 45 min es ruido operativo invisible en el promedio simple.',
+                    '🔵 **Control de cancelaciones (20%)** — Tasa inversa de cancelaciones. Cancelaciones frecuentes indican problemas de stock, comunicación o capacidad.',
+                    '🟢 **Actividad sostenida (15%)** — Cuántos días del período tuvieron al menos un pedido. Actividad fragmentada baja el score.',
+                    '⚪ **Estabilidad horaria (10%)** — Qué tan predecible es la distribución de pedidos a lo largo del día. Una distribución errática dificulta la planificación del staffing.',
+                ],
+            },
+            {
+                id: 'ico-tlc',
+                title: 'El Teorema del Límite Central y el umbral de 30 pedidos',
+                content: `El ICO requiere un mínimo de 30 órdenes con timestamps para calcular el score. Esta decisión tiene base estadística formal.
+
+El **Teorema del Límite Central** establece que, a partir de 30 muestras, la distribución de cualquier variable aleatoria comienza a comportarse de forma estadísticamente estable. Con menos muestras, un solo valor atípico distorsiona el score de forma desproporcionada.
+
+Ejemplo: Con 4 pedidos en el primer día (12, 8, 25, 14 min), un pedido lento sube la desviación estándar de forma artificial. El sistema mostraría "Ajustes necesarios" cuando no hay historial suficiente para juzgar. Con el umbral de 30, el ICO solo habla cuando tiene base para hablar.`,
+                tip: 'Con la operación activa, 30 órdenes se acumulan en 2 a 4 días. El período de rodaje es mínimo.',
+            },
+            {
+                id: 'ico-estados',
+                title: 'Escala de diagnóstico',
+                content: `El ICO no tiene premios ni ranking. Solo tiene estado operativo:`,
+                steps: [
+                    '🟢 **91 – 100: Alta consistencia operativa** — La sede opera dentro de parámetros óptimos.',
+                    '🔵 **76 – 90: Operación estable** — Sólida con margen de optimización.',
+                    '🟡 **51 – 75: Operación en consolidación** — Hay variabilidad estructural a trabajar.',
+                    '🔴 **0 – 50: Ajustes necesarios** — Fricciones estructurales que requieren atención.',
+                ],
+            },
+            {
+                id: 'ico-objetivo',
+                title: '¿Para qué usamos el ICO en Meeting?',
+                content: `El ICO tiene tres objetivos concretos en este proyecto:
+
+1. **Visibilidad operativa real.** El promedio de tiempos es insuficiente. El ICO agrega la capa de consistencia que el promedio no muestra: cuán predecible es la operación, no solo cuánto tarda.
+
+2. **Detección temprana de problemas.** Un ICO que baja de 80 a 55 en una semana es una señal de alerta. Sin este índice, ese deterioro puede ser invisible hasta que ya impactó en el cliente.
+
+3. **Criterio de escalado futuro.** Si Meeting se integra a la red TakeasyGO, el ICO será uno de los criterios para evaluar si la operación está lista estructuralmente. No se escala una operación inestable.`,
+            },
+        ],
+    },
 ];
 
 /**

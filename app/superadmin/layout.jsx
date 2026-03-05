@@ -1,7 +1,7 @@
 import { auth } from '@/auth';
 import { redirect } from 'next/navigation';
 import Link from 'next/link';
-import { MdDashboard, MdLocationOn, MdPeople, MdBarChart, MdLogout } from 'react-icons/md';
+import { MdDashboard, MdLocationOn, MdPeople, MdBarChart, MdLogout, MdInsights } from 'react-icons/md';
 import { isSuperAdmin } from '@/middleware/superadmin';
 import PoweredByTakeasy from '@/components/footer/PoweredByTakeasy';
 import SuperAdminHelpButton from '@/components/help/SuperAdminHelpButton';
@@ -28,10 +28,6 @@ export default async function SuperAdminLayout({ children }) {
                                 <h1 className="text-2xl font-bold">SuperAdmin Panel</h1>
                                 <p className="text-sm text-purple-100">Sistema de control maestro</p>
                             </div>
-                        </div>
-                        {/* TakeasyGO Badge */}
-                        <div className="hidden sm:flex items-center">
-                            <PoweredByTakeasy variant="dark" label="network" />
                         </div>
                         <div className="flex items-center gap-4">
                             <span className="text-sm text-purple-100">
@@ -65,6 +61,9 @@ export default async function SuperAdminLayout({ children }) {
                         </NavLink>
                         <NavLink href="/superadmin/analytics" icon={MdBarChart}>
                             Analytics
+                        </NavLink>
+                        <NavLink href="/superadmin/ico" icon={MdInsights}>
+                            ICO
                         </NavLink>
                     </div>
                 </div>
