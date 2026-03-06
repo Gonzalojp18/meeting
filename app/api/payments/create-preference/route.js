@@ -1,11 +1,13 @@
 import { NextResponse } from 'next/server';
 import { MercadoPagoConfig, Preference } from 'mercadopago';
+import mongoose from 'mongoose';
 import { getMPCredentials } from '@/utils/getMPCredentials';
 import dbConnect from '@/utils/dbConnect';
 import Settings from '@/models/Settings';
 import Menu from '@/models/Menu';
 import Order from '@/models/Order';
 import { DEFAULT_TAKEAWAY_HOURS, isWithinTakeawayHours } from '@/utils/constants';
+
 
 /**
  * SEGURIDAD: Valida los precios de los items contra la base de datos
@@ -159,8 +161,10 @@ export async function POST(req) {
 
         // =====================================================
         // CREAR LA ORDEN EN DB ANTES DE IR A MERCADOPAGO
-        // Garantiza que la orden exista independientemente de si
-        // el webhook llega correctamente o no.
+        // Usamos insertOne() para BYPASSEAR los hooks de Mongoose.
+        // El hook pre('save') usa encrypt() que falla en producción
+        // con código minificado ('a is not a function').
+        // Esta es la misma solución aplicada en test_print.
         // =====================================================
 
         // Generar order number (igual que el resto del codebase)
@@ -173,9 +177,9 @@ export async function POST(req) {
         const locationInfo = menuDoc?.locations?.find(l => l.nameId === locationId);
         const locationName = locationInfo?.name || locationId;
 
-        console.log(`[CREATE PREFERENCE] Creando orden ${orderNumber} para ${customerData.name}...`);
-
-        const pendingOrder = new Order({
+        // Construir el documento sin pasar por Mongoose (bypasea todos los hooks)
+        const now = new Date();
+        const orderDoc = {
             orderNumber,
             customer: {
                 name: customerData.name,
@@ -184,7 +188,7 @@ export async function POST(req) {
                 email: customerData.email || '',
             },
             items: validated.items.map(item => ({
-                itemId: item.itemId,
+                itemId: new mongoose.Types.ObjectId(item.itemId),
                 name: item.name,
                 quantity: item.quantity,
                 price: item.unitPrice,
@@ -196,10 +200,7 @@ export async function POST(req) {
                 origin: item.origin || 'organic',
                 ...(item.upsellId && { upsellId: item.upsellId }),
             })),
-            location: {
-                locationId,
-                locationName,
-            },
+            location: { locationId, locationName },
             deliveryMethod: customerData.deliveryMethod || 'Retiro en Sucursal',
             deliveryAddress: customerData.deliveryAddress || '',
             notes: (customerData.notes || '').toString().trim().substring(0, 500),
@@ -209,24 +210,25 @@ export async function POST(req) {
             paymentStatus: 'pending',
             status: 'pending',
             printStatus: { printed: false, error: false },
-        });
+            canBeCounted: true,
+            isDeleted: false,
+            printHistory: [],
+            createdAt: now,
+            updatedAt: now,
+        };
 
-        // Guardar con manejo específico de errores de validación
+        let insertedId;
         try {
-            await pendingOrder.save();
+            const result = await Order.collection.insertOne(orderDoc);
+            insertedId = result.insertedId;
+            console.log(`[CREATE PREFERENCE] ✅ Orden guardada: ${orderNumber} (${insertedId})`);
         } catch (saveErr) {
-            const detail = saveErr.errors
-                ? Object.keys(saveErr.errors).map(k => `${k}: ${saveErr.errors[k].message}`).join(', ')
-                : saveErr.message;
-            console.error('[CREATE PREFERENCE] ❌ Error guardando orden:', detail);
-            // Retornamos el detalle para que el error aparezca en la consola del navegador y en Vercel logs
+            console.error('[CREATE PREFERENCE] ❌ Error insertando orden:', saveErr.message);
             return NextResponse.json(
-                { error: 'Error al guardar la orden', detail },
+                { error: 'Error al guardar la orden', detail: saveErr.message },
                 { status: 500 }
             );
         }
-
-        console.log(`[CREATE PREFERENCE] ✅ Orden guardada: ${orderNumber} (${pendingOrder._id})`);
 
         // =====================================================
         // CREAR PREFERENCIA EN MERCADOPAGO
@@ -255,8 +257,9 @@ export async function POST(req) {
                 items: mpItems,
                 external_reference: JSON.stringify({
                     locationId,
-                    orderId: pendingOrder._id.toString(),
+                    orderId: insertedId.toString(),
                 }),
+
                 payer: {
                     name: customerData.name,
                     surname: customerData.lastname || '',
@@ -273,9 +276,10 @@ export async function POST(req) {
                 binary_mode: true,
                 payment_methods: { installments: 1 },
                 metadata: {
-                    order_id: pendingOrder._id.toString(),
+                    order_id: insertedId.toString(),
                     location_id: locationId,
                 },
+
             },
         });
 
@@ -284,9 +288,10 @@ export async function POST(req) {
         return NextResponse.json({
             init_point: result.init_point,
             preference_id: result.id,
-            orderId: pendingOrder._id.toString(),
+            orderId: insertedId.toString(),
             orderNumber,
         });
+
 
     } catch (error) {
         console.error('[CREATE PREFERENCE] ❌ Error general:', error.message, error.stack);
