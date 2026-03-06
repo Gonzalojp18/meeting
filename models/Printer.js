@@ -15,14 +15,23 @@ const printerSchema = new mongoose.Schema(
       unique: true,
       trim: true,
     },
+    connectionType: {
+      type: String,
+      enum: ["network", "usb"],
+      default: "network",
+    },
     ip: {
       type: String,
-      required: [true, "La IP es requerida"],
       trim: true,
+      // No requerida, porque impresoras USB no tienen IP (el agente las enruta por COM)
     },
     port: {
-      type: Number,
+      type: mongoose.Schema.Types.Mixed, // Permite Number (9100) o String ('COM3', '/dev/usb/lp0')
       default: 9100,
+    },
+    baudRate: {
+      type: Number,
+      default: 9600, // Común para serial, aunque su default será 38400 en UI
     },
     paperWidth: {
       type: Number,

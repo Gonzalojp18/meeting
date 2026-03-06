@@ -16,7 +16,7 @@ const PrinterManagement = ({ locations = [] }) => {
 
     // Estado para el formulario
     const [formData, setFormData] = useState({
-        name: '', uid: '', ip: '', port: 9100, paperWidth: 80, roles: ['kitchen'], locationId: ''
+        name: '', uid: '', ip: '', port: 9100, baudRate: 38400, connectionType: 'network', paperWidth: 80, roles: ['kitchen'], locationId: ''
     });
 
     const formRef = useRef(null);
@@ -113,6 +113,8 @@ const PrinterManagement = ({ locations = [] }) => {
             uid: '',
             ip: '',
             port: 9100,
+            baudRate: 38400,
+            connectionType: 'network',
             paperWidth: 80,
             roles: ['kitchen'],
             locationId: selectedLocation
@@ -128,6 +130,8 @@ const PrinterManagement = ({ locations = [] }) => {
             uid: device.uid,
             ip: device.ip,
             port: device.port || 9100,
+            baudRate: 38400,
+            connectionType: 'network',
             name: device.name || `Impresora (${device.ip})`,
             locationId: selectedLocation
         });
@@ -188,7 +192,9 @@ const PrinterManagement = ({ locations = [] }) => {
         try {
             // Generar UID automático si es manual
             const payload = { ...formData };
-            if (!payload.uid && payload.ip) {
+            if (payload.connectionType === 'usb' && !payload.uid) {
+                payload.uid = `usb-${payload.port}-${Date.now().toString().slice(-4)}`;
+            } else if (!payload.uid && payload.ip) {
                 payload.uid = `manual-${payload.ip.replace(/\./g, '-')}-${Date.now().toString().slice(-4)}`;
             }
 
@@ -212,6 +218,8 @@ const PrinterManagement = ({ locations = [] }) => {
                     uid: '',
                     ip: '',
                     port: 9100,
+                    baudRate: 38400,
+                    connectionType: 'network',
                     paperWidth: 80,
                     roles: ['kitchen'],
                     locationId: selectedLocation
@@ -372,16 +380,53 @@ const PrinterManagement = ({ locations = [] }) => {
                             />
                         </div>
                         <div className="space-y-1">
-                            <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider">IP Address</label>
-                            <input
-                                required
-                                value={formData.ip}
-                                onChange={e => setFormData({ ...formData, ip: e.target.value })}
-                                disabled={!!editingPrinter && formData.uid.startsWith('vtp-')} // Solo deshabilitar si es una virtual o editando scan real
-                                className="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-sm font-mono focus:ring-2 focus:ring-emerald-500 outline-none"
-                                placeholder="Ej: 192.168.0.33"
-                            />
+                            <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider">Tipo de Conexión</label>
+                            <div className="flex bg-gray-100 rounded-xl p-1">
+                                <button type="button" onClick={() => setFormData({ ...formData, connectionType: 'network' })} className={`flex-1 py-2 text-xs font-bold rounded-lg transition-all ${formData.connectionType === 'network' || !formData.connectionType ? 'bg-white shadow-sm text-indigo-700' : 'text-gray-500 hover:bg-gray-200'}`}>Red / WiFi</button>
+                                <button type="button" onClick={() => setFormData({ ...formData, connectionType: 'usb', port: 'COM3', ip: '' })} className={`flex-1 py-2 text-xs font-bold rounded-lg transition-all ${formData.connectionType === 'usb' ? 'bg-white shadow-sm text-indigo-700' : 'text-gray-500 hover:bg-gray-200'}`}>USB / Serial</button>
+                            </div>
                         </div>
+
+                        {formData.connectionType === 'usb' ? (
+                            <>
+                                <div className="space-y-1">
+                                    <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider">Puerto COM (Windows)</label>
+                                    <input
+                                        required
+                                        value={formData.port}
+                                        onChange={e => setFormData({ ...formData, port: e.target.value })}
+                                        className="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-sm font-mono focus:ring-2 focus:ring-emerald-500 outline-none"
+                                        placeholder="Ej: COM3, COM4"
+                                    />
+                                </div>
+                                <div className="space-y-1">
+                                    <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider">Baud Rate (Velocidad)</label>
+                                    <select
+                                        value={formData.baudRate || 38400}
+                                        onChange={e => setFormData({ ...formData, baudRate: parseInt(e.target.value) })}
+                                        className="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-sm font-bold focus:ring-2 focus:ring-emerald-500 outline-none cursor-pointer"
+                                    >
+                                        <option value="9600">9600</option>
+                                        <option value="19200">19200</option>
+                                        <option value="38400">38400 (Ticket)</option>
+                                        <option value="57600">57600</option>
+                                        <option value="115200">115200</option>
+                                    </select>
+                                </div>
+                            </>
+                        ) : (
+                            <div className="space-y-1">
+                                <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider">IP Address</label>
+                                <input
+                                    required
+                                    value={formData.ip}
+                                    onChange={e => setFormData({ ...formData, ip: e.target.value })}
+                                    disabled={!!editingPrinter && formData.uid.startsWith('vtp-')} // Solo deshabilitar si es una virtual o editando scan real
+                                    className="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-sm font-mono focus:ring-2 focus:ring-emerald-500 outline-none"
+                                    placeholder="Ej: 192.168.0.33"
+                                />
+                            </div>
+                        )}
                     </div>
 
                     <div className="flex flex-col sm:flex-row gap-6 pt-2">
@@ -449,22 +494,26 @@ const PrinterManagement = ({ locations = [] }) => {
                             </div>
                             <div className="mt-5 space-y-3">
                                 <div className="flex items-center justify-between text-[11px] text-gray-400 bg-gray-50/50 p-2.5 rounded-xl border border-gray-100">
-                                    <p className="flex items-center gap-2 font-mono text-xs">
-                                        <MdDns className="h-4 w-4 text-indigo-400" />
-                                        {printer.ip}
+                                    <p className="flex items-center gap-2 font-mono text-xs font-bold">
+                                        <MdDns className={`h-4 w-4 ${printer.connectionType === 'usb' ? 'text-emerald-500' : 'text-indigo-400'}`} />
+                                        {printer.connectionType === 'usb'
+                                            ? `USB: ${printer.port} (${printer.baudRate || 38400} baudios)`
+                                            : printer.ip}
                                     </p>
                                     <div className="flex gap-2">
-                                        <button
-                                            onClick={() => handleTestConnection(printer._id)}
-                                            className="text-indigo-600 hover:text-indigo-800 font-bold flex items-center gap-1 bg-white px-2 py-1 rounded-md shadow-sm border border-indigo-50"
-                                            title="Probar conexión"
-                                        >
-                                            <MdRefresh className="h-3 w-3" /> TEST
-                                        </button>
+                                        {printer.connectionType !== 'usb' && (
+                                            <button
+                                                onClick={() => handleTestConnection(printer._id)}
+                                                className="text-indigo-600 hover:text-indigo-800 font-bold flex items-center gap-1 bg-white px-2 py-1 rounded-md shadow-sm border border-indigo-50 transition-colors"
+                                                title="Probar conexión IP"
+                                            >
+                                                <MdRefresh className="h-3 w-3" /> TEST
+                                            </button>
+                                        )}
                                         <button
                                             onClick={() => handleTestPrint(printer._id)}
-                                            className="text-emerald-600 hover:text-emerald-800 font-bold flex items-center gap-1 bg-white px-2 py-1 rounded-md shadow-sm border border-emerald-50"
-                                            title="Imprimir tique de prueba"
+                                            className="text-emerald-600 hover:text-emerald-800 font-bold flex items-center gap-1 bg-white px-2 py-1 rounded-md shadow-sm border border-emerald-50 transition-colors"
+                                            title="Encolar ticket de prueba (El agente lo recogerá)"
                                         >
                                             <MdPrint className="h-3 w-3" /> PRUEBA
                                         </button>

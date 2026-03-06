@@ -2,6 +2,7 @@ const axios = require('axios');
 const net = require('node:net');
 const fs = require('fs');
 const path = require('path');
+const { SerialPort } = require('serialport');
 
 // --- CONFIGURACIÓN ---
 const CONFIG_PATH = path.join(__dirname, 'config.json');
@@ -68,6 +69,31 @@ async function sendToPrinter(ip, port, dataBuffer) {
     });
 }
 
+// --- LÓGICA DE TRASMISIÓN (SERIAL / USB) ---
+async function sendToSerialPrinter(portName, baudRate, dataBuffer) {
+    return new Promise((resolve, reject) => {
+        console.log(`[SERIAL] Enviando datos a ${portName} a ${baudRate} baudios...`);
+        const port = new SerialPort({ path: portName, baudRate: baudRate || 38400 }, function (err) {
+            if (err) {
+                return reject(new Error(`Error abriendo puerto ${portName}: ${err.message}`));
+            }
+        });
+
+        port.write(dataBuffer, function (err) {
+            if (err) {
+                return reject(new Error(`Error escribiendo en ${portName}: ${err.message}`));
+            }
+            port.drain((err) => {
+                if (err) {
+                    return reject(new Error(`Error vaciando buffer en ${portName}: ${err.message}`));
+                }
+                port.close();
+                resolve();
+            });
+        });
+    });
+}
+
 // --- GESTOR DE COLAS SECUENCIAL ---
 // Asegura que si hay 10 tickets, se impriman en orden y no al mismo tiempo
 class JobManager {
@@ -81,7 +107,13 @@ class JobManager {
         const tail = this.queues.get(printerUid);
         const next = tail.then(async () => {
             try {
-                await sendToPrinter(printerConfig.ip, printerConfig.port, buffer);
+                if (printerConfig.connectionType === 'usb') {
+                    // USB/SERIAL Printer
+                    await sendToSerialPrinter(printerConfig.port, printerConfig.baudRate, buffer);
+                } else {
+                    // NETWORK/TCP Printer
+                    await sendToPrinter(printerConfig.ip, printerConfig.port, buffer);
+                }
                 await onComplete(true);
             } catch (err) {
                 console.error(`[FALLO] ${printerConfig.name}: ${err.message}`);
