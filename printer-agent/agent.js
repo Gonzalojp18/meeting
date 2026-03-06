@@ -72,25 +72,37 @@ async function sendToPrinter(ip, port, dataBuffer) {
 // --- LÓGICA DE TRASMISIÓN (SERIAL / USB) ---
 async function sendToSerialPrinter(portName, baudRate, dataBuffer) {
     return new Promise((resolve, reject) => {
-        console.log(`[SERIAL] Enviando datos a ${portName} a ${baudRate} baudios...`);
-        const port = new SerialPort({ path: portName, baudRate: baudRate || 38400 }, function (err) {
-            if (err) {
-                return reject(new Error(`Error abriendo puerto ${portName}: ${err.message}`));
-            }
-        });
+        console.log(`[SERIAL] Abriendo puerto ${portName}... (Baudios: ${baudRate})`);
 
-        port.write(dataBuffer, function (err) {
-            if (err) {
-                return reject(new Error(`Error escribiendo en ${portName}: ${err.message}`));
-            }
-            port.drain((err) => {
+        try {
+            const port = new SerialPort({ path: portName, baudRate: baudRate || 38400, autoOpen: false });
+
+            port.open(function (err) {
                 if (err) {
-                    return reject(new Error(`Error vaciando buffer en ${portName}: ${err.message}`));
+                    return reject(new Error(`Acceso denegado o puerto inexistente en ${portName}: ${err.message}`));
                 }
-                port.close();
-                resolve();
+
+                console.log(`[SERIAL] Escribiendo datos al ${portName}...`);
+                port.write(dataBuffer, function (writeErr) {
+                    if (writeErr) {
+                        port.close();
+                        return reject(new Error(`Fallo escritura en ${portName}: ${writeErr.message}`));
+                    }
+
+                    port.drain((drainErr) => {
+                        if (drainErr) {
+                            port.close();
+                            return reject(new Error(`Fallo vaciado en ${portName}: ${drainErr.message}`));
+                        }
+                        console.log(`[SERIAL] Ticket enviado y cortado con éxito en ${portName}`);
+                        port.close();
+                        resolve();
+                    });
+                });
             });
-        });
+        } catch (fatalErr) {
+            reject(new Error(`Error fatal iniciando conexión serial a ${portName}: ${fatalErr.message}`));
+        }
     });
 }
 
@@ -232,6 +244,9 @@ function generateTicket(order, role, columns = 32) {
 }
 
 // --- POLLING PRINCIPAL ---
+// Set para rastrear órdenes que ya se mandaron a la cola pero la nube todavía no sabe
+const inFlightOrders = new Set();
+
 async function poll() {
     try {
         const url = `${config.apiUrl}/api/print-jobs?locationId=${config.locationId}`;
@@ -240,9 +255,24 @@ async function poll() {
 
         if (!orders || orders.length === 0) return;
 
-        console.log(`[POLL] ${orders.length} pedidos nuevos detectados.`);
+        // Limpiamos inFlightOrders de aquellos pedidos que ya no vienen pendientes de la nube
+        const incomingIds = new Set(orders.map(o => o._id));
+        for (const flyingId of inFlightOrders) {
+            if (!incomingIds.has(flyingId)) {
+                inFlightOrders.delete(flyingId);
+            }
+        }
+
+        let newOrdersCount = 0;
 
         for (const order of orders) {
+            // Prevensión de TIQUE DOBLE (Si ya la agarramos hace unos milisegundos y está imprimiendo, la saltamos)
+            if (inFlightOrders.has(order._id)) {
+                continue;
+            }
+            newOrdersCount++;
+            inFlightOrders.add(order._id);
+
             for (const printer of printers) {
                 for (const role of printer.roles) {
                     // Solo imprimimos si el rol coincide (Kitchen/Cashier)
@@ -252,6 +282,15 @@ async function poll() {
 
                     if (!ticketBuffer) {
                         console.log(`[SKIP] Orden ${order.orderNumber} no tiene items para ${printer.name} (${role})`);
+                        // Fundamental: Avisar a la API que evaluamos este rol aunque lo hayamos tirado
+                        // para que la nube no se quede esperando confirmación de esta impresora fantasma eternamente.
+                        axios.post(`${config.apiUrl}/api/print-jobs`, {
+                            orderId: order._id,
+                            printerName: printer.name,
+                            role: role,
+                            success: true,
+                            errorMsg: null
+                        }).catch(() => { });
                         continue;
                     }
 
@@ -265,6 +304,7 @@ async function poll() {
                                 errorMsg
                             });
                             console.log(`[CLOUD] Estado sincronizado para Orden ${order.orderNumber}`);
+                            // En el próximo ciclo la nube ya no la mandará, inFlightOrders la borrará automático
                         } catch (e) {
                             console.error(`[CLOUD ERROR] No se pudo confirmar impresión: ${e.message}`);
                         }

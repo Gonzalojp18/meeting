@@ -21,10 +21,12 @@ export async function GET(req) {
     await dbConnect();
 
     // 1. Obtener órdenes aprobadas que NO han sido impresas aún
+    // Y que NO estén marcadas con error de impresión (para no hacer loop infinito si la impresora falla recurrentemente)
     const pendingOrders = await Order.find({
       "location.locationId": locationId,
       paymentStatus: "approved",
       "printStatus.printed": false,
+      "printStatus.error": false,
       status: { $in: ["confirmed", "preparing", "pending"] },
       isDeleted: false
     }).sort({ createdAt: 1 });
@@ -55,7 +57,8 @@ export async function GET(req) {
     const enrichedOrders = pendingOrders.map(order => {
       const orderObj = order.toObject();
       orderObj.items = orderObj.items.map(item => {
-        const role = itemRoleMap[item.itemId.toString()] || 'kitchen';
+        // Usa el printRole inyectado (como en test_print), sino lo busca en menu, sino kitchen
+        const role = item.printRole || itemRoleMap[item.itemId.toString()] || 'kitchen';
         return { ...item, printRole: role };
       });
       return orderObj;

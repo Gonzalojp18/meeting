@@ -141,6 +141,19 @@ export async function GET(req) {
       try {
         const fakeId = new mongoose.Types.ObjectId();
         const now = new Date();
+        const rolesParam = searchParams.get("roles");
+        // Si no mandan roles, usamos kitchen por defecto
+        const reqRoles = rolesParam ? rolesParam.split(',') : ['kitchen'];
+
+        // Generamos un ítem por cada rol que se requiere testear
+        const testItems = reqRoles.map(r => ({
+          _id: new mongoose.Types.ObjectId(),
+          itemId: fakeId,
+          name: `TICKET DE PRUEBA (${r.toUpperCase()})`,
+          quantity: 1,
+          price: 0,
+          printRole: r // inyectamos el rol hardcoded
+        }));
 
         await Order.collection.insertOne({
           _id: new mongoose.Types.ObjectId(),
@@ -151,13 +164,7 @@ export async function GET(req) {
             phone: "000000000",
             email: "staff@test.com",
           },
-          items: [{
-            _id: new mongoose.Types.ObjectId(),
-            itemId: fakeId,
-            name: "TICKET DE PRUEBA DE CONEXIÓN",
-            quantity: 1,
-            price: 0,
-          }],
+          items: testItems,
           location: {
             locationName: "Sede Operativa",
             locationId: locationId || "location1",
