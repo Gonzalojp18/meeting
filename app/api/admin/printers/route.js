@@ -134,46 +134,52 @@ export async function GET(req) {
     }
 
     // Imprimir Prueba (Cloud Friendly)
+    // Usamos collection.insertOne() directo al driver de MongoDB para BYPASSEAR
+    // los hooks Mongoose (pre-save de cifrado / post-save de descifrado).
+    // No es necesario cifrar una orden de prueba — solo debe ser detectada por el agente.
     if (action === "test_print") {
-      const roles = searchParams.get("roles")?.split(",") || [];
-      const printerId = searchParams.get("printerId");
-
-      const fakeId = new mongoose.Types.ObjectId();
-
       try {
-        await Order.create({
+        const fakeId = new mongoose.Types.ObjectId();
+        const now = new Date();
+
+        await Order.collection.insertOne({
+          _id: new mongoose.Types.ObjectId(),
           orderNumber: `TEST-${Date.now().toString().slice(-6)}`,
           customer: {
             name: "PRUEBA DE SISTEMA",
             lastname: "OPERADOR",
             phone: "000000000",
-            email: "staff@test.com"
+            email: "staff@test.com",
           },
           items: [{
+            _id: new mongoose.Types.ObjectId(),
             itemId: fakeId,
             name: "TICKET DE PRUEBA DE CONEXIÓN",
             quantity: 1,
-            price: 0
+            price: 0,
           }],
           location: {
             locationName: "Sede Operativa",
             locationId: locationId || "location1",
           },
           deliveryMethod: "Retiro en Sucursal",
-          source: "direct",
           total: 0,
           subtotal: 0,
+          deliveryFee: 0,
           paymentStatus: "approved",
           status: "confirmed",
-          printStatus: {
-            printed: false,
-            error: false
-          },
-          isDeleted: false
+          printStatus: { printed: false, error: false },
+          printHistory: [],
+          isDeleted: false,
+          createdAt: now,
+          updatedAt: now,
         });
-      } catch (createErr) {
-        console.error('[test_print] Error creando orden de prueba:', createErr.message);
-        return NextResponse.json({ error: 'Error al crear ticket de prueba: ' + createErr.message }, { status: 500 });
+      } catch (insertErr) {
+        console.error('[test_print] Error insertando orden de prueba:', insertErr.message);
+        return NextResponse.json(
+          { error: 'Error al crear ticket de prueba: ' + insertErr.message },
+          { status: 500 }
+        );
       }
 
       return NextResponse.json({ success: true, message: "Ticket de prueba creado." });
