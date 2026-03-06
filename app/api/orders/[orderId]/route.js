@@ -58,18 +58,23 @@ export async function PATCH(req, { params }) {
         // Update fields
         const previousStatus = order.status;
 
-        if (updates.status) order.status = updates.status;
-        if (updates.paymentStatus) order.paymentStatus = updates.paymentStatus;
-        if (updates.adminNotes !== undefined) order.adminNotes = updates.adminNotes.trim();
+        const updateQuery = { $set: {} };
+        if (updates.status) updateQuery.$set.status = updates.status;
+        if (updates.paymentStatus) updateQuery.$set.paymentStatus = updates.paymentStatus;
+        if (updates.adminNotes !== undefined) updateQuery.$set.adminNotes = updates.adminNotes.trim();
 
         // Auto-set timestamps operativos según transición de estado
-        if (updates.status === 'confirmed' && !order.confirmedAt) order.confirmedAt = new Date();
-        if (updates.status === 'ready' && !order.readyAt) order.readyAt = new Date();
-        if (updates.status === 'completed' && !order.deliveredAt) order.deliveredAt = new Date();
-        if (updates.status === 'completed') order.completedAt = new Date();
-        if (updates.status === 'cancelled') order.cancelledAt = new Date();
+        if (updates.status === 'confirmed' && !order.confirmedAt) updateQuery.$set.confirmedAt = new Date();
+        if (updates.status === 'ready' && !order.readyAt) updateQuery.$set.readyAt = new Date();
+        if (updates.status === 'completed' && !order.deliveredAt) updateQuery.$set.deliveredAt = new Date();
+        if (updates.status === 'completed') updateQuery.$set.completedAt = new Date();
+        if (updates.status === 'cancelled') updateQuery.$set.cancelledAt = new Date();
 
-        await order.save();
+        // Update usando updateOne para bypassar los hooks de Mongoose ('a is not a function')
+        await Order.updateOne({ _id: order._id }, updateQuery);
+
+        // Reflejar cambios en la memoria local para retornar un objeto completo
+        Object.assign(order, updateQuery.$set);
 
         // Trigger kitchen printing automatically ONLY when status changes to 'preparing'
         if (
@@ -84,7 +89,15 @@ export async function PATCH(req, { params }) {
 
         return NextResponse.json(order);
     } catch (error) {
-        console.error('Error updating order:', error);
-        return NextResponse.json({ error: 'Error del servidor' }, { status: 500 });
+        console.error('[ORDER UPDATE ERROR]:', error.message, error.stack);
+        const detail = error.errors
+            ? Object.keys(error.errors).map(k => `${k}: ${error.errors[k].message}`).join(', ')
+            : error.message;
+
+        return NextResponse.json(
+            { error: 'Error del servidor al actualizar estado', detail },
+            { status: 500 }
+        );
     }
 }
+
