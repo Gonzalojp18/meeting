@@ -88,7 +88,10 @@ const AdminPanel = () => {
 
   // Fetch Stats for Dashboard
   useEffect(() => {
-    if (activeTab === 'dashboard' && token) {
+    const role = session?.user?.role;
+    const canViewStats = ['admin', 'manager', 'superadmin'].includes(role);
+
+    if (activeTab === 'dashboard' && token && canViewStats) {
       const fetchDashboardStats = async () => {
         setStatsLoading(true);
         try {
@@ -103,6 +106,10 @@ const AdminPanel = () => {
           const res = await fetch(url, {
             headers: { Authorization: `Bearer ${token}` }
           });
+          if (!res.ok) {
+            console.warn('[AdminPanel] Stats API returned', res.status, '— skipping.');
+            return;
+          }
           const data = await res.json();
           setStatsData(data);
         } catch (err) {
@@ -113,7 +120,7 @@ const AdminPanel = () => {
       };
       fetchDashboardStats();
     }
-  }, [activeTab, token, dashboardLocation]);
+  }, [activeTab, token, dashboardLocation, session]);
 
   // ========== MÉTRICAS DEL DASHBOARD (CALCULADAS) ==========
   const dashboardMetrics = useMemo(() => {

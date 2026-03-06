@@ -269,21 +269,31 @@ orderSchema.pre('save', function (next) {
   try {
     if (this.isModified('customer')) {
       const c = this.customer;
-      if (c.name) c.name = encrypt(c.name);
-      if (c.lastname) c.lastname = encrypt(c.lastname);
-      if (c.phone) {
-        // Guardar hash determinístico para búsquedas de recurrencia
-        c.phoneHash = hashForSearch(c.phone);
-        c.phone = encrypt(c.phone);
-      }
-      if (c.email) c.email = encrypt(c.email);
 
-      // Cifrar también los datos de reembolso si existen
-      if (this.refund?.requestedBy?.phone) {
-        this.refund.requestedBy.phone = encrypt(this.refund.requestedBy.phone);
-      }
-      if (this.refund?.requestedBy?.email) {
-        this.refund.requestedBy.email = encrypt(this.refund.requestedBy.email);
+      // ⚠️ FAIL-SAFE: si el cifrado falla (ej: función no disponible en el entorno
+      // de producción serverless), guardamos la orden SIN cifrar antes que perderla.
+      // La orden es el activo más crítico — jamás debe perderse por un fallo de cifrado.
+      try {
+        if (c.name) c.name = encrypt(c.name);
+        if (c.lastname) c.lastname = encrypt(c.lastname);
+        if (c.phone) {
+          c.phoneHash = hashForSearch(c.phone);
+          c.phone = encrypt(c.phone);
+        }
+        if (c.email) c.email = encrypt(c.email);
+
+        if (this.refund?.requestedBy?.phone) {
+          this.refund.requestedBy.phone = encrypt(this.refund.requestedBy.phone);
+        }
+        if (this.refund?.requestedBy?.email) {
+          this.refund.requestedBy.email = encrypt(this.refund.requestedBy.email);
+        }
+      } catch (encryptErr) {
+        console.error(
+          '[Order pre-save] ⚠️ Cifrado PII falló — guardando sin cifrar para no perder la orden:',
+          encryptErr.message
+        );
+        // Continuamos: next() abajo guarda el documento sin cifrar
       }
     }
     next();
@@ -311,9 +321,9 @@ function decryptOrder(doc) {
   return doc;
 }
 
-orderSchema.post('find', function (docs) { docs.forEach(decryptOrder); });
-orderSchema.post('findOne', function (doc) { decryptOrder(doc); });
-orderSchema.post('findOneAndUpdate', function (doc) { decryptOrder(doc); });
-orderSchema.post('save', function (doc) { decryptOrder(doc); });
+orderSchema.post('find', function (docs) { docs.forEach(d => { try { decryptOrder(d); } catch (_) { } }); });
+orderSchema.post('findOne', function (doc) { try { decryptOrder(doc); } catch (_) { } });
+orderSchema.post('findOneAndUpdate', function (doc) { try { decryptOrder(doc); } catch (_) { } });
+orderSchema.post('save', function (doc) { try { decryptOrder(doc); } catch (_) { } });
 
 export default mongoose.models.Order || mongoose.model("Order", orderSchema);

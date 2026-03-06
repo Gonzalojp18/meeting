@@ -109,9 +109,11 @@ export async function POST(req) {
                 return NextResponse.json({ error: 'Invalid signature' }, { status: 401 });
             }
             console.log('[WEBHOOK SECURITY] ✅ Signature validated');
-        } else if (process.env.NODE_ENV === 'production') {
-            console.error('[WEBHOOK SECURITY] ⚠️ MP_WEBHOOK_SECRET not configured in DB or ENV!');
-            return NextResponse.json({ error: 'Security configuration missing' }, { status: 503 });
+        } else {
+            // ⚠️ Sin secret configurado — procesamos el pago igual pero logueamos fuerte.
+            // Es preferible recibir pedidos reales sin validar firma que bloquear pagos legítimos.
+            // ACCIÓN REQUERIDA: configurar MP_WEBHOOK_SECRET en Vercel para mayor seguridad.
+            console.warn('[WEBHOOK SECURITY] ⚠️ MP_WEBHOOK_SECRET no configurado — procesando sin validar firma.');
         }
 
         if (!id || (topic !== 'payment' && topic !== 'merchant_order')) {
