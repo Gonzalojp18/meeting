@@ -12,45 +12,50 @@ function sanitizePaymentId(input) {
     return input.replace(/[^0-9]/g, '').substring(0, 30);
 }
 
-// GET /api/orders/by-payment/[paymentId]
-// Endpoint público para buscar orden por ID de pago de MercadoPago
-// Recuperación automática: Si no existe en DB pero sí en MP, la crea.
+/**
+ * GET /api/orders/by-payment/[paymentId]
+ * Busca la orden confirmada por ID de pago de MercadoPago.
+ *
+ * Sistema de recuperación de 3 niveles:
+ * 1. Buscar en DB por mercadoPagoId  (webhook ya procesó)
+ * 2. Buscar en DB por orderId de metadata (orden creada antes del pago, webhook tardó)
+ * 3. Crear la orden como último recurso si el pago está aprobado en MP
+ */
 export async function GET(req, { params }) {
     try {
         await dbConnect();
 
         const { paymentId: rawPaymentId } = await params;
-
         if (!rawPaymentId) {
             return NextResponse.json({ error: 'paymentId es requerido' }, { status: 400 });
         }
 
-        // Sanitizar entrada
         const paymentId = sanitizePaymentId(rawPaymentId);
         if (!paymentId) {
             return NextResponse.json({ error: 'Formato de paymentId inválido' }, { status: 400 });
         }
 
-        // 1. Intentar buscar en DB Local
+        // ── NIVEL 1: Buscar por mercadoPagoId en DB ──────────────────────────────
+        // Caso nominal: el webhook ya llegó y confirmó la orden.
         let order = await Order.findOne({ mercadoPagoId: paymentId });
-
-        // 2. Si existe, retornarla
         if (order) {
             return NextResponse.json({
                 orderNumber: order.orderNumber,
                 orderId: order._id,
                 status: order.status,
-                locationId: order.location?.locationId
+                locationId: order.location?.locationId,
             });
         }
 
-        // 3. FALLBACK: Si no existe, podría ser que el webhook falló (ej: localhost).
-        // Consultamos directo a Mercado Pago.
-        console.log(`[RECOVERY] Orden no encontrada para pago ${paymentId}. Consultando MP...`);
+        // ── Consultar MercadoPago para los niveles 2 y 3 ─────────────────────────
+        console.log(`[RECOVERY] Orden no encontrada por paymentId ${paymentId}. Consultando MP...`);
 
         const credentials = await getMPCredentials();
         if (!credentials) {
-            return NextResponse.json({ error: 'Pedido no encontrado y MP no configurado' }, { status: 404 });
+            return NextResponse.json(
+                { error: 'Pedido no encontrado y MP no configurado' },
+                { status: 404 }
+            );
         }
 
         const client = new MercadoPagoConfig({ accessToken: credentials.accessToken });
@@ -61,30 +66,70 @@ export async function GET(req, { params }) {
             paymentInfo = await paymentClient.get({ id: paymentId });
         } catch (mpError) {
             console.error('[RECOVERY] Error consultando MP:', mpError.message);
-            return NextResponse.json({ error: 'Pedido no encontrado y error en MP' }, { status: 404 });
+            return NextResponse.json(
+                { error: 'Pedido no encontrado y error en MP' },
+                { status: 404 }
+            );
         }
 
-        // 4. Si el pago existe y está aprobado, CREAR LA ORDEN AHORA
-        if (paymentInfo && paymentInfo.status === 'approved') {
-            console.log(`[RECOVERY] Pago ${paymentId} está APROBADO en MP. Recuperando orden...`);
-            try {
-                // Usamos el servicio compartido para crear la orden
-                order = await createOrderFromPayment(paymentInfo);
+        if (!paymentInfo) {
+            return NextResponse.json({ error: 'Pedido no encontrado' }, { status: 404 });
+        }
 
+        // ── NIVEL 2: Buscar la orden pre-existente por orderId del metadata ───────
+        // La orden fue creada en create-preference antes de ir a MP.
+        // El webhook todavía no llegó (o falló), pero la orden YA existe en DB.
+        const meta = paymentInfo.metadata || {};
+        const orderId = meta.order_id || meta.orderId; // MP convierte camelCase → snake_case
+
+        if (orderId) {
+            const updatedOrder = await Order.findByIdAndUpdate(
+                orderId,
+                {
+                    $set: {
+                        paymentStatus: 'approved',
+                        mercadoPagoId: paymentId,
+                        status: 'confirmed',
+                        'printStatus.printed': false,
+                        'printStatus.error': false,
+                    }
+                },
+                { new: true }
+            );
+
+            if (updatedOrder) {
+                console.log(`[RECOVERY] ✅ Nivel 2 — Orden recuperada: ${updatedOrder.orderNumber}`);
+                return NextResponse.json({
+                    orderNumber: updatedOrder.orderNumber,
+                    orderId: updatedOrder._id,
+                    status: updatedOrder.status,
+                    locationId: updatedOrder.location?.locationId,
+                    recovered: true,
+                });
+            }
+        }
+
+        // ── NIVEL 3: Crear la orden como último recurso ────────────────────────────
+        if (paymentInfo.status === 'approved') {
+            console.log(`[RECOVERY] Nivel 3 — Creando orden desde metadata MP para pago ${paymentId}...`);
+            try {
+                order = await createOrderFromPayment(paymentInfo);
                 return NextResponse.json({
                     orderNumber: order.orderNumber,
                     orderId: order._id,
                     status: order.status,
                     locationId: order.location?.locationId,
-                    recovered: true
+                    recovered: true,
                 });
             } catch (createError) {
-                console.error('[RECOVERY] Error creando orden recuperada:', createError);
-                return NextResponse.json({ error: 'Error al recuperar la orden' }, { status: 500 });
+                console.error('[RECOVERY] Nivel 3 falló:', createError.message);
+                return NextResponse.json(
+                    { error: 'Error al recuperar la orden' },
+                    { status: 500 }
+                );
             }
         }
 
-        // Si no está aprobado o no existe
         return NextResponse.json({ error: 'Pedido no encontrado' }, { status: 404 });
 
     } catch (error) {

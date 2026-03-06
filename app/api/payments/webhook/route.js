@@ -177,15 +177,40 @@ export async function POST(req) {
             return NextResponse.json({ received: true });
         }
 
-        // --- Creación de Orden ---
+        // --- Creación/Actualización de Orden ---
         await dbConnect();
 
-        // Usamos el servicio centralizado para crear la orden
-        // Esto maneja idempotencia (evita duplicados) y parseo de metadata
+        // Estrategia principal: el orderId viene en metadata (creado en create-preference)
+        const meta = paymentInfo.metadata || {};
+        const orderId = meta.order_id || meta.orderId; // MP convierte camelCase a snake_case
+
+        if (orderId) {
+            // Actualizar la orden pendiente que ya fue creada en create-preference
+            const updatedOrder = await Order.findByIdAndUpdate(
+                orderId,
+                {
+                    $set: {
+                        paymentStatus: 'approved',
+                        mercadoPagoId: paymentInfo.id.toString(),
+                        status: 'confirmed',
+                        'printStatus.printed': false,
+                        'printStatus.error': false,
+                    }
+                },
+                { new: true }
+            );
+
+            if (updatedOrder) {
+                console.log(`[WEBHOOK] ✅ Orden actualizada: ${updatedOrder.orderNumber} → confirmed`);
+                return NextResponse.json({ received: true, order: updatedOrder.orderNumber });
+            } else {
+                console.warn(`[WEBHOOK] ⚠️ orderId ${orderId} no encontrado en DB. Intentando fallback...`);
+            }
+        }
+
+        // Fallback: crear orden desde metadata (compatibilidad con pagos anteriores al refactor)
         const newOrder = await createOrderFromPayment(paymentInfo);
-
-        console.log(`[WEBHOOK] ✅ Orden procesada/creada: ${newOrder.orderNumber}`);
-
+        console.log(`[WEBHOOK] ✅ Orden creada (fallback): ${newOrder.orderNumber}`);
         return NextResponse.json({ received: true, order: newOrder.orderNumber });
 
     } catch (error) {
