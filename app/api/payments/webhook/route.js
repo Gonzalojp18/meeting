@@ -193,8 +193,7 @@ export async function POST(req) {
                         paymentStatus: 'approved',
                         mercadoPagoId: paymentInfo.id.toString(),
                         status: 'confirmed',
-                        'printStatus.printed': false,
-                        'printStatus.error': false,
+                        // NO tocar printStatus — es manejado exclusivamente por el agente de impresión
                     }
                 },
                 { new: true }

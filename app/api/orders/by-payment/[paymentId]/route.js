@@ -90,8 +90,7 @@ export async function GET(req, { params }) {
                         paymentStatus: 'approved',
                         mercadoPagoId: paymentId,
                         status: 'confirmed',
-                        'printStatus.printed': false,
-                        'printStatus.error': false,
+                        // NO tocar printStatus — es manejado exclusivamente por el agente de impresión
                     }
                 },
                 { new: true }
