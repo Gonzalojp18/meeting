@@ -3,6 +3,7 @@ import dbConnect from '@/utils/dbConnect';
 import Order from '@/models/Order';
 import Counter from '@/models/Counter';
 import { auth } from '@/auth';
+import mongoose from 'mongoose';
 import { Ratelimit } from '@upstash/ratelimit';
 import { Redis } from '@upstash/redis';
 import { trackCustomer } from '@/utils/customerTracking';
@@ -93,15 +94,19 @@ export async function POST(req) {
         const timestampStr = Date.now().toString().slice(-6);
         const orderNumber = `ORD-${timestampStr}-${counter.seq}`;
 
-        // 🔒 Solo usamos campos validados — eliminado spread del body del cliente
-        const newOrder = new Order({
+        // 🔒 Construir documento nativo bypassando hooks (evita error de cifrado en Vercel)
+        const now = new Date();
+        const orderDoc = {
             customer: {
                 name: customerData.name,
                 lastname: customerData.lastname || '',
                 phone: customerData.phone,
                 email: customerData.email || '',
             },
-            items,
+            items: items.map(item => ({
+                ...item,
+                itemId: item.itemId ? new mongoose.Types.ObjectId(item.itemId) : undefined
+            })),
             location,
             deliveryMethod,
             deliveryAddress: deliveryAddress || '',
@@ -111,9 +116,16 @@ export async function POST(req) {
             orderNumber,
             status: 'pending',
             paymentStatus: 'pending',
-        });
+            printStatus: { printed: false, error: false },
+            canBeCounted: true,
+            isDeleted: false,
+            printHistory: [],
+            createdAt: now,
+            updatedAt: now,
+        };
 
-        await newOrder.save();
+        const result = await Order.collection.insertOne(orderDoc);
+        const newOrder = { ...orderDoc, _id: result.insertedId };
 
         // Track customer (async, no bloquea el flujo)
         trackCustomer({

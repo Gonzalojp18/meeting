@@ -7,7 +7,7 @@ import mongoose from 'mongoose';
 // Validar formato de MongoDB ObjectId
 function isValidObjectId(id) {
     return mongoose.Types.ObjectId.isValid(id) &&
-           (new mongoose.Types.ObjectId(id)).toString() === id;
+        (new mongoose.Types.ObjectId(id)).toString() === id;
 }
 
 // PATCH /api/orders/[orderId]/customer-pickup
@@ -62,11 +62,14 @@ export async function PATCH(req, { params }) {
             );
         }
 
-        // Marcar como retirado
+        // Marcar como retirado bypassando hooks de Mongoose
         order.customerPickupConfirmed = true;
         order.customerPickupAt = new Date();
 
-        await order.save();
+        await Order.updateOne(
+            { _id: order._id },
+            { $set: { customerPickupConfirmed: true, customerPickupAt: order.customerPickupAt } }
+        );
 
         return NextResponse.json({
             success: true,

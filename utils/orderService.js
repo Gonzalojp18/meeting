@@ -42,8 +42,9 @@ export async function createOrderFromPayment(paymentInfo) {
             .trim()
             .substring(0, MAX_NOTES_LENGTH);
 
-        // 5. Crear la orden
-        const newOrder = new Order({
+        // 5. Crear el documento para MongoDB directamente (bypass Mongoose hooks)
+        const now = new Date();
+        const orderDoc = {
             orderNumber,
             customer: {
                 name: customerData.name,
@@ -52,7 +53,7 @@ export async function createOrderFromPayment(paymentInfo) {
                 email: customerData.email || ''
             },
             items: items.map(item => ({
-                itemId: item.itemId,
+                itemId: new (require('mongoose').Types.ObjectId)(item.itemId),
                 name: item.name,
                 quantity: item.quantity,
                 price: item.unitPrice,
@@ -81,13 +82,20 @@ export async function createOrderFromPayment(paymentInfo) {
             status: 'pending',
             subtotal: total,
             total,
-            notes: sanitizedNotes
-        });
+            notes: sanitizedNotes,
+            printStatus: { printed: false, error: false },
+            canBeCounted: true,
+            isDeleted: false,
+            printHistory: [],
+            createdAt: now,
+            updatedAt: now,
+        };
 
-        await newOrder.save();
-        console.log(`[ORDER SERVICE] ✅ Orden creada desde pago MP: ${orderNumber}`);
+        const result = await Order.collection.insertOne(orderDoc);
+        console.log(`[ORDER SERVICE] ✅ Orden creada desde pago MP: ${orderNumber} (${result.insertedId})`);
 
-        return newOrder;
+        return { ...orderDoc, _id: result.insertedId };
+
     } catch (error) {
         console.error('[ORDER SERVICE] ❌ Error en createOrderFromPayment:', error.message);
         throw error;

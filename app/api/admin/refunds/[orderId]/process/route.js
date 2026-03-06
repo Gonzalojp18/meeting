@@ -92,7 +92,10 @@ export async function POST(req, { params }) {
         if (!mpSettings || !mpSettings.accessToken) {
             order.refund.status = 'failed';
             order.refund.errorMessage = 'No se encontraron credenciales de MercadoPago configuradas';
-            await order.save();
+            await Order.updateOne(
+                { _id: order._id },
+                { $set: { 'refund.status': order.refund.status, 'refund.errorMessage': order.refund.errorMessage } }
+            );
 
             console.error('[REFUND] No hay credenciales de MercadoPago configuradas');
             return NextResponse.json(
@@ -147,9 +150,20 @@ export async function POST(req, { params }) {
                 throw new Error(`Estado de pago no válido para reembolso: ${order.paymentStatus}`);
             }
 
-            // Guardar cambios
+            // Guardar cambios bypassando hooks de Mongoose
             order.canBeCounted = false;
-            await order.save();
+            await Order.updateOne(
+                { _id: order._id },
+                {
+                    $set: {
+                        paymentStatus: order.paymentStatus,
+                        'refund.status': order.refund.status,
+                        'refund.processedAt': order.refund.processedAt,
+                        'refund.mercadoPagoRefundId': order.refund.mercadoPagoRefundId,
+                        canBeCounted: false
+                    }
+                }
+            );
 
             console.log(`[REFUND] ✅ ${operationType.toUpperCase()} exitoso para orden ${order.orderNumber}. MP ID: ${mpResult.id}`);
 
@@ -191,7 +205,16 @@ export async function POST(req, { params }) {
             order.refund.status = 'failed';
             order.refund.errorMessage = mpError.message || 'Error al comunicarse con MercadoPago';
             order.refund.processedAt = new Date();
-            await order.save();
+            await Order.updateOne(
+                { _id: order._id },
+                {
+                    $set: {
+                        'refund.status': order.refund.status,
+                        'refund.errorMessage': order.refund.errorMessage,
+                        'refund.processedAt': order.refund.processedAt
+                    }
+                }
+            );
 
             // Registrar error en audit log
             await logAudit({

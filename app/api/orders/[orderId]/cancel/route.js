@@ -148,23 +148,27 @@ export async function PATCH(req, { params }) {
         }
 
         // Actualizar pedido
-        order.status = 'cancelled';
-        order.cancelledAt = new Date();
-        order.cancellationReason = reason ? reason.trim() : 'Cancelado por el cliente';
-        order.refund = {
-            status: 'pending',
-            requestedAt: new Date(),
-            requestedBy: {
-                name: order.customer.name,
-                phone: order.customer.phone,
-                email: order.customer.email
+        // Preparar actualizaciones para bypassar MongoDB hooks ('a is not a function')
+        const updates = {
+            status: 'cancelled',
+            cancelledAt: new Date(),
+            cancellationReason: reason ? reason.trim() : 'Cancelado por el cliente',
+            refund: {
+                status: 'pending',
+                requestedAt: new Date(),
+                requestedBy: {
+                    name: order.customer.name,
+                    phone: order.customer.phone,
+                    email: order.customer.email
+                },
+                amount: order.total,
+                reason: reason ? reason.trim() : 'Cancelación del cliente dentro de los 5 minutos'
             },
-            amount: order.total,
-            reason: reason ? reason.trim() : 'Cancelación del cliente dentro de los 5 minutos'
+            canBeCounted: false
         };
-        order.canBeCounted = false;
 
-        await order.save();
+        await Order.updateOne({ _id: order._id }, { $set: updates });
+
 
         console.log(`[CANCEL] ✅ Pedido ${order.orderNumber} cancelado. IP: ${ip}, Tiempo: ${minutesElapsed.toFixed(2)} min`);
 
