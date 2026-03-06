@@ -204,8 +204,9 @@ const CheckoutPage = () => {
 
             if (response.data.init_point) {
                 setActiveOrder({
-                    orderNumber: null,
-                    orderId: null,
+                    // Usar los valores retornados por el servidor (create-preference ya creó la orden en DB)
+                    orderNumber: response.data.orderNumber || null,
+                    orderId: response.data.orderId || null,
                     paymentId: null,
                     preferenceId: response.data.preference_id || null,
                     locationId,

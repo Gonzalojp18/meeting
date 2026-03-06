@@ -32,23 +32,23 @@ const ResultContent = () => {
 
     // Polling para obtener el orderNumber cuando el pago es exitoso
     const checkOrderExists = useCallback(async () => {
-        if (!paymentId) return false;
+        if (!paymentId) return null;
 
         try {
             const res = await fetch(`${API_URI}/api/orders/by-payment/${paymentId}`);
             if (res.ok) {
                 const data = await res.json();
                 if (data.orderNumber) {
-                    // Actualizar el store con los datos de la orden
+                    // Guardar en el store para el nav bar y tracking
                     setOrderDetails(data.orderNumber, data.orderId, paymentId);
                     updateStatus(data.status || 'confirmed');
-                    return true;
+                    return data.orderNumber; // Retornar el orderNumber directamente
                 }
             }
-            return false;
+            return null;
         } catch (err) {
             console.error('Error checking order:', err);
-            return false;
+            return null;
         }
     }, [paymentId, setOrderDetails, updateStatus]);
 
@@ -71,15 +71,12 @@ const ResultContent = () => {
         setIsPolling(true);
 
         const pollForOrder = async () => {
-            const found = await checkOrderExists();
-            if (found) {
+            const orderNum = await checkOrderExists();
+            if (orderNum) {
                 setOrderFound(true);
                 setIsPolling(false);
-                // Redirigir al tracking
-                const orderNum = useActiveOrderStore.getState().activeOrder?.orderNumber;
-                if (orderNum) {
-                    router.push(`/tracking/${orderNum}`);
-                }
+                // Redirigir al tracking usando el orderNumber devuelto directamente por la API
+                router.push(`/tracking/${orderNum}`);
             } else {
                 setPollAttempts(prev => prev + 1);
             }

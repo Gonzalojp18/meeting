@@ -53,12 +53,16 @@ const useActiveOrderStore = create(
 
             setOrderDetails: (orderNumber, orderId, paymentId = null) => {
                 set((state) => {
-                    if (!state.activeOrder) return state;
+                    // Si no hay una orden activa, la creamos con los datos mínimos.
+                    // Esto puede ocurrir si el store fue vaciado durante la navegación a MP.
+                    const existing = state.activeOrder || {};
                     return {
                         activeOrder: {
-                            ...state.activeOrder,
+                            ...existing,
                             orderNumber,
                             orderId,
+                            createdAt: existing.createdAt || new Date().toISOString(),
+                            status: existing.status || 'confirmed',
                             ...(paymentId && { paymentId })
                         }
                     };
