@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import dbConnect from "@/utils/dbConnect";
 import Order from "@/models/Order";
 import Printer from "@/models/Printer";
+import mongoose from "mongoose";
 
 /**
  * GET /api/print-jobs?locationId=xxx
@@ -121,7 +122,12 @@ export async function POST(req) {
       update.$set = { "printStatus.error": true, "printStatus.lastError": errorMsg };
     }
 
-    await Order.findByIdAndUpdate(orderId, update);
+    // CRÍTICO FIX: Usar driver nativo de MongoDB para evitar que Mongoose falle silenciosamente por encriptación
+    // o cualquier validador en la colección. Si esto falla, el Agente cree que no se confirmó, y vuelve a imprimir infinitamente en la vida real.
+    await Order.collection.updateOne(
+      { _id: new mongoose.Types.ObjectId(orderId) },
+      update
+    );
 
     return NextResponse.json({ success: true });
   } catch (error) {
