@@ -239,8 +239,11 @@ const CheckoutPage = () => {
                 throw new Error('No se recibió URL de pago');
             }
         } catch (err) {
-            console.error('Error creating payment:', err);
-            setError('Hubo un error al procesar tu pedido. Por favor intenta de nuevo.');
+            // Extraer el detalle del error del servidor para mostrarlo en pantalla
+            const serverData = err.response?.data;
+            const errorMsg = serverData?.detail || serverData?.error || err.message || 'Error desconocido';
+            console.error('CREATE PREFERENCE ERROR →', { status: err.response?.status, serverData });
+            setError(`Error: ${errorMsg}`);
             setSubmitting(false);
         }
     };
