@@ -5,7 +5,6 @@ import dbConnect from '@/utils/dbConnect';
 import Settings from '@/models/Settings';
 import Menu from '@/models/Menu';
 import Order from '@/models/Order';
-import Counter from '@/models/Counter';
 import { DEFAULT_TAKEAWAY_HOURS, isWithinTakeawayHours } from '@/utils/constants';
 
 /**
@@ -160,21 +159,21 @@ export async function POST(req) {
 
         // =====================================================
         // CREAR LA ORDEN EN DB ANTES DE IR A MERCADOPAGO
-        // Esto garantiza que la orden exista independientemente
-        // de si el webhook llega correctamente o no.
+        // Garantiza que la orden exista independientemente de si
+        // el webhook llega correctamente o no.
         // =====================================================
-        const counter = await Counter.findOneAndUpdate(
-            { _id: 'orderId' },
-            { $inc: { seq: 1 } },
-            { new: true, upsert: true }
-        );
-        const timestampStr = Date.now().toString().slice(-6);
-        const orderNumber = `ORD-${timestampStr}-${counter.seq}`;
+
+        // Generar order number (igual que el resto del codebase)
+        const orderCount = await Order.countDocuments();
+        const timestamp = Date.now().toString(36).toUpperCase();
+        const orderNumber = `ORD-${String(orderCount + 1).padStart(4, '0')}-${timestamp.slice(-4)}`;
 
         // Buscar nombre de sede
         const menuDoc = await Menu.findOne().lean();
         const locationInfo = menuDoc?.locations?.find(l => l.nameId === locationId);
         const locationName = locationInfo?.name || locationId;
+
+        console.log(`[CREATE PREFERENCE] Creando orden ${orderNumber} para ${customerData.name}...`);
 
         const pendingOrder = new Order({
             orderNumber,
@@ -189,12 +188,12 @@ export async function POST(req) {
                 name: item.name,
                 quantity: item.quantity,
                 price: item.unitPrice,
-                customizations: item.customizations.map(c => ({
+                customizations: (item.customizations || []).map(c => ({
                     groupName: c.group || c.groupName || '',
                     selections: c.selections || [],
                     selected: c.selections?.[0] || '',
                 })),
-                ...(item.origin && { origin: item.origin }),
+                origin: item.origin || 'organic',
                 ...(item.upsellId && { upsellId: item.upsellId }),
             })),
             location: {
@@ -212,8 +211,22 @@ export async function POST(req) {
             printStatus: { printed: false, error: false },
         });
 
-        await pendingOrder.save();
-        console.log(`[CREATE PREFERENCE] ✅ Orden en DB: ${orderNumber} (${pendingOrder._id})`);
+        // Guardar con manejo específico de errores de validación
+        try {
+            await pendingOrder.save();
+        } catch (saveErr) {
+            const detail = saveErr.errors
+                ? Object.keys(saveErr.errors).map(k => `${k}: ${saveErr.errors[k].message}`).join(', ')
+                : saveErr.message;
+            console.error('[CREATE PREFERENCE] ❌ Error guardando orden:', detail);
+            // Retornamos el detalle para que el error aparezca en la consola del navegador y en Vercel logs
+            return NextResponse.json(
+                { error: 'Error al guardar la orden', detail },
+                { status: 500 }
+            );
+        }
+
+        console.log(`[CREATE PREFERENCE] ✅ Orden guardada: ${orderNumber} (${pendingOrder._id})`);
 
         // =====================================================
         // CREAR PREFERENCIA EN MERCADOPAGO
@@ -260,14 +273,13 @@ export async function POST(req) {
                 binary_mode: true,
                 payment_methods: { installments: 1 },
                 metadata: {
-                    // Solo el orderId — pequeño y seguro. El webhook lo usa para actualizar la orden.
                     order_id: pendingOrder._id.toString(),
                     location_id: locationId,
                 },
             },
         });
 
-        console.log('[CREATE PREFERENCE] MP preferencia:', result.id, '→ Orden:', orderNumber);
+        console.log('[CREATE PREFERENCE] ✅ MP preferencia:', result.id, '→ Orden:', orderNumber);
 
         return NextResponse.json({
             init_point: result.init_point,
@@ -277,7 +289,10 @@ export async function POST(req) {
         });
 
     } catch (error) {
-        console.error('Error al crear preferencia de MP:', error);
-        return NextResponse.json({ error: 'Error al procesar el pago' }, { status: 500 });
+        console.error('[CREATE PREFERENCE] ❌ Error general:', error.message, error.stack);
+        return NextResponse.json(
+            { error: 'Error al procesar el pago', detail: error.message },
+            { status: 500 }
+        );
     }
 }
