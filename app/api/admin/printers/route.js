@@ -73,12 +73,15 @@ async function verifyAccess(requiredRole = "staff") {
 
   if (!role) throw new Error("No autorizado");
 
-  if (requiredRole === "admin" && role !== "admin") {
-    throw new Error("No autorizado - Requiere rol de Administrador");
+  const ALLOWED_ROLES = ["admin", "manager", "staff", "superadmin"];
+  const ADMIN_ROLES = ["admin", "superadmin"];
+
+  if (!ALLOWED_ROLES.includes(role)) {
+    throw new Error("No autorizado");
   }
 
-  if (role !== "admin" && role !== "staff") {
-    throw new Error("No autorizado");
+  if (requiredRole === "admin" && !ADMIN_ROLES.includes(role)) {
+    throw new Error("No autorizado - Requiere rol de Administrador");
   }
 
   return session;
@@ -137,35 +140,41 @@ export async function GET(req) {
 
       const fakeId = new mongoose.Types.ObjectId();
 
-      await Order.create({
-        orderNumber: `TEST-${Date.now().toString().slice(-6)}`,
-        customer: {
-          name: "PRUEBA DE SISTEMA",
-          lastname: "OPERADOR",
-          phone: "000000000",
-          email: "staff@test.com"
-        },
-        items: [{
-          itemId: fakeId,
-          name: "TICKET DE PRUEBA DE CONEXIÓN",
-          quantity: 1,
-          price: 0
-        }],
-        location: {
-          locationName: "Sede Operativa",
-          locationId: locationId || "location1",
-        },
-        deliveryMethod: "Retiro en Sucursal",
-        total: 0,
-        subtotal: 0,
-        paymentStatus: "approved",
-        status: "confirmed",
-        printStatus: {
-          printed: false,
-          error: false
-        },
-        isDeleted: false
-      });
+      try {
+        await Order.create({
+          orderNumber: `TEST-${Date.now().toString().slice(-6)}`,
+          customer: {
+            name: "PRUEBA DE SISTEMA",
+            lastname: "OPERADOR",
+            phone: "000000000",
+            email: "staff@test.com"
+          },
+          items: [{
+            itemId: fakeId,
+            name: "TICKET DE PRUEBA DE CONEXIÓN",
+            quantity: 1,
+            price: 0
+          }],
+          location: {
+            locationName: "Sede Operativa",
+            locationId: locationId || "location1",
+          },
+          deliveryMethod: "Retiro en Sucursal",
+          source: "direct",
+          total: 0,
+          subtotal: 0,
+          paymentStatus: "approved",
+          status: "confirmed",
+          printStatus: {
+            printed: false,
+            error: false
+          },
+          isDeleted: false
+        });
+      } catch (createErr) {
+        console.error('[test_print] Error creando orden de prueba:', createErr.message);
+        return NextResponse.json({ error: 'Error al crear ticket de prueba: ' + createErr.message }, { status: 500 });
+      }
 
       return NextResponse.json({ success: true, message: "Ticket de prueba creado." });
     }
