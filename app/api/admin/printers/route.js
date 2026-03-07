@@ -95,9 +95,13 @@ export async function GET(req) {
 
     await dbConnect();
 
-    // 1. Acciones críticas (Solo Admin)
+    // 1. Acciones críticas (Solo Admin: scan) o Staff (test de conexión)
     if (action === "scan" || action === "test") {
-      await verifyAccess("admin");
+      if (action === "scan") {
+        await verifyAccess("admin");
+      } else {
+        await verifyAccess("staff");
+      }
 
       if (action === "scan") {
         const found = await scanNetwork();
@@ -205,7 +209,7 @@ export async function GET(req) {
 
 export async function POST(req) {
   try {
-    await verifyAccess("admin"); // Solo admin crea impresoras
+    await verifyAccess("staff"); // Staff puede agregar impresoras
     await dbConnect();
     const data = await req.json();
     const printer = await Printer.create(data);
@@ -218,7 +222,7 @@ export async function POST(req) {
 
 export async function DELETE(req) {
   try {
-    await verifyAccess("admin"); // Solo admin borra
+    await verifyAccess("staff"); // Staff puede eliminar impresoras
     await dbConnect();
     const { searchParams } = new URL(req.url);
     const id = searchParams.get("id");
