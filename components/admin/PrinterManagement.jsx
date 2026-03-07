@@ -16,7 +16,7 @@ const PrinterManagement = ({ locations = [] }) => {
 
     // Estado para el formulario
     const [formData, setFormData] = useState({
-        name: '', uid: '', ip: '', port: 9100, baudRate: 38400, connectionType: 'network', paperWidth: 80, roles: ['kitchen'], locationId: ''
+        name: '', uid: '', ip: '', port: 9100, baudRate: 38400, connectionType: 'network', windowsPrinterName: '', paperWidth: 80, roles: ['kitchen'], locationId: ''
     });
 
     const formRef = useRef(null);
@@ -115,6 +115,7 @@ const PrinterManagement = ({ locations = [] }) => {
             port: 9100,
             baudRate: 38400,
             connectionType: 'network',
+            windowsPrinterName: '',
             paperWidth: 80,
             roles: ['kitchen'],
             locationId: selectedLocation
@@ -192,7 +193,9 @@ const PrinterManagement = ({ locations = [] }) => {
         try {
             // Generar UID automático si es manual
             const payload = { ...formData };
-            if (payload.connectionType === 'usb' && !payload.uid) {
+            if (payload.connectionType === 'windows' && !payload.uid) {
+                payload.uid = `win-${payload.windowsPrinterName.replace(/\s+/g, '-').slice(0, 20).toLowerCase()}-${Date.now().toString().slice(-4)}`;
+            } else if (payload.connectionType === 'usb' && !payload.uid) {
                 payload.uid = `usb-${payload.port}-${Date.now().toString().slice(-4)}`;
             } else if (!payload.uid && payload.ip) {
                 payload.uid = `manual-${payload.ip.replace(/\./g, '-')}-${Date.now().toString().slice(-4)}`;
@@ -220,6 +223,7 @@ const PrinterManagement = ({ locations = [] }) => {
                     port: 9100,
                     baudRate: 38400,
                     connectionType: 'network',
+                    windowsPrinterName: '',
                     paperWidth: 80,
                     roles: ['kitchen'],
                     locationId: selectedLocation
@@ -382,12 +386,25 @@ const PrinterManagement = ({ locations = [] }) => {
                         <div className="space-y-1">
                             <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider">Tipo de Conexión</label>
                             <div className="flex bg-gray-100 rounded-xl p-1">
-                                <button type="button" onClick={() => setFormData({ ...formData, connectionType: 'network' })} className={`flex-1 py-2 text-xs font-bold rounded-lg transition-all ${formData.connectionType === 'network' || !formData.connectionType ? 'bg-white shadow-sm text-indigo-700' : 'text-gray-500 hover:bg-gray-200'}`}>Red / WiFi</button>
-                                <button type="button" onClick={() => setFormData({ ...formData, connectionType: 'usb', port: 'COM3', ip: '' })} className={`flex-1 py-2 text-xs font-bold rounded-lg transition-all ${formData.connectionType === 'usb' ? 'bg-white shadow-sm text-indigo-700' : 'text-gray-500 hover:bg-gray-200'}`}>USB / Serial</button>
+                                <button type="button" onClick={() => setFormData({ ...formData, connectionType: 'network', windowsPrinterName: '' })} className={`flex-1 py-2 text-xs font-bold rounded-lg transition-all ${formData.connectionType === 'network' || !formData.connectionType ? 'bg-white shadow-sm text-indigo-700' : 'text-gray-500 hover:bg-gray-200'}`}>Red / WiFi</button>
+                                <button type="button" onClick={() => setFormData({ ...formData, connectionType: 'windows', port: 9100, ip: '' })} className={`flex-1 py-2 text-xs font-bold rounded-lg transition-all ${formData.connectionType === 'windows' ? 'bg-white shadow-sm text-indigo-700' : 'text-gray-500 hover:bg-gray-200'}`}>Windows USB</button>
+                                <button type="button" onClick={() => setFormData({ ...formData, connectionType: 'usb', port: 'COM3', ip: '', windowsPrinterName: '' })} className={`flex-1 py-2 text-xs font-bold rounded-lg transition-all ${formData.connectionType === 'usb' ? 'bg-white shadow-sm text-indigo-700' : 'text-gray-500 hover:bg-gray-200'}`}>COM / Serial</button>
                             </div>
                         </div>
 
-                        {formData.connectionType === 'usb' ? (
+                        {formData.connectionType === 'windows' ? (
+                            <div className="space-y-1 md:col-span-2">
+                                <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider">Nombre de Impresora Windows</label>
+                                <input
+                                    required
+                                    value={formData.windowsPrinterName}
+                                    onChange={e => setFormData({ ...formData, windowsPrinterName: e.target.value })}
+                                    className="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-sm font-mono focus:ring-2 focus:ring-emerald-500 outline-none"
+                                    placeholder="Ej: BARRA ORIGINAL en Desktop-6e12ts6"
+                                />
+                                <p className="text-[10px] text-gray-400 mt-1">Copiá el nombre exacto desde Panel de Control → Dispositivos e Impresoras</p>
+                            </div>
+                        ) : formData.connectionType === 'usb' ? (
                             <>
                                 <div className="space-y-1">
                                     <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider">Puerto COM (Windows)</label>
@@ -421,7 +438,7 @@ const PrinterManagement = ({ locations = [] }) => {
                                     required
                                     value={formData.ip}
                                     onChange={e => setFormData({ ...formData, ip: e.target.value })}
-                                    disabled={!!editingPrinter && formData.uid.startsWith('vtp-')} // Solo deshabilitar si es una virtual o editando scan real
+                                    disabled={!!editingPrinter && formData.uid.startsWith('vtp-')}
                                     className="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-sm font-mono focus:ring-2 focus:ring-emerald-500 outline-none"
                                     placeholder="Ej: 192.168.0.33"
                                 />
@@ -495,8 +512,10 @@ const PrinterManagement = ({ locations = [] }) => {
                             <div className="mt-5 space-y-3">
                                 <div className="flex items-center justify-between text-[11px] text-gray-400 bg-gray-50/50 p-2.5 rounded-xl border border-gray-100">
                                     <p className="flex items-center gap-2 font-mono text-xs font-bold">
-                                        <MdDns className={`h-4 w-4 ${printer.connectionType === 'usb' ? 'text-emerald-500' : 'text-indigo-400'}`} />
-                                        {printer.connectionType === 'usb'
+                                        <MdDns className={`h-4 w-4 ${printer.connectionType === 'usb' ? 'text-emerald-500' : printer.connectionType === 'windows' ? 'text-purple-500' : 'text-indigo-400'}`} />
+                                        {printer.connectionType === 'windows'
+                                            ? `WIN: ${printer.windowsPrinterName}`
+                                            : printer.connectionType === 'usb'
                                             ? `USB: ${printer.port} (${printer.baudRate || 38400} baudios)`
                                             : printer.ip}
                                     </p>

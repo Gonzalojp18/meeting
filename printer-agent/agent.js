@@ -109,6 +109,32 @@ async function sendToSerialPrinter(portName, baudRate, dataBuffer) {
     });
 }
 
+// --- LÓGICA DE TRANSMISIÓN (WINDOWS PRINTER / USB directo) ---
+async function sendToWindowsPrinter(windowsPrinterName, dataBuffer) {
+    return new Promise((resolve, reject) => {
+        let printerLib;
+        try {
+            printerLib = require('printer');
+        } catch (e) {
+            return reject(new Error(`Módulo 'printer' no instalado. Ejecutá "npm install" en la carpeta del agente. (${e.message})`));
+        }
+
+        console.log(`[WINDOWS] Enviando datos a "${windowsPrinterName}"...`);
+        printerLib.printDirect({
+            data: dataBuffer,
+            printer: windowsPrinterName,
+            type: 'RAW',
+            success: (jobId) => {
+                console.log(`[WINDOWS] Ticket enviado con éxito a "${windowsPrinterName}" (jobId: ${jobId})`);
+                resolve();
+            },
+            error: (err) => {
+                reject(new Error(`Error al imprimir en "${windowsPrinterName}": ${err}`));
+            }
+        });
+    });
+}
+
 // --- GESTOR DE COLAS SECUENCIAL ---
 // Asegura que si hay 10 tickets, se impriman en orden y no al mismo tiempo
 class JobManager {
@@ -122,8 +148,11 @@ class JobManager {
         const tail = this.queues.get(printerUid);
         const next = tail.then(async () => {
             try {
-                if (printerConfig.connectionType === 'usb') {
-                    // USB/SERIAL Printer
+                if (printerConfig.connectionType === 'windows') {
+                    // Windows USB Printer (via Print Spooler)
+                    await sendToWindowsPrinter(printerConfig.windowsPrinterName, buffer);
+                } else if (printerConfig.connectionType === 'usb') {
+                    // USB/SERIAL via COM port
                     await sendToSerialPrinter(printerConfig.port, printerConfig.baudRate, buffer);
                 } else {
                     // NETWORK/TCP Printer

@@ -17,17 +17,22 @@ const printerSchema = new mongoose.Schema(
     },
     connectionType: {
       type: String,
-      enum: ["network", "usb"],
+      enum: ["network", "usb", "windows"],
       default: "network",
     },
     ip: {
       type: String,
       trim: true,
-      // No requerida, porque impresoras USB no tienen IP (el agente las enruta por COM)
     },
     port: {
       type: mongoose.Schema.Types.Mixed, // Permite Number (9100) o String ('COM3', '/dev/usb/lp0')
       default: 9100,
+    },
+    windowsPrinterName: {
+      type: String,
+      trim: true,
+      // Nombre de impresora Windows (ej: "BARRA ORIGINAL en Desktop-6e12ts6")
+      // Solo para connectionType === 'windows'
     },
     baudRate: {
       type: Number,
