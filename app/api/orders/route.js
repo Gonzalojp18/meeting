@@ -34,7 +34,11 @@ export async function GET(req) {
             return NextResponse.json({ error: 'No tienes permiso para esta sede' }, { status: 403 });
         }
 
-        const orders = await Order.find({ 'location.locationId': locationId })
+        const orders = await Order.find({
+            'location.locationId': locationId,
+            paymentStatus: 'approved',
+            isDeleted: false,
+        })
             .sort({ createdAt: -1 })
             .limit(100);
 
