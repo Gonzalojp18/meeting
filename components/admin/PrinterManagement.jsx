@@ -511,7 +511,7 @@ const PrinterManagement = ({ locations = [] }) => {
                                             </button>
                                         )}
                                         <button
-                                            onClick={() => handleTestPrint(printer._id)}
+                                            onClick={() => handleTestPrint(printer._id, printer.roles)}
                                             className="text-emerald-600 hover:text-emerald-800 font-bold flex items-center gap-1 bg-white px-2 py-1 rounded-md shadow-sm border border-emerald-50 transition-colors"
                                             title="Encolar ticket de prueba (El agente lo recogerá)"
                                         >

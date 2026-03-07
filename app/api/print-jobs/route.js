@@ -89,7 +89,7 @@ export async function POST(req) {
     const order = await Order.findById(orderId);
     if (!order) throw new Error("Order not found");
 
-    // Registrar en el historial
+    // Registrar en el historial atómicamente
     const historyEntry = {
       role: role || "unknown",
       printerName: printerName || "Agent",
@@ -97,40 +97,49 @@ export async function POST(req) {
       timestamp: new Date()
     };
 
-    const update = {
-      $push: { printHistory: historyEntry }
-    };
+    await Order.collection.updateOne(
+      { _id: new mongoose.Types.ObjectId(orderId) },
+      { $push: { printHistory: historyEntry } }
+    );
+
+    // Leer el documento RECIÉN actualizado para evitar Race Conditions (2 impresoras confirmando a la vez)
+    const updatedOrder = await Order.findById(orderId).lean();
 
     if (success) {
-      // Solo marcar como impresa cuando TODAS las impresoras activas de la sede hayan confirmado.
-      // Esto evita que un reinicio del agente deje impresoras sin su ticket.
       const locationPrinters = await Printer.find({
-        locationId: order.location.locationId,
+        locationId: updatedOrder.location.locationId,
         isActive: true
       });
       const requiredRoles = [...new Set(locationPrinters.flatMap(p => p.roles))];
 
-      // Roles que ya confirmaron con éxito (historial previo + la confirmación actual)
-      const confirmedRoles = new Set([
-        ...order.printHistory.filter(h => h.status === 'success').map(h => h.role),
-        role
-      ]);
+      // Verificar historial exitoso en el order fresco
+      const confirmedRoles = new Set(
+        updatedOrder.printHistory.filter(h => h.status === 'success').map(h => h.role)
+      );
 
       const allPrinted = requiredRoles.length === 0 || requiredRoles.every(r => confirmedRoles.has(r));
 
-      update.$set = allPrinted
-        ? { "printStatus.printed": true, "printStatus.error": false }
-        : { "printStatus.error": false }; // Limpiar error previo si ahora fue exitoso
+      await Order.collection.updateOne(
+        { _id: new mongoose.Types.ObjectId(orderId) },
+        {
+          $set: {
+            "printStatus.printed": allPrinted,
+            "printStatus.error": false,
+            "printStatus.lastError": null
+          }
+        }
+      );
     } else {
-      update.$set = { "printStatus.error": true, "printStatus.lastError": errorMsg };
+      await Order.collection.updateOne(
+        { _id: new mongoose.Types.ObjectId(orderId) },
+        {
+          $set: {
+            "printStatus.error": true,
+            "printStatus.lastError": errorMsg
+          }
+        }
+      );
     }
-
-    // CRÍTICO FIX: Usar driver nativo de MongoDB para evitar que Mongoose falle silenciosamente por encriptación
-    // o cualquier validador en la colección. Si esto falla, el Agente cree que no se confirmó, y vuelve a imprimir infinitamente en la vida real.
-    await Order.collection.updateOne(
-      { _id: new mongoose.Types.ObjectId(orderId) },
-      update
-    );
 
     return NextResponse.json({ success: true });
   } catch (error) {
