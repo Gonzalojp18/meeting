@@ -293,13 +293,95 @@ const AdminPanel = () => {
     tabs.push({ id: 'history', label: 'Historial', icon: MdHistory });
   }
 
+  // Grupos de navegación para el sidebar
+  const navGroups = [
+    { label: 'Principal', ids: ['dashboard', 'metricas'] },
+    { label: 'Menú', ids: ['products', 'categories', 'upselling'] },
+    { label: 'Operaciones', ids: ['caja', 'availability', 'printers', 'history'] },
+    { label: 'Personal', ids: ['users'] },
+    { label: 'Finanzas', ids: ['reports', 'refunds'] },
+    { label: 'Sistema', ids: ['settings', 'audit'] },
+  ].map(g => ({ ...g, tabs: tabs.filter(t => g.ids.includes(t.id)) }))
+   .filter(g => g.tabs.length > 0);
+
   return (
     <div className="min-h-screen bg-gray-50">
-      {/* ========== HEADER MEJORADO ========== */}
-      <header className="sticky top-0 z-50 bg-white border-b border-gray-200 shadow-sm">
+
+      {/* ========== SIDEBAR - Solo Desktop ========== */}
+      <aside className="hidden lg:flex flex-col fixed left-0 top-0 h-screen w-64 bg-white border-r border-gray-100 z-40 shadow-sm">
+        {/* Logo */}
+        <div className="flex items-center gap-3 px-4 py-4 border-b border-gray-100">
+          <div className="w-9 h-9 bg-gradient-to-br from-gray-900 to-gray-800 rounded-xl flex items-center justify-center shadow-md flex-shrink-0">
+            <span className="text-white font-bold">M</span>
+          </div>
+          <div>
+            <h1 className="text-sm font-bold text-gray-900 leading-none">Meeting Resto Bar</h1>
+            <p className="text-[10px] text-gray-400 leading-none mt-0.5">Admin Panel</p>
+          </div>
+        </div>
+
+        {/* Sede */}
+        <div className="px-4 py-3 border-b border-gray-100">
+          <p className="text-[9px] font-black text-gray-400 uppercase tracking-widest mb-1.5">Sede</p>
+          <LocationNav adminView={true} locations={locations} />
+        </div>
+
+        {/* Navegación agrupada */}
+        <nav className="flex-1 overflow-y-auto px-3 py-3 space-y-4">
+          {navGroups.map(group => (
+            <div key={group.label}>
+              <p className="text-[9px] font-black text-gray-400 uppercase tracking-widest px-2 mb-1">{group.label}</p>
+              <div className="space-y-0.5">
+                {group.tabs.map(tab => {
+                  const Icon = tab.icon;
+                  const isActive = activeTab === tab.id;
+                  return (
+                    <button
+                      key={tab.id}
+                      onClick={() => setActiveTab(tab.id)}
+                      className={`w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-sm font-medium transition-all ${
+                        isActive
+                          ? 'bg-orange-50 text-orange-600'
+                          : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'
+                      }`}
+                    >
+                      <Icon className={`h-4 w-4 flex-shrink-0 ${isActive ? 'text-orange-500' : ''}`} />
+                      <span>{tab.label}</span>
+                      {isActive && <div className="ml-auto w-1.5 h-1.5 rounded-full bg-orange-500 flex-shrink-0" />}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          ))}
+        </nav>
+
+        {/* Usuario + Logout */}
+        <div className="border-t border-gray-100 p-3">
+          <div className="flex items-center gap-2.5 px-2 py-1.5">
+            <div className="w-8 h-8 bg-gradient-to-br from-orange-400 to-orange-600 rounded-full flex items-center justify-center text-white font-bold text-sm flex-shrink-0">
+              {session?.user?.name?.charAt(0)?.toUpperCase() || 'A'}
+            </div>
+            <div className="flex-1 min-w-0">
+              <p className="text-xs font-semibold text-gray-900 truncate leading-none">{session?.user?.name || 'Usuario'}</p>
+              <p className="text-[10px] text-gray-400 capitalize leading-none mt-0.5">{session?.user?.role || ''}</p>
+            </div>
+            <button
+              onClick={handleLogout}
+              className="p-1.5 hover:bg-red-50 rounded-lg text-gray-400 hover:text-red-500 transition-colors flex-shrink-0"
+              title="Cerrar Sesión"
+            >
+              <MdLogout className="h-4 w-4" />
+            </button>
+          </div>
+        </div>
+      </aside>
+
+      {/* ========== HEADER ========== */}
+      <header className="sticky top-0 z-50 bg-white border-b border-gray-200 shadow-sm lg:pl-64">
         <div className="max-w-[1400px] mx-auto">
           <div className="flex items-center justify-between px-4 lg:px-6 py-3.5">
-            {/* Left: Logo + Menu mobile */}
+            {/* Left: Logo + Menu mobile (solo mobile, sidebar lo reemplaza en desktop) */}
             <div className="flex items-center gap-3">
               <button
                 onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
@@ -312,8 +394,7 @@ const AdminPanel = () => {
                   <MdMenu className="h-6 w-6 text-gray-700" />
                 )}
               </button>
-
-              <div className="flex items-center gap-3">
+              <div className="flex items-center gap-3 lg:hidden">
                 <div className="w-10 h-10 bg-gradient-to-br from-gray-900 via-gray-900 to-gray-900 rounded-xl flex items-center justify-center shadow-lg shadow-orange-500/30">
                   <span className="text-white font-bold text-lg">M</span>
                 </div>
@@ -322,31 +403,25 @@ const AdminPanel = () => {
                   <p className="text-xs text-gray-500 leading-none mt-0.5">Admin Panel</p>
                 </div>
               </div>
+              {/* Desktop: título de la sección activa */}
+              <div className="hidden lg:flex items-center gap-2">
+                {(() => { const t = tabs.find(t => t.id === activeTab); const Icon = t?.icon; return Icon ? <><Icon className="h-5 w-5 text-gray-400" /><span className="text-sm font-semibold text-gray-700">{t.label}</span></> : null; })()}
+              </div>
             </div>
 
-            {/* Center: Location selector (desktop) */}
-            <div className="hidden lg:block">
+            {/* Center: Location selector (solo mobile) */}
+            <div className="hidden">
               <LocationNav adminView={true} locations={locations} />
             </div>
 
-            {/* Right: User + Logout */}
-            <div className="flex items-center gap-2">
+            {/* Right: User + Logout (solo mobile, sidebar lo tiene en desktop) */}
+            <div className="flex items-center gap-2 lg:hidden">
               <div className="hidden md:flex items-center gap-3 px-3 py-2 bg-gray-50 rounded-xl border border-gray-200">
                 <div className="w-9 h-9 bg-gradient-to-br from-orange-400 to-orange-600 rounded-full flex items-center justify-center text-white font-bold shadow-md">
                   {session?.user?.name?.charAt(0)?.toUpperCase() || 'A'}
                 </div>
-                <div className="hidden lg:block">
-                  <p className="text-sm font-semibold text-gray-900 leading-none truncate max-w-32">
-                    {session?.user?.name || 'Usuario'}
-                  </p>
-                  <p className="text-xs text-gray-500 capitalize leading-none mt-1">
-                    {session?.user?.role || 'Sin rol'}
-                  </p>
-                </div>
               </div>
-
               <HelpButton />
-
               <button
                 onClick={handleLogout}
                 className="p-2.5 hover:bg-red-50 rounded-xl transition-colors group border border-transparent hover:border-red-200"
@@ -355,32 +430,11 @@ const AdminPanel = () => {
                 <MdLogout className="h-5 w-5 text-gray-600 group-hover:text-red-600 transition-colors" />
               </button>
             </div>
-          </div>
 
-          {/* TABS - Desktop */}
-          <div className="hidden lg:block px-4 lg:px-6 -mb-px overflow-x-auto scrollbar-hide">
-            <nav className="flex space-x-1 min-w-max">
-              {tabs.map(tab => {
-                const Icon = tab.icon;
-                const isActive = activeTab === tab.id;
-                return (
-                  <button
-                    key={tab.id}
-                    onClick={() => setActiveTab(tab.id)}
-                    className={`
-                      flex items-center gap-2 px-4 py-3 border-b-2 font-medium text-sm whitespace-nowrap transition-all
-                      ${isActive
-                        ? 'border-orange-500 text-orange-600 bg-orange-50/50'
-                        : 'border-transparent text-gray-600 hover:text-gray-900 hover:bg-gray-50'
-                      }
-                    `}
-                  >
-                    <Icon className="h-5 w-5" />
-                    {tab.label}
-                  </button>
-                );
-              })}
-            </nav>
+            {/* Desktop: solo HelpButton */}
+            <div className="hidden lg:flex items-center gap-2">
+              <HelpButton />
+            </div>
           </div>
         </div>
       </header>
@@ -491,7 +545,7 @@ const AdminPanel = () => {
       </nav>
 
       {/* ========== MAIN CONTENT ========== */}
-      <main className="max-w-[1400px] mx-auto px-4 lg:px-6 py-6 pb-24 lg:pb-6">
+      <main className="max-w-[1400px] mx-auto px-4 lg:px-6 py-6 pb-24 lg:pb-6 lg:pl-72">
 
         {/* ========== DASHBOARD TAB (Admin y Manager) ========== */}
         {activeTab === 'dashboard' && hasFullAccess && (
@@ -973,7 +1027,7 @@ const AdminPanel = () => {
       </main>
 
       {/* ========== TAKEASYGO NETWORK FOOTER ========== */}
-      <footer className="hidden lg:flex items-center justify-center py-3 border-t border-gray-100 bg-white">
+      <footer className="hidden lg:flex items-center justify-center py-3 border-t border-gray-100 bg-white lg:pl-64">
         <PoweredByTakeasy variant="light" label="network" />
       </footer>
     </div>
