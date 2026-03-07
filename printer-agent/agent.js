@@ -109,29 +109,33 @@ async function sendToSerialPrinter(portName, baudRate, dataBuffer) {
     });
 }
 
-// --- LÓGICA DE TRANSMISIÓN (WINDOWS PRINTER / USB directo) ---
+// --- LÓGICA DE TRANSMISIÓN (WINDOWS PRINTER / USB directo via PowerShell) ---
 async function sendToWindowsPrinter(windowsPrinterName, dataBuffer) {
-    return new Promise((resolve, reject) => {
-        let printerLib;
-        try {
-            printerLib = require('printer');
-        } catch (e) {
-            return reject(new Error(`Módulo 'printer' no instalado. Ejecutá "npm install" en la carpeta del agente. (${e.message})`));
-        }
+    const { execFile } = require('child_process');
+    const os = require('os');
+    const fsp = require('fs');
 
-        console.log(`[WINDOWS] Enviando datos a "${windowsPrinterName}"...`);
-        printerLib.printDirect({
-            data: dataBuffer,
-            printer: windowsPrinterName,
-            type: 'RAW',
-            success: (jobId) => {
-                console.log(`[WINDOWS] Ticket enviado con éxito a "${windowsPrinterName}" (jobId: ${jobId})`);
-                resolve();
-            },
-            error: (err) => {
-                reject(new Error(`Error al imprimir en "${windowsPrinterName}": ${err}`));
+    const tmpFile = path.join(os.tmpdir(), `escpos_${Date.now()}.bin`);
+    const psScript = path.join(__dirname, 'print-windows.ps1');
+
+    fsp.writeFileSync(tmpFile, dataBuffer);
+    console.log(`[WINDOWS] Enviando ${dataBuffer.length} bytes a "${windowsPrinterName}"...`);
+
+    return new Promise((resolve, reject) => {
+        execFile(
+            'powershell.exe',
+            ['-ExecutionPolicy', 'Bypass', '-NonInteractive', '-NoProfile', '-File', psScript, windowsPrinterName, tmpFile],
+            { timeout: 15000 },
+            (err, stdout, stderr) => {
+                try { fsp.unlinkSync(tmpFile); } catch (_) {}
+                if (err) {
+                    reject(new Error(`[WINDOWS] Error en "${windowsPrinterName}": ${stderr || err.message}`));
+                } else {
+                    console.log(`[WINDOWS] Ticket enviado con éxito a "${windowsPrinterName}": ${stdout.trim()}`);
+                    resolve();
+                }
             }
-        });
+        );
     });
 }
 
