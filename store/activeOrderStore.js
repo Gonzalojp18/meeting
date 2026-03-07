@@ -105,8 +105,10 @@ const useActiveOrderStore = create(
                     return false;
                 }
 
-                // Solo consideramos "activo" si no fue retirado ni completado
-                return order.status !== 'picked_up' && order.status !== 'completed';
+                // Solo consideramos "activo" si el pago fue confirmado y no fue retirado ni completado
+                return order.status !== 'picked_up'
+                    && order.status !== 'completed'
+                    && order.status !== 'pending_payment';
             },
 
             isOrderReady: () => {

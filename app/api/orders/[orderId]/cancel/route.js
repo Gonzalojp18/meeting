@@ -139,10 +139,10 @@ export async function PATCH(req, { params }) {
             );
         }
 
-        // Validar estado de pago
-        if (order.paymentStatus !== 'approved' && order.paymentStatus !== 'pending') {
+        // Validar estado de pago — solo órdenes pagadas pueden cancelarse y solicitar reembolso
+        if (order.paymentStatus !== 'approved') {
             return NextResponse.json(
-                { error: 'No se puede cancelar este pedido debido a su estado de pago' },
+                { error: 'No se puede cancelar un pedido que no ha sido pagado' },
                 { status: 400 }
             );
         }
