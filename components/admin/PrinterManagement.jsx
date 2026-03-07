@@ -55,7 +55,7 @@ const PrinterManagement = ({ locations = [] }) => {
         safeFetch();
 
         // Polling para estados en tiempo real (cada 5 segundos para reducir carga)
-        const interval = setInterval(safeFetch, 5000);
+        const interval = setInterval(safeFetch, 30000);
 
         return () => {
             isMounted = false;

@@ -64,17 +64,17 @@ const FloatingInput = ({ label, id, type = 'text', required = false, value, onCh
                 className="peer w-full px-4 pt-5 pb-2 bg-gray-50 border border-gray-200 rounded-xl 
                          text-gray-900 placeholder-transparent
                          focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent
-                         transition-all duration-200"
+                         transition-[border-color,box-shadow] duration-150"
                 {...props}
             />
             <label
                 htmlFor={id}
                 className="absolute left-4 top-2 text-[10px] font-semibold uppercase tracking-wide text-gray-400
-                         peer-placeholder-shown:top-1/2 peer-placeholder-shown:-translate-y-1/2 
+                         peer-placeholder-shown:top-1/2 peer-placeholder-shown:-translate-y-1/2
                          peer-placeholder-shown:text-sm peer-placeholder-shown:font-normal peer-placeholder-shown:normal-case
                          peer-focus:top-2 peer-focus:text-[10px] peer-focus:font-semibold peer-focus:uppercase
                          peer-focus:text-orange-600
-                         transition-all duration-200 pointer-events-none"
+                         transition-[top,color,font-size,transform] duration-150 pointer-events-none"
             >
                 {label}{required && ' *'}
             </label>
@@ -255,7 +255,7 @@ const CheckoutPage = () => {
     return (
         <div className="min-h-screen bg-gradient-to-b from-gray-50 to-gray-100">
             {/* Header */}
-            <header className="bg-white/80 backdrop-blur-lg px-4 py-4 border-b border-gray-100 sticky top-0 z-10">
+            <header className="bg-white/80 backdrop-blur-lg px-4 py-4 border-b border-gray-100">
                 <div className="max-w-lg mx-auto flex items-center gap-4">
                     <button
                         onClick={() => router.back()}

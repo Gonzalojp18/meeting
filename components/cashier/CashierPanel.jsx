@@ -15,8 +15,6 @@ import {
     MdLocalShipping,
     MdRestaurant,
     MdCancel,
-    MdExpandMore,
-    MdExpandLess,
     MdTimer,
     MdPrint,
     MdSearch,
@@ -49,7 +47,6 @@ const CashierPanel = ({ standalone = true }) => {
     const router = useRouter();
     const { data: session, status } = useSession();
     const [selectedLocation, setSelectedLocation] = useState(null);
-    const [expandedOrder, setExpandedOrder] = useState(null);
     const [filterStatus, setFilterStatus] = useState('all');
     const [searchPhone, setSearchPhone] = useState('');
     const [soundEnabled, setSoundEnabled] = useState(true);
@@ -412,7 +409,6 @@ const CashierPanel = ({ standalone = true }) => {
                         {filteredOrders.map(order => {
                             const statusInfo = ORDER_STATUSES[order.status] || ORDER_STATUSES.pending;
                             const StatusIcon = statusInfo.icon;
-                            const isExpanded = expandedOrder === order._id;
                             const nextStatus = getNextStatus(order.status);
 
                             return (
@@ -422,10 +418,7 @@ const CashierPanel = ({ standalone = true }) => {
                                     style={{ borderLeftColor: order.status === 'pending' ? '#f59e0b' : order.status === 'ready' ? '#10b981' : '#6b7280' }}
                                 >
                                     {/* Header del pedido */}
-                                    <div
-                                        className="p-4 cursor-pointer hover:bg-gray-50"
-                                        onClick={() => setExpandedOrder(isExpanded ? null : order._id)}
-                                    >
+                                    <div className="p-4">
                                         <div className="flex items-center justify-between mb-2">
                                             <span className="font-bold text-lg">#{order.orderNumber?.slice(-6) || 'N/A'}</span>
                                             <span className={`px-3 py-1 rounded-full text-xs font-bold flex items-center gap-1 ${statusInfo.color}`}>
@@ -454,14 +447,10 @@ const CashierPanel = ({ standalone = true }) => {
                                             <span className="font-bold text-orange-600">${order.total?.toLocaleString()}</span>
                                         </div>
 
-                                        <div className="mt-2 text-right">
-                                            {isExpanded ? <MdExpandLess className="inline" /> : <MdExpandMore className="inline" />}
-                                        </div>
                                     </div>
 
-                                    {/* Detalles expandidos */}
-                                    {isExpanded && (
-                                        <div className="border-t bg-gray-50 p-4">
+                                    {/* Detalles */}
+                                    <div className="border-t bg-gray-50 p-4">
                                             {/* Items */}
                                             <div className="mb-4">
                                                 <h4 className="font-medium text-sm text-gray-700 mb-2">Items:</h4>
@@ -536,8 +525,7 @@ const CashierPanel = ({ standalone = true }) => {
                                                 )}
                                             </div>
                                         </div>
-                                    )}
-                                </div>
+                                    </div>
                             );
                         })}
                     </div>
