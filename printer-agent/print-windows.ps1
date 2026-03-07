@@ -1,11 +1,42 @@
 # print-windows.ps1
-# Uso: powershell.exe -ExecutionPolicy Bypass -File print-windows.ps1 "NombreImpresora" "C:\ruta\archivo.bin"
 param(
     [Parameter(Mandatory=$true)][string]$PrinterName,
     [Parameter(Mandatory=$true)][string]$FilePath
 )
 
 $ErrorActionPreference = 'Stop'
+
+# Resolver el nombre real en el spooler de Windows
+# El nombre en "Dispositivos e Impresoras" puede incluir " en NOMBREPC" como sufijo de display
+$actualName = $null
+
+$allPrinters = Get-Printer | Select-Object -ExpandProperty Name
+
+# 1. Intentar coincidencia exacta
+foreach ($p in $allPrinters) {
+    if ($p -eq $PrinterName) {
+        $actualName = $p
+        break
+    }
+}
+
+# 2. Si no encontro exacto, buscar por la parte base (antes de " en ")
+if (-not $actualName) {
+    $baseName = ($PrinterName -split ' en ')[0].Trim()
+    foreach ($p in $allPrinters) {
+        if ($p -like "*$baseName*") {
+            $actualName = $p
+            break
+        }
+    }
+}
+
+if (-not $actualName) {
+    $available = $allPrinters -join ' | '
+    throw "Impresora no encontrada: '$PrinterName'. Disponibles: $available"
+}
+
+Write-Output "Usando impresora: $actualName"
 
 Add-Type -TypeDefinition @"
 using System;
@@ -45,14 +76,15 @@ public struct DOCINFO {
 $bytes = [System.IO.File]::ReadAllBytes($FilePath)
 
 $hPrinter = [IntPtr]::Zero
-if (-not [RawPrint]::OpenPrinter($PrinterName, [ref]$hPrinter, [IntPtr]::Zero)) {
-    throw "No se pudo abrir la impresora: $PrinterName"
+if (-not [RawPrint]::OpenPrinter($actualName, [ref]$hPrinter, [IntPtr]::Zero)) {
+    $err = [System.Runtime.InteropServices.Marshal]::GetLastWin32Error()
+    throw "OpenPrinter fallo (Win32 error $err) para: $actualName"
 }
 
 $docInfo = New-Object DOCINFO
-$docInfo.pDocName   = "ESC/POS Ticket"
+$docInfo.pDocName    = "ESC/POS Ticket"
 $docInfo.pOutputFile = $null
-$docInfo.pDataType  = "RAW"
+$docInfo.pDataType   = "RAW"
 
 [RawPrint]::StartDocPrinter($hPrinter, 1, [ref]$docInfo) | Out-Null
 [RawPrint]::StartPagePrinter($hPrinter) | Out-Null
@@ -67,4 +99,4 @@ $written = 0
 [RawPrint]::EndDocPrinter($hPrinter) | Out-Null
 [RawPrint]::ClosePrinter($hPrinter) | Out-Null
 
-Write-Output "OK:$written bytes enviados a $PrinterName"
+Write-Output "OK: $written bytes enviados a $actualName"
