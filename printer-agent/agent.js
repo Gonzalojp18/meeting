@@ -72,13 +72,16 @@ async function sendToPrinter(ip, port, dataBuffer) {
 // --- LÓGICA DE TRASMISIÓN (SERIAL / USB) ---
 async function sendToSerialPrinter(portName, baudRate, dataBuffer) {
     return new Promise((resolve, reject) => {
-        console.log(`[SERIAL] Abriendo puerto ${portName}... (Baudios: ${baudRate})`);
+        console.log(`[SERIAL] Abriendo puerto ${portName}... (Baudios: ${baudRate || 38400})`);
+        console.log(`[SERIAL] Si ves "Acceso denegado", verificá que: 1) La impresora esté conectada, 2) El puerto sea correcto (Administrador de dispositivos > Puertos COM), 3) Ningún otro programa use ${portName}`);
 
         try {
             const port = new SerialPort({ path: portName, baudRate: baudRate || 38400, autoOpen: false });
 
             port.open(function (err) {
                 if (err) {
+                    console.error(`[SERIAL ERROR] No se pudo abrir ${portName}. Causa: ${err.message}`);
+                    console.error(`[SERIAL ERROR] Puertos disponibles: ejecutá "node -e \\"require('serialport').SerialPort.list().then(p=>p.forEach(x=>console.log(x.path,x.manufacturer)))\\"  en esta carpeta para ver los puertos disponibles`);
                     return reject(new Error(`Acceso denegado o puerto inexistente en ${portName}: ${err.message}`));
                 }
 
@@ -243,6 +246,24 @@ function generateTicket(order, role, columns = 32) {
     return Buffer.concat(chunks);
 }
 
+// --- CONFIRMACIÓN CONFIABLE ---
+// Reintenta la confirmación hasta 3 veces antes de rendirse (evita órdenes stuck por falla de red puntual)
+async function confirmPrint(payload, retries = 3) {
+    for (let attempt = 1; attempt <= retries; attempt++) {
+        try {
+            await axios.post(`${config.apiUrl}/api/print-jobs`, payload);
+            return;
+        } catch (err) {
+            if (attempt === retries) {
+                console.error(`[CONFIRM FAIL] No se pudo confirmar después de ${retries} intentos. orderId=${payload.orderId} role=${payload.role} error=${err.message}`);
+            } else {
+                console.warn(`[CONFIRM RETRY ${attempt}/${retries}] orderId=${payload.orderId} role=${payload.role}`);
+                await new Promise(r => setTimeout(r, 1000 * attempt));
+            }
+        }
+    }
+}
+
 // --- POLLING PRINCIPAL ---
 // Set para rastrear órdenes que ya se mandaron a la cola pero la nube todavía no sabe
 const inFlightOrders = new Set();
@@ -284,30 +305,13 @@ async function poll() {
                         console.log(`[SKIP] Orden ${order.orderNumber} no tiene items para ${printer.name} (${role})`);
                         // Fundamental: Avisar a la API que evaluamos este rol aunque lo hayamos tirado
                         // para que la nube no se quede esperando confirmación de esta impresora fantasma eternamente.
-                        axios.post(`${config.apiUrl}/api/print-jobs`, {
-                            orderId: order._id,
-                            printerName: printer.name,
-                            role: role,
-                            success: true,
-                            errorMsg: null
-                        }).catch(() => { });
+                        confirmPrint({ orderId: order._id, printerName: printer.name, role, success: true, errorMsg: null });
                         continue;
                     }
 
                     jobManager.enqueue(printer.uid, printer, ticketBuffer, async (success, errorMsg) => {
-                        try {
-                            await axios.post(`${config.apiUrl}/api/print-jobs`, {
-                                orderId: order._id,
-                                printerName: printer.name,
-                                role: role,
-                                success,
-                                errorMsg
-                            });
-                            console.log(`[CLOUD] Estado sincronizado para Orden ${order.orderNumber}`);
-                            // En el próximo ciclo la nube ya no la mandará, inFlightOrders la borrará automático
-                        } catch (e) {
-                            console.error(`[CLOUD ERROR] No se pudo confirmar impresión: ${e.message}`);
-                        }
+                        await confirmPrint({ orderId: order._id, printerName: printer.name, role, success, errorMsg });
+                        console.log(`[CLOUD] Estado sincronizado para Orden ${order.orderNumber} (${printer.name} / ${role}): ${success ? 'OK' : 'ERROR'}`);
                     });
                 }
             }

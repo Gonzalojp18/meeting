@@ -21,14 +21,17 @@ export async function GET(req) {
     await dbConnect();
 
     // 1. Obtener órdenes aprobadas que NO han sido impresas aún
-    // Y que NO estén marcadas con error de impresión (para no hacer loop infinito si la impresora falla recurrentemente)
+    // Excluye órdenes con error explícito O con más de 8 entradas en printHistory
+    // (si llegó a 8 intentos sin marcarse como impresa, es un loop — se para automáticamente)
+    const MAX_PRINT_ATTEMPTS = 8;
     const pendingOrders = await Order.find({
       "location.locationId": locationId,
       paymentStatus: "approved",
       "printStatus.printed": false,
       "printStatus.error": false,
       status: { $in: ["confirmed", "preparing", "pending"] },
-      isDeleted: false
+      isDeleted: false,
+      $expr: { $lt: [{ $size: { $ifNull: ["$printHistory", []] } }, MAX_PRINT_ATTEMPTS] }
     }).sort({ createdAt: 1 });
 
     // 2. Obtener la lista de impresoras configuradas para esta sede
