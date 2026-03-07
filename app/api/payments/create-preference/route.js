@@ -50,7 +50,18 @@ async function validateAndGetRealPrices(items, locationId) {
         if (cartItem.customizations && Array.isArray(cartItem.customizations)) {
             for (const customization of cartItem.customizations) {
                 const group = foundItem.customizations?.find(g => g.name === customization.groupName);
-                if (group) {
+                if (!group) {
+                    // El grupo no está en el menú DB pero el cliente lo seleccionó (display-only, sin precio)
+                    const rawSelections = (customization.selections || (customization.selected ? [customization.selected] : []))
+                        .map(s => String(s).trim().slice(0, 100)).filter(Boolean);
+                    if (rawSelections.length > 0 && customization.groupName) {
+                        validatedCustomizations.push({
+                            group: String(customization.groupName).trim().slice(0, 100),
+                            selections: rawSelections,
+                            priceModifier: 0,
+                        });
+                    }
+                } else {
                     const selections = customization.selections ||
                         (customization.selected ? [customization.selected] : []);
                     const validatedSelections = [];
@@ -63,10 +74,18 @@ async function validateAndGetRealPrices(items, locationId) {
                             validatedSelections.push(option.name);
                         }
                     }
-                    if (validatedSelections.length > 0) {
+                    // Guardar el grupo si hubo selecciones validadas contra el menú.
+                    // Si no hubo matches (ej: opciones no registradas en DB), usar las selecciones
+                    // crudas del cliente como fallback de solo-display (el precio ya fue
+                    // recalculado desde el servidor, así que no hay riesgo de manipulación).
+                    const displaySelections = validatedSelections.length > 0
+                        ? validatedSelections
+                        : selections.map(s => String(s).trim().slice(0, 100)).filter(Boolean);
+
+                    if (displaySelections.length > 0) {
                         validatedCustomizations.push({
                             group: group.name,
-                            selections: validatedSelections,
+                            selections: displaySelections,
                             priceModifier: groupPriceModifier,
                         });
                     }
