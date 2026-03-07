@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState, useEffect, useCallback } from 'react';
+import { motion } from 'framer-motion';
 import { MdAdd, MdClose, MdLocalOffer } from 'react-icons/md';
 import { filterDismissedUpsellings, recordDismissal } from '@/utils/upsellingStorage';
 
@@ -160,8 +161,18 @@ export default function UpsellingBanner({
     // Filter dismissed
     const visibleSuggestions = suggestions.filter(s => !dismissed.includes(s._id));
 
-    // Don't render if no suggestions or loading
-    if (loading || visibleSuggestions.length === 0) {
+    // Mientras carga: skeleton que reserva el espacio para evitar layout shift
+    if (loading) {
+        return (
+            <div className="space-y-3" aria-hidden="true">
+                <div className="h-4 w-44 bg-gray-100 rounded-full animate-pulse" />
+                <div className="h-28 bg-orange-50 border border-orange-100 rounded-2xl animate-pulse" />
+            </div>
+        );
+    }
+
+    // Sin sugerencias: no ocupar espacio
+    if (visibleSuggestions.length === 0) {
         return null;
     }
 
@@ -258,7 +269,12 @@ export default function UpsellingBanner({
 
     // Banner variant (default - for checkout)
     return (
-        <div className="space-y-4">
+        <motion.div
+            className="space-y-4"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ duration: 0.35, ease: 'easeOut' }}
+        >
             <div className="flex items-center gap-2 mb-2">
                 <MdLocalOffer className="h-5 w-5 text-orange-500" />
                 <h3 className="font-semibold text-gray-900">¿Querés agregar algo más?</h3>
@@ -321,6 +337,6 @@ export default function UpsellingBanner({
                     </div>
                 </div>
             ))}
-        </div>
+        </motion.div>
     );
 }
