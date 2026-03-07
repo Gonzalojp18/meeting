@@ -81,6 +81,12 @@ const orderSchema = new mongoose.Schema(
           type: mongoose.Schema.Types.ObjectId,
           default: null,
         },
+        // Rol de impresión: 'kitchen' | 'bar' | 'both'
+        // null = sin asignar, se resuelve en print-jobs via itemRoleMap del menú
+        printRole: {
+          type: String,
+          default: null,
+        },
       },
     ],
 
