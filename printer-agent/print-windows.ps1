@@ -6,11 +6,16 @@ param(
 
 $ErrorActionPreference = 'Stop'
 
-# Resolver el nombre real en el spooler de Windows
-# El nombre en "Dispositivos e Impresoras" puede incluir " en NOMBREPC" como sufijo de display
-$actualName = $null
+# Diagnostico de contexto
+Write-Output "Usuario: $env:USERNAME"
+Write-Output "Sesion: $env:SESSIONNAME"
+Write-Output "Computadora: $env:COMPUTERNAME"
 
+# Resolver el nombre real en el spooler de Windows
+$actualName = $null
 $allPrinters = Get-Printer | Select-Object -ExpandProperty Name
+
+Write-Output "Impresoras disponibles: $($allPrinters -join ' | ')"
 
 # 1. Intentar coincidencia exacta
 foreach ($p in $allPrinters) {
