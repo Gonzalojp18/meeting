@@ -45,24 +45,29 @@ export async function GET(req) {
     const Menu = (await import("@/models/Menu")).default;
     const menu = await Menu.findOne({ "locations.isActive": true }).lean();
 
-    // Mapa: itemId -> printRole ('kitchen' | 'bar')
+    // Mapa: itemId -> printRole ('kitchen' | 'bar') y categoryName
     const itemRoleMap = {};
+    const itemCategoryMap = {};
     if (menu) {
       menu.categories.forEach(cat => {
         const role = cat.printRole || 'kitchen'; // Default
         cat.items.forEach(item => {
-          itemRoleMap[item._id.toString()] = role;
+          const id = item._id.toString();
+          itemRoleMap[id] = role;
+          itemCategoryMap[id] = cat.name;
         });
       });
     }
 
-    // 4. Enriquecer las órdenes con el rol de impresión por item
+    // 4. Enriquecer las órdenes con el rol de impresión y categoría por item
     const enrichedOrders = pendingOrders.map(order => {
       const orderObj = order.toObject();
       orderObj.items = orderObj.items.map(item => {
+        const itemId = item.itemId.toString();
         // Usa el printRole inyectado (como en test_print), sino lo busca en menu, sino kitchen
-        const role = item.printRole || itemRoleMap[item.itemId.toString()] || 'kitchen';
-        return { ...item, printRole: role };
+        const role = item.printRole || itemRoleMap[itemId] || 'kitchen';
+        const categoryName = item.categoryName || itemCategoryMap[itemId] || '';
+        return { ...item, printRole: role, categoryName };
       });
       return orderObj;
     });
