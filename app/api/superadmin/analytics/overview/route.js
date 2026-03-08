@@ -19,12 +19,12 @@ export async function GET(request) {
 
         // Total de órdenes
         const totalOrders = await Order.countDocuments({
-            status: { $ne: 'cancelled' }
+            paymentStatus: 'approved', isDeleted: { $ne: true }
         });
 
         // Revenue total
         const revenueAgg = await Order.aggregate([
-            { $match: { status: { $ne: 'cancelled' } } },
+            { $match: { paymentStatus: 'approved', isDeleted: { $ne: true } } },
             { $group: { _id: null, total: { $sum: '$total' } } }
         ]);
         const totalRevenue = revenueAgg[0]?.total || 0;
@@ -37,7 +37,7 @@ export async function GET(request) {
 
         // Revenue por locación
         const revenueByLocationAgg = await Order.aggregate([
-            { $match: { status: { $ne: 'cancelled' } } },
+            { $match: { paymentStatus: 'approved', isDeleted: { $ne: true } } },
             {
                 $group: {
                     _id: '$location.locationId',
@@ -60,7 +60,7 @@ export async function GET(request) {
         const todayStart = new Date(now.setHours(0, 0, 0, 0));
         const ordersToday = await Order.countDocuments({
             createdAt: { $gte: todayStart },
-            status: { $ne: 'cancelled' }
+            paymentStatus: 'approved', isDeleted: { $ne: true }
         });
 
         // Revenue trend (últimos 30 días)
@@ -68,7 +68,7 @@ export async function GET(request) {
             {
                 $match: {
                     createdAt: { $gte: thirtyDaysAgo },
-                    status: { $ne: 'cancelled' }
+                    paymentStatus: 'approved', isDeleted: { $ne: true }
                 }
             },
             {

@@ -194,6 +194,7 @@ export async function POST(req) {
                         paymentStatus: 'approved',
                         mercadoPagoId: paymentInfo.id.toString(),
                         status: 'confirmed',
+                        confirmedAt: new Date(),
                         // NO tocar printStatus — es manejado exclusivamente por el agente de impresión
                     }
                 },
