@@ -5,6 +5,7 @@ import dbConnect from '@/utils/dbConnect';
 import Order from '@/models/Order';
 import { getMPCredentials } from '@/utils/getMPCredentials';
 import { createOrderFromPayment } from '@/utils/orderService';
+import { trackCustomer } from '@/utils/customerTracking';
 import Settings from '@/models/Settings';
 import { decrypt } from '@/utils/encryption';
 
@@ -201,6 +202,14 @@ export async function POST(req) {
 
             if (updatedOrder) {
                 console.log(`[WEBHOOK] ✅ Orden actualizada: ${updatedOrder.orderNumber} → confirmed`);
+                trackCustomer({
+                    phone: updatedOrder.customer?.phone,
+                    email: updatedOrder.customer?.email,
+                    name: updatedOrder.customer?.name,
+                    lastname: updatedOrder.customer?.lastname,
+                    total: updatedOrder.total,
+                    locationId: updatedOrder.location?.locationId,
+                }).catch(err => console.error('[WEBHOOK] trackCustomer error:', err));
                 return NextResponse.json({ received: true, order: updatedOrder.orderNumber });
             } else {
                 console.warn(`[WEBHOOK] ⚠️ orderId ${orderId} no encontrado en DB. Intentando fallback...`);
@@ -210,6 +219,14 @@ export async function POST(req) {
         // Fallback: crear orden desde metadata (compatibilidad con pagos anteriores al refactor)
         const newOrder = await createOrderFromPayment(paymentInfo);
         console.log(`[WEBHOOK] ✅ Orden creada (fallback): ${newOrder.orderNumber}`);
+        trackCustomer({
+            phone: newOrder.customer?.phone,
+            email: newOrder.customer?.email,
+            name: newOrder.customer?.name,
+            lastname: newOrder.customer?.lastname,
+            total: newOrder.total,
+            locationId: newOrder.location?.locationId,
+        }).catch(err => console.error('[WEBHOOK] trackCustomer fallback error:', err));
         return NextResponse.json({ received: true, order: newOrder.orderNumber });
 
     } catch (error) {

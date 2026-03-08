@@ -1,7 +1,7 @@
 import { auth } from '@/auth';
 import { redirect } from 'next/navigation';
 import Link from 'next/link';
-import { MdDashboard, MdLocationOn, MdPeople, MdBarChart, MdLogout, MdInsights } from 'react-icons/md';
+import { MdDashboard, MdLocationOn, MdPeople, MdBarChart, MdLogout, MdInsights, MdReceipt } from 'react-icons/md';
 import { isSuperAdmin } from '@/middleware/superadmin';
 import PoweredByTakeasy from '@/components/footer/PoweredByTakeasy';
 import SuperAdminHelpButton from '@/components/help/SuperAdminHelpButton';
@@ -61,6 +61,9 @@ export default async function SuperAdminLayout({ children }) {
                         </NavLink>
                         <NavLink href="/superadmin/analytics" icon={MdBarChart}>
                             Analytics
+                        </NavLink>
+                        <NavLink href="/superadmin/orders" icon={MdReceipt}>
+                            Ordenes
                         </NavLink>
                         <NavLink href="/superadmin/ico" icon={MdInsights}>
                             ICO
