@@ -243,31 +243,62 @@ function generateTicket(order, role, columns = 32) {
 
     chunks.push(Buffer.from(`${lineStr}\n`));
 
-    itemsToPrint.forEach(item => {
-        const line = `${item.quantity}x ${item.name}`;
-
-        if (role === 'cashier') {
+    if (role === 'cashier') {
+        itemsToPrint.forEach(item => {
+            const line = `${item.quantity}x ${item.name}`;
             const price = `$${money(item.price * item.quantity)}`;
             const dots = '.'.repeat(Math.max(2, columns - line.length - price.length));
             chunks.push(Buffer.from(`${line}${dots}${price}\n`));
-        } else {
-            chunks.push(Buffer.from(`${line}\n`));
-        }
 
-        // Mostrar customizaciones en todos los tickets (cocina, barra y caja)
-        if (item.customizations && item.customizations.length > 0) {
-            item.customizations.forEach(c => {
-                const group = c.groupName || c.group || '';
-                const sels = (c.selections && Array.isArray(c.selections) && c.selections.length > 0)
-                    ? c.selections
-                    : (c.selected || c.option ? [c.selected || c.option] : []);
-                if (sels.length > 0) {
-                    const prefix = group ? group + ': ' : '';
-                    chunks.push(Buffer.from(`  > ${prefix}${sels.join(', ')}\n`));
+            if (item.customizations && item.customizations.length > 0) {
+                item.customizations.forEach(c => {
+                    const group = c.groupName || c.group || '';
+                    const sels = (c.selections && Array.isArray(c.selections) && c.selections.length > 0)
+                        ? c.selections
+                        : (c.selected || c.option ? [c.selected || c.option] : []);
+                    if (sels.length > 0) {
+                        const prefix = group ? group + ': ' : '';
+                        chunks.push(Buffer.from(`  > ${prefix}${sels.join(', ')}\n`));
+                    }
+                });
+            }
+        });
+    } else {
+        // Cocina / Barra: agrupar items por categoría
+        const categoryOrder = [];
+        const categorized = {};
+        itemsToPrint.forEach(item => {
+            const cat = item.categoryName ? item.categoryName.toUpperCase() : '';
+            if (!categorized[cat]) {
+                categorized[cat] = [];
+                categoryOrder.push(cat);
+            }
+            categorized[cat].push(item);
+        });
+
+        categoryOrder.forEach(cat => {
+            if (cat) {
+                chunks.push(ESC_POS.BOLD_ON);
+                chunks.push(Buffer.from(`[${cat}]\n`));
+                chunks.push(ESC_POS.BOLD_OFF);
+            }
+            categorized[cat].forEach(item => {
+                chunks.push(Buffer.from(`${item.quantity}x ${item.name}\n`));
+                if (item.customizations && item.customizations.length > 0) {
+                    item.customizations.forEach(c => {
+                        const group = c.groupName || c.group || '';
+                        const sels = (c.selections && Array.isArray(c.selections) && c.selections.length > 0)
+                            ? c.selections
+                            : (c.selected || c.option ? [c.selected || c.option] : []);
+                        if (sels.length > 0) {
+                            const prefix = group ? group + ': ' : '';
+                            chunks.push(Buffer.from(`  > ${prefix}${sels.join(', ')}\n`));
+                        }
+                    });
                 }
             });
-        }
-    });
+        });
+    }
 
     chunks.push(Buffer.from(`${lineStr}\n`));
     if (role === 'cashier') {
