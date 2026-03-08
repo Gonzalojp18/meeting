@@ -455,24 +455,38 @@ const CashierPanel = ({ standalone = true }) => {
                                             <div className="mb-4">
                                                 <h4 className="font-medium text-sm text-gray-700 mb-2">Items:</h4>
                                                 <ul className="space-y-2">
-                                                    {order.items?.map((item, idx) => (
-                                                        <li key={idx}>
-                                                            <div className="flex justify-between text-sm">
-                                                                <span>{item.quantity}x {item.name}</span>
-                                                                <span className="text-gray-500">${(item.price * item.quantity).toLocaleString()}</span>
-                                                            </div>
-                                                            {item.customizations?.map((c, cidx) => {
-                                                                const group = c.groupName || c.group || '';
-                                                                const sels = (c.selections?.length > 0) ? c.selections : (c.selected ? [c.selected] : []);
-                                                                if (!sels.length) return null;
-                                                                return (
-                                                                    <p key={cidx} className="text-xs text-gray-500 ml-3">
-                                                                        {group ? `${group}: ` : ''}{sels.join(', ')}
-                                                                    </p>
-                                                                );
-                                                            })}
-                                                        </li>
-                                                    ))}
+                                                    {(() => {
+                                                        const categoryOrder = [];
+                                                        const categorized = {};
+                                                        (order.items || []).forEach(item => {
+                                                            const cat = item.categoryName || '';
+                                                            if (!categorized[cat]) { categorized[cat] = []; categoryOrder.push(cat); }
+                                                            categorized[cat].push(item);
+                                                        });
+                                                        return categoryOrder.map(cat => (
+                                                            <li key={cat}>
+                                                                {cat && <p className="text-xs font-semibold text-purple-600 uppercase tracking-wide mb-1">{cat}</p>}
+                                                                {categorized[cat].map((item, idx) => (
+                                                                    <div key={idx} className="ml-2">
+                                                                        <div className="flex justify-between text-sm">
+                                                                            <span>{item.quantity}x {item.name}</span>
+                                                                            <span className="text-gray-500">${(item.price * item.quantity).toLocaleString()}</span>
+                                                                        </div>
+                                                                        {item.customizations?.map((c, cidx) => {
+                                                                            const group = c.groupName || c.group || '';
+                                                                            const sels = (c.selections?.length > 0) ? c.selections : (c.selected ? [c.selected] : []);
+                                                                            if (!sels.length) return null;
+                                                                            return (
+                                                                                <p key={cidx} className="text-xs text-gray-500 ml-3">
+                                                                                    {group ? `${group}: ` : ''}{sels.join(', ')}
+                                                                                </p>
+                                                                            );
+                                                                        })}
+                                                                    </div>
+                                                                ))}
+                                                            </li>
+                                                        ));
+                                                    })()}
                                                 </ul>
                                             </div>
 

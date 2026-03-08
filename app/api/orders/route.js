@@ -40,9 +40,29 @@ export async function GET(req) {
             isDeleted: false,
         })
             .sort({ createdAt: -1 })
-            .limit(100);
+            .limit(100)
+            .lean();
 
-        return NextResponse.json(orders);
+        // Enriquecer items con categoryName desde el menú
+        const Menu = (await import('@/models/Menu')).default;
+        const menu = await Menu.findOne({ 'locations.isActive': true }).lean();
+        const itemCategoryMap = {};
+        if (menu) {
+            menu.categories.forEach(cat => {
+                cat.items.forEach(item => {
+                    itemCategoryMap[item._id.toString()] = cat.name;
+                });
+            });
+        }
+        const enrichedOrders = orders.map(order => ({
+            ...order,
+            items: order.items.map(item => ({
+                ...item,
+                categoryName: item.categoryName || itemCategoryMap[item.itemId?.toString()] || '',
+            }))
+        }));
+
+        return NextResponse.json(enrichedOrders);
     } catch (error) {
         console.error('Error fetching orders:', error);
         return NextResponse.json({ error: 'Error del servidor' }, { status: 500 });
