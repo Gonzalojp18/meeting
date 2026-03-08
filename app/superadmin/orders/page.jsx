@@ -183,9 +183,21 @@ export default function OrdersPage() {
                                                 {order.deliveryMethod || '-'}
                                             </td>
                                             <td className="px-6 py-4">
-                                                <ul className="text-xs text-gray-700 space-y-0.5">
+                                                <ul className="text-xs text-gray-700 space-y-1.5">
                                                     {(order.items || []).map((item, i) => (
-                                                        <li key={i}>{item.quantity}x {item.name}</li>
+                                                        <li key={i}>
+                                                            <span className="font-medium">{item.quantity}x {item.name}</span>
+                                                            {item.customizations?.map((c, cidx) => {
+                                                                const group = c.groupName || c.group || '';
+                                                                const sels = (c.selections?.length > 0) ? c.selections : (c.selected ? [c.selected] : []);
+                                                                if (!sels.length) return null;
+                                                                return (
+                                                                    <p key={cidx} className="text-gray-400 ml-2">
+                                                                        {group ? `${group}: ` : ''}{sels.join(', ')}
+                                                                    </p>
+                                                                );
+                                                            })}
+                                                        </li>
                                                     ))}
                                                 </ul>
                                             </td>
