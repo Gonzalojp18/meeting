@@ -89,7 +89,7 @@ export async function GET(request) {
             },
             {
                 $group: {
-                    _id: '$customer.phone',
+                    _id: '$customer.phoneHash',
                     orderCount: { $sum: 1 },
                 }
             },
@@ -119,7 +119,7 @@ export async function GET(request) {
             },
             {
                 $group: {
-                    _id: '$customer.phone',
+                    _id: '$customer.phoneHash',
                     locations: { $addToSet: '$location.locationId' },
                 }
             },

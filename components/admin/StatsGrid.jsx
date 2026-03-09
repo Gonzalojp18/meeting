@@ -1,13 +1,16 @@
 'use client';
-import React from 'react';
+import React, { useState } from 'react';
 import {
     MdAttachMoney,
     MdShoppingCart,
     MdTrendingUp,
-    MdStore
+    MdStore,
+    MdVisibility,
+    MdVisibilityOff
 } from 'react-icons/md';
 
 const StatsGrid = ({ summary = {}, deliveryStats = [] }) => {
+    const [showRevenue, setShowRevenue] = useState(false);
     // Proteger contra summary undefined
     const safeSum = summary || {};
 
@@ -55,6 +58,7 @@ const StatsGrid = ({ summary = {}, deliveryStats = [] }) => {
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
             {[...stats, ...deliveryMetrics].map((stat, idx) => {
                 const Icon = stat.icon;
+                const isRevenue = stat.label === 'Ventas Totales';
                 return (
                     <div
                         key={idx}
@@ -64,9 +68,20 @@ const StatsGrid = ({ summary = {}, deliveryStats = [] }) => {
                             <div className={`p-2 ${stat.color} rounded-lg group-hover:scale-110 transition-transform`}>
                                 <Icon className="h-5 w-5" />
                             </div>
-                            <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider">{stat.label}</p>
+                            <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider flex-1">{stat.label}</p>
+                            {isRevenue && (
+                                <button
+                                    onClick={() => setShowRevenue(v => !v)}
+                                    className="text-gray-400 hover:text-gray-600 transition-colors"
+                                    title={showRevenue ? 'Ocultar' : 'Mostrar'}
+                                >
+                                    {showRevenue ? <MdVisibility className="h-4 w-4" /> : <MdVisibilityOff className="h-4 w-4" />}
+                                </button>
+                            )}
                         </div>
-                        <p className="text-2xl font-black text-gray-900">{stat.value}</p>
+                        <p className="text-2xl font-black text-gray-900">
+                            {isRevenue ? (showRevenue ? stat.value : '••••••') : stat.value}
+                        </p>
                     </div>
                 );
             })}
