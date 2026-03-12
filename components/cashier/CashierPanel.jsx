@@ -47,7 +47,7 @@ const CashierPanel = ({ standalone = true }) => {
     const router = useRouter();
     const { data: session, status } = useSession();
     const [selectedLocation, setSelectedLocation] = useState(null);
-    const [filterStatus, setFilterStatus] = useState('all');
+    const [filterStatus, setFilterStatus] = useState('pending');
     const [searchPhone, setSearchPhone] = useState('');
     const [soundEnabled, setSoundEnabled] = useState(true);
 
