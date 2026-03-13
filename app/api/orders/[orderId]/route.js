@@ -76,6 +76,22 @@ export async function PATCH(req, { params }) {
         // Reflejar cambios en la memoria local para retornar un objeto completo
         Object.assign(order, updateQuery.$set);
 
+        // Send push notification to customer when order is ready for pickup
+        if (updates.status === 'ready' && previousStatus !== 'ready') {
+            const customerName = order.customer?.name || 'Cliente';
+            const orderNum = order.orderNumber?.replace('ORD-', '') || orderId;
+            const locationName = order.location?.locationName || 'nuestra sucursal';
+
+            import('@/lib/pushNotification').then(({ sendPushNotification }) => {
+                sendPushNotification({
+                    userId: order._id.toString(),
+                    title: '🍽️ ¡Tu pedido está listo!',s
+                    body: `Hola ${customerName}, tu pedido #${orderNum} ya puede ser retirado en Caja, No olvides marcas como retirado al recibirlo. Que disfrutes!\n\n${locationName}`,
+                    url: `/tracking/${order.orderNumber}`,
+                });
+            }).catch(err => console.error('[ORDER-PATCH] Push notification error:', err));
+        }
+
         // Trigger kitchen printing automatically ONLY when status changes to 'preparing'
         if (
             updates.status === 'preparing' &&

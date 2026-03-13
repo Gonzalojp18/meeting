@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import { MdCheckCircle, MdAccessTime, MdRestaurant, MdLocalShipping, MdDone } from 'react-icons/md';
 import useActiveOrderStore from '@/store/activeOrderStore';
 import API_URI from '@/utils/getApiUri';
+import usePushNotification from '@/hooks/usePushNotification';
 
 const ORDER_STATES = {
     confirmed: { label: 'Confirmado', icon: MdCheckCircle, color: 'text-blue-600', bgColor: 'bg-blue-100' },
@@ -32,6 +33,10 @@ export default function OrderTracker({ orderNumber, initialOrder = null }) {
     const [cancelling, setCancelling] = useState(false);
 
     const { clearActiveOrder, updateStatus } = useActiveOrderStore();
+
+    // Subscribe to push notifications using order._id as the subscription key.
+    // The backend will send a personalized push when status changes to 'ready'.
+    usePushNotification(order?._id?.toString());
 
     // Fetch order data
     const fetchOrder = useCallback(async () => {
