@@ -9,6 +9,8 @@ import Order from '@/models/Order';
  * KPIs operacionales accesibles por admin y superadmin:
  * - Órdenes agrupadas por hora del día (heatmap de horas pico)
  * - Tiempo promedio de preparación por sede (readyAt - confirmedAt)
+ * - Tiempo de espera del cliente para retiro (deliveredAt - readyAt)
+ * - Tiempo de ciclo completo del pedido (completedAt - createdAt)
  *
  * Comportamiento según rol:
  * - superadmin → datos de TODAS las sedes
@@ -47,7 +49,7 @@ export async function GET(request) {
             : {};
 
         const baseMatch = {
-            status: { $in: ['completed', 'ready', 'preparing', 'confirmed'] },
+            status: { $in: ['completed', 'delivered', 'ready', 'preparing', 'confirmed'] },
             isDeleted: false,
             ...createdAtFilter,
             ...locationFilter,
@@ -86,11 +88,10 @@ export async function GET(request) {
                 $project: {
                     locationId: '$location.locationId',
                     locationName: '$location.locationName',
-                    // diferencia en minutos (con redondeo a 1 decimal)
                     prepMinutes: {
                         $divide: [
                             { $subtract: ['$readyAt', '$confirmedAt'] },
-                            60000 // ms → minutos
+                            60000
                         ]
                     },
                 }
@@ -113,11 +114,104 @@ export async function GET(request) {
             sampleCount: loc.sampleCount,
         }));
 
-        // Promedio global de la plataforma
         const platformAvgMinutes = avgPreparationByLocation.length > 0
             ? parseFloat(
                 (avgPreparationByLocation.reduce((acc, l) => acc + l.avgMinutes, 0) /
                     avgPreparationByLocation.length).toFixed(1)
+            )
+            : null;
+
+        // ─── 3. Tiempo de espera del cliente (Pickup Wait) ────────────────────
+        // deliveredAt - readyAt: cuánto tarda el cliente en retirar después de que está listo
+        const pickupWaitResult = await Order.aggregate([
+            {
+                $match: {
+                    ...baseMatch,
+                    readyAt: { $exists: true, $ne: null },
+                    deliveredAt: { $exists: true, $ne: null },
+                }
+            },
+            {
+                $project: {
+                    locationId: '$location.locationId',
+                    locationName: '$location.locationName',
+                    waitMinutes: {
+                        $divide: [
+                            { $subtract: ['$deliveredAt', '$readyAt'] },
+                            60000
+                        ]
+                    },
+                }
+            },
+            {
+                $group: {
+                    _id: '$locationId',
+                    locationName: { $first: '$locationName' },
+                    avgWaitMinutes: { $avg: '$waitMinutes' },
+                    sampleCount: { $sum: 1 },
+                }
+            },
+            { $sort: { avgWaitMinutes: -1 } }
+        ]);
+
+        const pickupWaitByLocation = pickupWaitResult.map(loc => ({
+            locationId: loc._id,
+            locationName: loc.locationName,
+            avgMinutes: parseFloat(loc.avgWaitMinutes.toFixed(1)),
+            sampleCount: loc.sampleCount,
+        }));
+
+        const pickupWaitPlatformAvg = pickupWaitByLocation.length > 0
+            ? parseFloat(
+                (pickupWaitByLocation.reduce((acc, l) => acc + l.avgMinutes, 0) /
+                    pickupWaitByLocation.length).toFixed(1)
+            )
+            : null;
+
+        // ─── 4. Ciclo completo del pedido (Full Cycle) ────────────────────────
+        // completedAt - createdAt: tiempo total desde que entró el pedido hasta cierre
+        const fullCycleResult = await Order.aggregate([
+            {
+                $match: {
+                    ...baseMatch,
+                    status: 'completed',
+                    completedAt: { $exists: true, $ne: null },
+                }
+            },
+            {
+                $project: {
+                    locationId: '$location.locationId',
+                    locationName: '$location.locationName',
+                    cycleMinutes: {
+                        $divide: [
+                            { $subtract: ['$completedAt', '$createdAt'] },
+                            60000
+                        ]
+                    },
+                }
+            },
+            {
+                $group: {
+                    _id: '$locationId',
+                    locationName: { $first: '$locationName' },
+                    avgCycleMinutes: { $avg: '$cycleMinutes' },
+                    sampleCount: { $sum: 1 },
+                }
+            },
+            { $sort: { avgCycleMinutes: -1 } }
+        ]);
+
+        const fullCycleByLocation = fullCycleResult.map(loc => ({
+            locationId: loc._id,
+            locationName: loc.locationName,
+            avgMinutes: parseFloat(loc.avgCycleMinutes.toFixed(1)),
+            sampleCount: loc.sampleCount,
+        }));
+
+        const fullCyclePlatformAvg = fullCycleByLocation.length > 0
+            ? parseFloat(
+                (fullCycleByLocation.reduce((acc, l) => acc + l.avgMinutes, 0) /
+                    fullCycleByLocation.length).toFixed(1)
             )
             : null;
 
@@ -129,6 +223,14 @@ export async function GET(request) {
                 avgPreparation: {
                     platformAvgMinutes,
                     byLocation: avgPreparationByLocation,
+                },
+                pickupWait: {
+                    platformAvgMinutes: pickupWaitPlatformAvg,
+                    byLocation: pickupWaitByLocation,
+                },
+                fullCycle: {
+                    platformAvgMinutes: fullCyclePlatformAvg,
+                    byLocation: fullCycleByLocation,
                 },
             },
         });

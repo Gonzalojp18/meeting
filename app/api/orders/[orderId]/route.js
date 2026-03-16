@@ -23,7 +23,7 @@ export async function PATCH(req, { params }) {
         const updates = await req.json();
 
         // Validar valores permitidos de status
-        const VALID_STATUSES = ['pending', 'confirmed', 'preparing', 'ready', 'completed', 'cancelled'];
+        const VALID_STATUSES = ['pending', 'confirmed', 'preparing', 'ready', 'delivered', 'completed', 'cancelled'];
         if (updates.status && !VALID_STATUSES.includes(updates.status)) {
             return NextResponse.json({ error: 'Estado de pedido inválido' }, { status: 400 });
         }
@@ -64,8 +64,13 @@ export async function PATCH(req, { params }) {
         if (updates.adminNotes !== undefined) updateQuery.$set.adminNotes = updates.adminNotes.trim();
 
         // Auto-set timestamps operativos según transición de estado
-        if (updates.status === 'confirmed' && !order.confirmedAt) updateQuery.$set.confirmedAt = new Date();
+        // confirmedAt = inicio de preparación. Se setea en 'confirmed', pero también como fallback
+        // en 'preparing' o 'ready' por si el cajero saltea pasos intermedios.
+        if (['confirmed', 'preparing', 'ready'].includes(updates.status) && !order.confirmedAt) {
+            updateQuery.$set.confirmedAt = new Date();
+        }
         if (updates.status === 'ready' && !order.readyAt) updateQuery.$set.readyAt = new Date();
+        if (updates.status === 'delivered' && !order.deliveredAt) updateQuery.$set.deliveredAt = new Date();
         if (updates.status === 'completed' && !order.deliveredAt) updateQuery.$set.deliveredAt = new Date();
         if (updates.status === 'completed') updateQuery.$set.completedAt = new Date();
         if (updates.status === 'cancelled') updateQuery.$set.cancelledAt = new Date();
@@ -85,7 +90,7 @@ export async function PATCH(req, { params }) {
             import('@/lib/pushNotification').then(({ sendPushNotification }) => {
                 sendPushNotification({
                     userId: order._id.toString(),
-                    title: '🍽️ ¡Tu pedido está listo!',s
+                    title: '🍽️ ¡Tu pedido está listo!',
                     body: `Hola ${customerName}, tu pedido #${orderNum} ya puede ser retirado en Caja, No olvides marcas como retirado al recibirlo. Que disfrutes!\n\n${locationName}`,
                     url: `/tracking/${order.orderNumber}`,
                 });

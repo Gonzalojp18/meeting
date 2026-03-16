@@ -46,8 +46,8 @@ export async function PATCH(req, { params }) {
             return NextResponse.json({ error: 'Pedido no encontrado' }, { status: 404 });
         }
 
-        // Solo permitir confirmar retiro si el pedido está en estado "ready"
-        if (order.status !== 'ready') {
+        // Solo permitir confirmar retiro si el pedido está en estado "ready" o "delivered"
+        if (order.status !== 'ready' && order.status !== 'delivered') {
             return NextResponse.json(
                 { error: 'El pedido no está listo para retirar' },
                 { status: 400 }
@@ -62,13 +62,24 @@ export async function PATCH(req, { params }) {
             );
         }
 
-        // Marcar como retirado bypassando hooks de Mongoose
+        // Marcar como retirado y avanzar a estado "delivered"
+        const now = new Date();
         order.customerPickupConfirmed = true;
-        order.customerPickupAt = new Date();
+        order.customerPickupAt = now;
+
+        const updateFields = {
+            customerPickupConfirmed: true,
+            customerPickupAt: now,
+            status: 'delivered',
+        };
+        // Solo setear deliveredAt si no existía previamente
+        if (!order.deliveredAt) {
+            updateFields.deliveredAt = now;
+        }
 
         await Order.updateOne(
             { _id: order._id },
-            { $set: { customerPickupConfirmed: true, customerPickupAt: order.customerPickupAt } }
+            { $set: updateFields }
         );
 
         return NextResponse.json({

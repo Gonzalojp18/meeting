@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
-import { MdCheckCircle, MdAccessTime, MdRestaurant, MdLocalShipping, MdDone } from 'react-icons/md';
+import { MdCheckCircle, MdAccessTime, MdRestaurant, MdLocalShipping, MdDone, MdVerified } from 'react-icons/md';
 import useActiveOrderStore from '@/store/activeOrderStore';
 import API_URI from '@/utils/getApiUri';
 import usePushNotification from '@/hooks/usePushNotification';
@@ -11,10 +11,11 @@ const ORDER_STATES = {
     confirmed: { label: 'Confirmado', icon: MdCheckCircle, color: 'text-blue-600', bgColor: 'bg-blue-100' },
     preparing: { label: 'En Preparación', icon: MdRestaurant, color: 'text-orange-600', bgColor: 'bg-orange-100' },
     ready: { label: 'Listo para Retirar', icon: MdLocalShipping, color: 'text-green-600', bgColor: 'bg-green-100' },
-    completed: { label: 'Retirado', icon: MdDone, color: 'text-gray-600', bgColor: 'bg-gray-100' }
+    delivered: { label: 'Entregado', icon: MdVerified, color: 'text-emerald-600', bgColor: 'bg-emerald-100' },
+    completed: { label: 'Completado', icon: MdDone, color: 'text-gray-600', bgColor: 'bg-gray-100' }
 };
 
-const STATE_ORDER = ['confirmed', 'preparing', 'ready', 'completed'];
+const STATE_ORDER = ['confirmed', 'preparing', 'ready', 'delivered', 'completed'];
 
 export default function OrderTracker({ orderNumber, initialOrder = null }) {
     const router = useRouter();
@@ -262,6 +263,7 @@ export default function OrderTracker({ orderNumber, initialOrder = null }) {
 
     const currentStep = getCurrentStepIndex();
     const isReady = order?.status === 'ready';
+    const isDelivered = order?.status === 'delivered';
     const isCompleted = order?.status === 'completed';
 
     return (
@@ -440,6 +442,24 @@ export default function OrderTracker({ orderNumber, initialOrder = null }) {
                             className="w-full bg-green-600 text-white py-4 rounded-xl font-bold text-lg hover:bg-green-700 transition shadow-lg animate-bounce"
                         >
                             YA RETIRÉ MI PEDIDO
+                        </button>
+                    </div>
+                </div>
+            )}
+
+            {/* Delivered Message */}
+            {isDelivered && (
+                <div className="fixed bottom-0 left-0 right-0 bg-emerald-600 text-white p-4 shadow-lg">
+                    <div className="max-w-lg mx-auto text-center">
+                        <p className="font-medium">✅ Pedido entregado. ¡Gracias por tu compra!</p>
+                        <button
+                            onClick={() => {
+                                clearActiveOrder();
+                                router.push(`/menu/${order.location?.locationId || 'harrods'}`);
+                            }}
+                            className="mt-2 underline text-sm"
+                        >
+                            Volver al menú
                         </button>
                     </div>
                 </div>

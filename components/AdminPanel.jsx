@@ -700,7 +700,7 @@ const AdminPanel = () => {
               <div className="flex items-center justify-between">
                 <div>
                   <h2 className="text-xl font-bold text-gray-900 mb-1">Métricas Operacionales</h2>
-                  <p className="text-sm text-gray-600">Órdenes por hora y tiempos de preparación de tu sede</p>
+                  <p className="text-sm text-gray-600">Horas pico, preparación, tiempo de retiro y ciclo completo</p>
                 </div>
                 <div className="p-4 bg-orange-500 rounded-xl shadow-lg">
                   <MdShowChart className="h-8 w-8 text-white" />

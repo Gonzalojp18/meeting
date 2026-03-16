@@ -29,6 +29,7 @@ const ORDER_STATUSES = {
     confirmed: { label: 'Confirmado', color: 'bg-blue-100 text-blue-800', icon: MdCheckCircle },
     preparing: { label: 'Preparando', color: 'bg-orange-100 text-orange-800', icon: MdRestaurant },
     ready: { label: 'Listo', color: 'bg-green-100 text-green-800', icon: MdCheckCircle },
+    delivered: { label: 'Entregado', color: 'bg-emerald-100 text-emerald-800', icon: MdVerified },
     completed: { label: 'Completado', color: 'bg-gray-100 text-gray-800', icon: MdCheckCircle },
     cancelled: { label: 'Cancelado', color: 'bg-red-100 text-red-800', icon: MdCancel }
 };
@@ -147,7 +148,7 @@ const CashierPanel = ({ standalone = true }) => {
     };
 
     const getNextStatus = (currentStatus) => {
-        const flow = ['pending', 'confirmed', 'preparing', 'ready', 'completed'];
+        const flow = ['pending', 'confirmed', 'preparing', 'ready', 'delivered', 'completed'];
         const currentIndex = flow.indexOf(currentStatus);
         if (currentIndex < flow.length - 1) {
             return flow[currentIndex + 1];
@@ -294,6 +295,7 @@ const CashierPanel = ({ standalone = true }) => {
                                     { key: 'confirmed', label: 'Confirmados' },
                                     { key: 'preparing', label: 'Preparando' },
                                     { key: 'ready', label: 'Listos' },
+                                    { key: 'delivered', label: 'Entregados' },
                                     { key: 'completed', label: 'Completados' }
                                 ].map(filter => (
                                     <button
@@ -538,15 +540,15 @@ const CashierPanel = ({ standalone = true }) => {
                                                     Ticket
                                                 </button>
 
-                                                {/* Botón de override para marcar retiro (solo si está ready y no confirmado) */}
-                                                {order.status === 'ready' && !order.customerPickupConfirmed && (
+                                                {/* Botón de override para marcar retiro (solo si está ready o delivered y no confirmado) */}
+                                                {(order.status === 'ready' || order.status === 'delivered') && !order.customerPickupConfirmed && (
                                                     <button
                                                         onClick={() => handleForcePickup(order._id)}
                                                         className="w-full mt-2 inline-flex items-center justify-center gap-1 bg-teal-100 text-teal-700 py-2 px-3 rounded-lg font-medium hover:bg-teal-200 transition-colors border border-teal-200"
                                                         title="Confirmar retiro manualmente"
                                                     >
                                                         <MdVerified size={18} />
-                                                        Marcar como Retirado (Override)
+                                                        Marcar como Entregado (Override)
                                                     </button>
                                                 )}
                                             </div>
