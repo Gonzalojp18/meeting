@@ -83,3 +83,19 @@ ICO.md
 PLAN-TAKEAWAY_SYSTEM.md
 .PLAN-TAKEAWAY_SYSTEM.md
 /PLAN-TAKEAWAY_SYSTEM.md
+
+# Claude Code local configuration
+.claude/
+
+PLAN_TAKEAWAY_SYSTEM.md
+.PLAN_TAKEAWAY_SYSTEM.md
+/PLAN_TAKEAWAY_SYSTEM.md
+
+N8N_AI_ROUTER.json
+.N8N_AI_ROUTER.json
+/N8N_AI_ROUTER.json
+
+menu_location1.json
+
+/TECHNICAL
+

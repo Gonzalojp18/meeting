@@ -1,0 +1,37 @@
+version: '3.8'
+
+volumes:
+  n8n_data:
+
+
+services:
+  n8n:
+    image: docker.n8n.io/n8nio/n8n
+    command: start --tunnel
+    restart: always
+    ports:
+      - "5678:5678"
+    environment:
+      - NODE_ENV=production
+      - GENERIC_TIMEZONE=America/Argentina/Buenos_Aires
+      - WEBHOOK_URL=https://bardish-natalia-uncheckable.ngrok-free.dev
+      - N8N_BASIC_AUTH_ACTIVE=true
+      - N8N_BASIC_AUTH_USER=admin
+      - N8N_BASIC_AUTH_PASSWORD=gonzalopalomo
+      - NODE_FUNCTION_ALLOW_BUILTIN=http,https,url
+      - N8N_BLOCK_ENV_ACCESS_IN_NODE=false
+      - N8N_API_KEY=cdua819746370
+      - TELEGRAM_ADMIN_CHAT_IDS=6578154253
+
+    volumes:
+      - n8n_data:/home/node/.n8n
+
+# docker compose -f docker-compose.n8n.yml down
+# 6578154253
+
+
+
+# docker compose -f docker-compose.n8n.yml up -d
+
+
+# ngrok start https://plenty-snails-own.loca.lt

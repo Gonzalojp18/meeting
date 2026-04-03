@@ -7,6 +7,7 @@ import { getMPCredentials } from '@/utils/getMPCredentials';
 import { createOrderFromPayment } from '@/utils/orderService';
 import { trackCustomer } from '@/utils/customerTracking';
 import Settings from '@/models/Settings';
+import AuditLog from '@/models/AuditLog';
 import { decrypt } from '@/utils/encryption';
 
 // 🔒 SECURITY: Validate MercadoPago webhook signature (VULN-002)
@@ -134,6 +135,15 @@ export async function POST(req) {
         let paymentInfo = null;
         let merchantOrder = null;
 
+        // 📝 AUDIT: Registrar llegada del webhook
+        await AuditLog.create({
+            performedBy: { userName: 'MercadoPago Webhook', userRole: 'system' },
+            action: 'UPDATE',
+            entity: 'order',
+            details: `Webhook recibido: Topic=${topic}, ID=${id}`,
+            metadata: { topic, dataId: id, body: body }
+        }).catch(err => console.error('[WEBHOOK AUDIT ERROR]:', err));
+
         // Estrategia:
         // 1. Si es 'payment', buscamos el pago directo.
         // 2. Si es 'merchant_order', buscamos la orden y revisamos sus pagos.
@@ -186,6 +196,13 @@ export async function POST(req) {
         const orderId = meta.order_id || meta.orderId; // MP convierte camelCase a snake_case
 
         if (orderId) {
+            // 🛡️ IDEMPOTENCIA: Verificar si ya está aprobada
+            const existingOrder = await Order.findById(orderId);
+            if (existingOrder && (existingOrder.paymentStatus === 'approved' || existingOrder.status === 'confirmed')) {
+                console.log(`[WEBHOOK] ⏩ Orden ${existingOrder.orderNumber} ya procesada anteriormente.`);
+                return NextResponse.json({ received: true, alreadyProcessed: true });
+            }
+
             // Actualizar la orden pendiente que ya fue creada en create-preference
             const updatedOrder = await Order.findByIdAndUpdate(
                 orderId,
@@ -203,6 +220,17 @@ export async function POST(req) {
 
             if (updatedOrder) {
                 console.log(`[WEBHOOK] ✅ Orden actualizada: ${updatedOrder.orderNumber} → confirmed`);
+                
+                await AuditLog.create({
+                    performedBy: { userName: 'MercadoPago Webhook', userRole: 'system' },
+                    action: 'STATUS_CHANGE',
+                    entity: 'order',
+                    entityId: updatedOrder._id,
+                    entityName: updatedOrder.orderNumber,
+                    details: `Pago aprobado y orden confirmada automáticamente.`,
+                    metadata: { paymentId: paymentInfo.id, status: paymentInfo.status }
+                }).catch(err => console.error('[WEBHOOK SUCCESS AUDIT ERROR]:', err));
+
                 trackCustomer({
                     phone: updatedOrder.customer?.phone,
                     email: updatedOrder.customer?.email,

@@ -1,7 +1,7 @@
 'use client';
 import React, { useState, useEffect } from 'react';
 import { useSession } from 'next-auth/react';
-import { MdSecurity, MdVisibility, MdVisibilityOff, MdCheckCircle, MdError, MdOpenInNew, MdDelete, MdInfoOutline, MdLock, MdWarning } from 'react-icons/md';
+import { MdSecurity, MdVisibility, MdVisibilityOff, MdCheckCircle, MdError, MdOpenInNew, MdDelete, MdInfoOutline, MdLock, MdWarning, MdSync, MdAutoFixHigh } from 'react-icons/md';
 
 const MercadoPagoSettings = () => {
   const { data: session } = useSession();
@@ -22,6 +22,8 @@ const MercadoPagoSettings = () => {
   const [isEditing, setIsEditing] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [deletePassword, setDeletePassword] = useState('');
+  const [syncing, setSyncing] = useState(false);
+  const [syncResult, setSyncResult] = useState(null);
 
   const getAuthHeaders = () => {
     if (!token) return {};
@@ -124,6 +126,31 @@ const MercadoPagoSettings = () => {
     }
   };
 
+  const handleSync = async () => {
+    setSyncing(true);
+    setSyncResult(null);
+    try {
+      const res = await fetch('/api/admin/payments/sync', {
+        headers: getAuthHeaders(),
+      });
+      const data = await res.json();
+      if (res.ok) {
+        setSyncResult(data);
+        if (data.recovered > 0) {
+          setMessage({ type: 'success', text: `Sincronización completada. Se recuperaron ${data.recovered} pedidos.` });
+        } else {
+          setMessage({ type: 'info', text: 'Sincronización completada. No se encontraron pedidos pendientes por recuperar.' });
+        }
+      } else {
+        setMessage({ type: 'error', text: data.error || 'Error en la sincronización' });
+      }
+    } catch (error) {
+      setMessage({ type: 'error', text: 'Error de red al sincronizar' });
+    } finally {
+      setSyncing(false);
+    }
+  };
+
   if (loading) {
     return (
       <div className="flex items-center justify-center py-12">
@@ -186,6 +213,41 @@ const MercadoPagoSettings = () => {
               <p className="text-gray-500 text-xs mb-1">Webhook Secret (Firma)</p>
               <p className="font-mono text-gray-700">{status.webhookSecret || 'No configurado'}</p>
             </div>
+          </div>
+
+          {/* Sección de Auto-Recuperación (NUEVO) */}
+          <div className="pt-4 border-t border-gray-100">
+            <div className="flex items-start gap-3">
+              <div className="p-2.5 bg-orange-50 rounded-xl">
+                <MdAutoFixHigh size={20} className="text-orange-600" />
+              </div>
+              <div className="flex-1">
+                <h4 className="text-sm font-bold text-gray-900">Auto-Recuperación de Pagos</h4>
+                <p className="text-xs text-gray-500 mt-1 mb-3">
+                  Si un cliente pagó pero su pedido no aparece como confirmado, esta herramienta sincroniza el estado con Mercado Pago proactivamente.
+                </p>
+                <button
+                  onClick={handleSync}
+                  disabled={syncing}
+                  className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-bold transition-all shadow-sm
+                    ${syncing 
+                      ? 'bg-gray-100 text-gray-400 cursor-not-allowed' 
+                      : 'bg-orange-500 hover:bg-orange-600 text-white active:scale-95'
+                    }`}
+                >
+                  <MdSync size={18} className={syncing ? 'animate-spin' : ''} />
+                  {syncing ? 'Sincronizando...' : 'Reconciliar Pagos'}
+                </button>
+              </div>
+            </div>
+
+            {syncResult && (
+                <div className="mt-3 p-3 bg-gray-50 rounded-lg border border-gray-100 text-[11px] text-gray-600 font-mono">
+                    <p>Total analizado: {syncResult.total}</p>
+                    <p className="text-green-600 font-bold">Recuperados: {syncResult.recovered}</p>
+                    {syncResult.errors > 0 && <p className="text-red-600">Errores: {syncResult.errors}</p>}
+                </div>
+            )}
           </div>
         </div>
       )}
