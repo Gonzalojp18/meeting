@@ -101,12 +101,12 @@ const MainFooter = () => {
                     <p className="text-xs text-gray-600">
                         Desarrollado y gestionado por{' '}
                         <a
-                            href="https://www.instagram.com/clickandthinkai/"
+                            href="https://www.instagram.com/takeasygo/"
                             target="_blank"
                             rel="noopener noreferrer"
                             className="hover:text-gray-400 transition-colors underline underline-offset-2"
                         >
-                            @clickandthinkai
+                            @takeasygo
                         </a>
                     </p>
                 </div>
