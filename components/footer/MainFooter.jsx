@@ -106,7 +106,7 @@ const MainFooter = () => {
                             rel="noopener noreferrer"
                             className="hover:text-gray-400 transition-colors underline underline-offset-2"
                         >
-                            @takeasygo
+                            @takeasygos
                         </a>
                     </p>
                 </div>
