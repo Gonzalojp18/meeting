@@ -26,7 +26,7 @@ export async function PUT(req, { params }) {
     const { categoryId, itemId } = await params;
     const updatedItem = await req.json();
 
-    const menu = await Menu.findOne();
+    const menu = await Menu.findOne({ 'categories._id': categoryId });
 
     if (!menu) {
       return NextResponse.json({ msg: 'Menu not found' }, { status: 404 });
@@ -84,7 +84,7 @@ export async function DELETE(req, { params }) {
 
     const { categoryId, itemId } = await params;
 
-    const menu = await Menu.findOne();
+    const menu = await Menu.findOne({ 'categories._id': categoryId });
 
     if (!menu) {
       return NextResponse.json({ error: 'Menu not found' }, { status: 404 });

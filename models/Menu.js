@@ -187,6 +187,11 @@ const locationSchema = new mongoose.Schema({
 
 const menuSchema = new mongoose.Schema(
   {
+    menuType: {
+      type: String,
+      enum: ['standard', 'executive'],
+      default: 'standard'
+    },
     categories: [categorySchema],
     locations: [locationSchema],
   },

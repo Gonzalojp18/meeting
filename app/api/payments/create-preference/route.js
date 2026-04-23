@@ -7,14 +7,14 @@ import Settings from '@/models/Settings';
 import Menu from '@/models/Menu';
 import Order from '@/models/Order';
 import { DEFAULT_TAKEAWAY_HOURS, isWithinTakeawayHours } from '@/utils/constants';
-
+import { encrypt, hashForSearch } from '@/utils/encryption';
 
 /**
  * SEGURIDAD: Valida los precios de los items contra la base de datos
  * Previene manipulación de precios por parte del cliente (VULN-006)
  */
-async function validateAndGetRealPrices(items, locationId) {
-    const menu = await Menu.findOne();
+async function validateAndGetRealPrices(items, locationId, menuType) {
+    const menu = await Menu.findOne({ menuType: menuType || 'standard' });
     if (!menu) throw new Error('Menú no encontrado');
 
     const locationPriceMap = {
@@ -126,7 +126,7 @@ export async function POST(req) {
 
         const client = new MercadoPagoConfig({ accessToken: credentials.accessToken });
         const body = await req.json();
-        const { items, customerData, total: clientTotal, locationId } = body;
+        const { items, customerData, total: clientTotal, locationId, menuType } = body;
 
         // Validaciones básicas
         if (!items || items.length === 0) {
@@ -158,7 +158,7 @@ export async function POST(req) {
         // =====================================================
         let validated;
         try {
-            validated = await validateAndGetRealPrices(items, locationId);
+            validated = await validateAndGetRealPrices(items, locationId, menuType);
         } catch (validationError) {
             console.error('[SECURITY] Error validando precios:', validationError.message);
             return NextResponse.json({ error: validationError.message }, { status: 400 });
@@ -200,11 +200,13 @@ export async function POST(req) {
         const now = new Date();
         const orderDoc = {
             orderNumber,
+            orderMode: menuType || 'standard',
             customer: {
-                name: customerData.name,
-                lastname: customerData.lastname || '-',
-                phone: customerData.phone,
-                email: customerData.email || '',
+                name: encrypt(customerData.name),
+                lastname: encrypt(customerData.lastname || '-'),
+                phone: encrypt(customerData.phone),
+                phoneHash: hashForSearch(customerData.phone),
+                email: customerData.email ? encrypt(customerData.email) : '',
             },
             items: validated.items.map(item => ({
                 itemId: new mongoose.Types.ObjectId(item.itemId),

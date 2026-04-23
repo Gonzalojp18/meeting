@@ -37,7 +37,9 @@ export async function PUT(req) {
       return NextResponse.json({ error: 'categoryId is required for item reordering' }, { status: 400 });
     }
 
-    const menu = await Menu.findOne();
+    // Utilizar el categoryId (si type=items) o el primer category id de orderedIds (si type=categories) para ubicar el menú correcto
+    const lookupCatId = type === 'items' ? categoryId : orderedIds[0];
+    const menu = await Menu.findOne({ 'categories._id': lookupCatId });
     if (!menu) {
       return NextResponse.json({ error: 'Menu not found' }, { status: 404 });
     }

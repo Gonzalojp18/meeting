@@ -89,6 +89,9 @@ const CheckoutPage = () => {
     const { items, getCartTotal, clearCart, addItem, removeItem, deleteItem, replaceItem } = useCartStore();
     const { activeOrder, hasActiveOrder, setActiveOrder } = useActiveOrderStore();
 
+    const searchParams = useSearchParams();
+    const menuType = searchParams?.get('type') || 'standard';
+
     const locationItems = items.filter(i => i.locationId === locationId);
     const total = getCartTotal(locationId);
 
@@ -199,7 +202,8 @@ const CheckoutPage = () => {
                 items: orderItems,
                 customerData,
                 total,
-                locationId
+                locationId,
+                menuType
             });
 
             if (response.data.init_point) {

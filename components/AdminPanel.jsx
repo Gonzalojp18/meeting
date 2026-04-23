@@ -73,8 +73,11 @@ const AdminPanel = () => {
   const [statsData, setStatsData] = useState(null);
   const [statsLoading, setStatsLoading] = useState(false);
 
+  // Selector de tipo de menú
+  const [currentMenuType, setCurrentMenuType] = useState('standard');
+
   const token = session?.user?.token;
-  const { data, loading, error, refetch } = useFetch(token ? `${API_URI}/api/menu` : null, token)
+  const { data, loading, error, refetch } = useFetch(token ? `${API_URI}/api/menu?type=${currentMenuType}` : null, token)
 
   useEffect(() => {
     if (status === 'unauthenticated' || error) {
@@ -204,7 +207,7 @@ const AdminPanel = () => {
   // ========== HANDLERS DE CATEGORÍAS ==========
   const handleAddCategory = async (categoryData) => {
     try {
-      await axios.post(`${API_URI}/api/menu/category`, categoryData, authHeaders);
+      await axios.post(`${API_URI}/api/menu/category?type=${currentMenuType}`, categoryData, authHeaders);
       refetch();
     } catch (error) {
       handleAxiosError(error);
@@ -719,6 +722,21 @@ const AdminPanel = () => {
             <div className="mb-6">
               <div className="flex flex-col sm:flex-row gap-3 items-start sm:items-center justify-between">
                 <div className="flex flex-col sm:flex-row gap-3 w-full sm:w-auto">
+                  {/* Selector de modo de menú */}
+                  <div className="flex bg-gray-100 p-1 rounded-xl shrink-0">
+                    <button
+                      onClick={() => setCurrentMenuType('standard')}
+                      className={`px-4 py-2 rounded-lg text-sm font-bold transition-all ${currentMenuType === 'standard' ? 'bg-white text-orange-600 shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}
+                    >
+                      Estándar
+                    </button>
+                    <button
+                      onClick={() => setCurrentMenuType('executive')}
+                      className={`px-4 py-2 rounded-lg text-sm font-bold transition-all ${currentMenuType === 'executive' ? 'bg-white text-blue-600 shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}
+                    >
+                      B2B Ejecutivo
+                    </button>
+                  </div>
                   {/* Buscador por nombre */}
                   <div className="relative w-full sm:w-72">
                     <MdSearch className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-gray-400" />
@@ -811,6 +829,20 @@ const AdminPanel = () => {
         {
           activeTab === 'categories' && (
             <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-6 lg:p-8">
+              <div className="flex bg-gray-100 p-1 rounded-xl shrink-0 w-fit mb-6">
+                <button
+                  onClick={() => setCurrentMenuType('standard')}
+                  className={`px-4 py-2 rounded-lg text-sm font-bold transition-all ${currentMenuType === 'standard' ? 'bg-white text-orange-600 shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}
+                >
+                  Estándar
+                </button>
+                <button
+                  onClick={() => setCurrentMenuType('executive')}
+                  className={`px-4 py-2 rounded-lg text-sm font-bold transition-all ${currentMenuType === 'executive' ? 'bg-white text-blue-600 shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}
+                >
+                  B2B Ejecutivo
+                </button>
+              </div>
               <CategoryManager
                 categories={categories}
                 locations={locations}

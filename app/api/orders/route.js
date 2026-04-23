@@ -106,7 +106,7 @@ export async function POST(req) {
         const parsed = parseBody(rawBody, createOrderSchema);
         if (parsed.error) return parsed.response;
 
-        const { customerData, items, location, deliveryMethod, deliveryAddress, notes, total, source } = parsed.data;
+        const { customerData, items, location, deliveryMethod, deliveryAddress, notes, total, source, orderMode } = parsed.data;
 
         // Atómica: Incremento garantizado libre de condiciones de carrera
         const counter = await Counter.findOneAndUpdate(
@@ -137,6 +137,7 @@ export async function POST(req) {
             notes: notes || '',
             total,
             source: source || 'direct',
+            orderMode: orderMode || 'standard',
             orderNumber,
             status: 'pending',
             paymentStatus: 'pending',

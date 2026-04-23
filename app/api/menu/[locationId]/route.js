@@ -12,10 +12,31 @@ export async function GET(req, { params }) {
     await dbConnect();
 
     const { locationId } = await params;
-    const menu = await Menu.findOne().lean();
+    const url = new URL(req.url);
+    const type = url.searchParams.get('type') || 'standard';
+    
+    const query = type === 'standard' 
+      ? { $or: [{ menuType: 'standard' }, { menuType: { $exists: false } }, { menuType: null }] } 
+      : { menuType: type };
+      
+    let menu = await Menu.findOne(query).lean();
 
     if (!menu) {
-      return NextResponse.json({ error: 'Menu not found' }, { status: 404 });
+      if (type !== 'standard') {
+        const standardMenu = await Menu.findOne({ $or: [{ menuType: 'standard' }, { menuType: { $exists: false } }, { menuType: null }] }).lean();
+        if (standardMenu) {
+          const newDoc = await Menu.create({
+            menuType: type,
+            categories: [],
+            locations: standardMenu.locations || []
+          });
+          menu = newDoc.toObject();
+        } else {
+          return NextResponse.json({ error: 'Menu not found' }, { status: 404 });
+        }
+      } else {
+        return NextResponse.json({ error: 'Menu not found' }, { status: 404 });
+      }
     }
 
     const location = menu.locations.find(loc => loc.nameId === locationId);

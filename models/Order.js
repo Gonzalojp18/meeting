@@ -191,6 +191,13 @@ const orderSchema = new mongoose.Schema(
       default: 'link',
     },
 
+    // Modo de pedido (Standard vs Executive B2B)
+    orderMode: {
+      type: String,
+      enum: ['standard', 'executive'],
+      default: 'standard',
+    },
+
     // Confirmación de retiro por cliente
     customerPickupConfirmed: {
       type: Boolean,

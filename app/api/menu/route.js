@@ -21,10 +21,30 @@ export async function GET(req) {
     }
 
     await dbConnect();
-    const menu = await Menu.findOne().select('-_id -createdAt -updatedAt -__v').lean();
+    const url = new URL(req.url);
+    const type = url.searchParams.get('type') || 'standard';
+    const query = type === 'standard' 
+      ? { $or: [{ menuType: 'standard' }, { menuType: { $exists: false } }, { menuType: null }] } 
+      : { menuType: type };
+      
+    let menu = await Menu.findOne(query).select('-_id -createdAt -updatedAt -__v').lean();
 
     if (!menu) {
-      return NextResponse.json({ error: 'Menu not found' }, { status: 404 });
+      if (type !== 'standard') {
+        const standardMenu = await Menu.findOne({ $or: [{ menuType: 'standard' }, { menuType: { $exists: false } }, { menuType: null }] }).lean();
+        if (standardMenu) {
+          const newMenuDoc = await Menu.create({
+            menuType: type,
+            categories: [],
+            locations: standardMenu.locations || []
+          });
+          menu = newMenuDoc.toObject();
+        } else {
+          return NextResponse.json({ error: 'Menu not found' }, { status: 404 });
+        }
+      } else {
+        return NextResponse.json({ error: 'Menu not found' }, { status: 404 });
+      }
     }
 
     // Normalizar datos para evitar undefined en campos nuevos
@@ -70,6 +90,9 @@ export async function POST(req) {
 
     await dbConnect();
     const body = await req.json();
+    if (!body.menuType) {
+      body.menuType = 'standard';
+    }
     const menu = await Menu.create(body);
 
     if (menu) {

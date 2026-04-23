@@ -25,7 +25,9 @@ export async function POST(req) {
 
     const newCategory = await req.json();
 
-    const menu = await Menu.findOne();
+    const url = new URL(req.url);
+    const type = url.searchParams.get('type') || 'standard';
+    const menu = await Menu.findOne({ menuType: type });
 
     if (!menu) {
       return NextResponse.json({ error: 'Menu not found' }, { status: 404 });

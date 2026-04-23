@@ -416,11 +416,11 @@ const CashierPanel = ({ standalone = true }) => {
                             return (
                                 <div
                                     key={order._id}
-                                    className="bg-white rounded-xl shadow-md overflow-hidden border-l-4"
-                                    style={{ borderLeftColor: order.status === 'pending' ? '#f59e0b' : order.status === 'ready' ? '#10b981' : '#6b7280' }}
+                                    className={`rounded-xl shadow-md overflow-hidden border-l-4 ${order.orderMode === 'executive' ? 'bg-white border-blue-600 outline outline-2 outline-blue-500' : 'bg-white'}`}
+                                    style={order.orderMode !== 'executive' ? { borderLeftColor: order.status === 'pending' ? '#f59e0b' : order.status === 'ready' ? '#10b981' : '#6b7280' } : {}}
                                 >
                                     {/* Header del pedido */}
-                                    <div className="p-4">
+                                    <div className={`p-4 ${order.orderMode === 'executive' ? 'bg-blue-50' : ''}`}>
                                         <div className="flex items-center justify-between mb-2">
                                             <span className="font-bold text-lg">#{order.orderNumber?.slice(-6) || 'N/A'}</span>
                                             <span className={`px-3 py-1 rounded-full text-xs font-bold flex items-center gap-1 ${statusInfo.color}`}>
@@ -432,6 +432,11 @@ const CashierPanel = ({ standalone = true }) => {
                                         <div className="flex items-center justify-between text-sm text-gray-500">
                                             <span>{formatDate(order.createdAt)} - {formatTime(order.createdAt)}</span>
                                             <span className="flex items-center gap-1">
+                                                {order.orderMode === 'executive' && (
+                                                    <span className="mr-2 px-2 py-0.5 bg-blue-600 text-white font-bold text-xs tracking-wider rounded-md shadow-sm">
+                                                        B2B
+                                                    </span>
+                                                )}
                                                 {order.deliveryMethod === 'A domicilio' ? <MdLocalShipping /> : <MdRestaurant />}
                                                 {order.deliveryMethod}
                                             </span>

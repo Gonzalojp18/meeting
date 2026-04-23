@@ -46,14 +46,14 @@ const isTimeInRange = (currentTime, openTime, closeTime) => {
 };
 
 
-const MenuDisplay = ({ locationId }) => {
+const MenuDisplay = ({ locationId, menuType = 'standard' }) => {
   const router = useRouter();
   const searchParams = useSearchParams();
   const urlMode = searchParams.get('mode'); // 'local' | 'takeaway' | null
   const [menuMode, setMenuMode] = useState(null); // 'local' | 'takeaway'
   const [isStoreOpen, setIsStoreOpen] = useState(true); // Default to true to avoid flash
 
-  const { data, loading, error } = useFetch(`${API_URI}/api/menu/${locationId}`)
+  const { data, loading, error } = useFetch(`${API_URI}/api/menu/${locationId}?type=${menuType}`)
   const { items: cartItems, getCartCount, getCartTotal, addItem } = useCartStore();
 
   const cartCount = getCartCount(locationId);
@@ -243,6 +243,18 @@ const MenuDisplay = ({ locationId }) => {
           cuando el item está en el carrito (ver CategoryDisplay.jsx -> UpsellingMicroMessage)
         */}
 
+        {menuType === 'executive' && (
+          <div className="bg-blue-50 border border-blue-200 rounded-2xl p-6 my-8 flex items-start gap-4 shadow-sm">
+            <span className="text-3xl">🔒</span>
+            <div>
+              <h3 className="text-blue-900 font-bold mb-1">Protección de Datos Empresariales (B2B)</h3>
+              <p className="text-blue-800 text-xs sm:text-sm">
+                Tus datos personales, como nombre, teléfono y correo, están cifrados de extremo a extremo mediante el estándar de alta seguridad AES-256-GCM antes de ser registrados en nuestros sistemas. Los pagos son procesados externamente bajo certificación PCI Nivel 1 de Mercado Pago. Meeting Resto Bar nunca almacena ni distribuye información crítica financiera o PII a terceros.
+              </p>
+            </div>
+          </div>
+        )}
+
         <BrandsSection />
         <WeatherWidget />
         <LocationsSection />
@@ -252,7 +264,7 @@ const MenuDisplay = ({ locationId }) => {
       {/* Floating Cart Button - Solo en modo Takeaway, dentro de horario y NO displayOnly */}
       {isTakeaway && isStoreOpen && !isDisplayOnly && cartCount > 0 && (
         <Link
-          href={`/checkout/${locationId}`}
+          href={`/checkout/${locationId}?type=${menuType}`}
           className="fixed bottom-[6%] left-1/2 -translate-x-1/2 z-50 bg-orange-600 text-white px-6 py-2 rounded-full shadow-2xl flex items-center gap-4 hover:bg-orange-700 transition-all hover:scale-105 active:scale-95 w-[90%] max-w-md animate-in fade-in slide-in-from-bottom-4 duration-300"
         >
           <div className="relative">

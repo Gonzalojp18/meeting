@@ -26,7 +26,7 @@ export async function POST(req, { params }) {
     const { categoryId } = await params;
     const newItem = await req.json();
 
-    const menu = await Menu.findOne();
+    const menu = await Menu.findOne({ 'categories._id': categoryId });
 
     if (!menu) {
       return NextResponse.json({ error: 'Menu not found' }, { status: 404 });
