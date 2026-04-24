@@ -74,7 +74,11 @@ export async function GET(req, { params }) {
 
           return {
             ...item,
-            prices: price // Flatten to single number for frontend compatibility
+            prices: price, // Flatten to single number for frontend compatibility
+            // Inyectar opciones globales si es menú ejecutivo y el plato no tiene las suyas propias (o queremos sumarlas)
+            customizations: type === 'executive' 
+              ? [...(menu.defaultCustomizations || []), ...(item.customizations || [])]
+              : (item.customizations || [])
           };
         });
     };

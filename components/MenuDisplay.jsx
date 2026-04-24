@@ -73,15 +73,25 @@ const MenuDisplay = ({ locationId, menuType = 'standard' }) => {
   const handleToggleMode = useCallback((newMode) => {
     setMenuMode(newMode);
     localStorage.setItem(`menuMode_${locationId}`, newMode);
-    // Navegar a la URL con el query parameter
-    router.push(`/menu/${locationId}?mode=${newMode}`);
-  }, [locationId, router]);
+    // Navegar a la URL con el query parameter según el tipo de menú
+    const basePath = menuType === 'executive' ? `/executive` : `/menu`;
+    router.push(`${basePath}/${locationId}?mode=${newMode}`);
+  }, [locationId, menuType, router]);
 
   // Calcular horas de takeaway
   const globalHours = data?.takeawayHours || DEFAULT_TAKEAWAY_HOURS;
 
   // Calcular hora solo en el cliente para evitar hydration mismatch
   const isTakeawayEnabledByAdmin = data?.currentLocation?.features?.takeawayEnabled ?? true;
+
+  // Sincronizar menuMode con URL al montar el componente
+  useEffect(() => {
+    if (urlMode && (urlMode === 'local' || urlMode === 'takeaway') && !menuMode) {
+      setMenuMode(urlMode);
+      localStorage.setItem(`menuMode_${locationId}`, urlMode);
+    }
+  }, [urlMode, locationId, menuMode]);
+
   useEffect(() => {
     const checkStoreHours = () => {
       const now = getCurrentTimeArgentina();
@@ -162,7 +172,30 @@ const MenuDisplay = ({ locationId, menuType = 'standard' }) => {
     }
 
     return true;
-  });
+  }).map(category => {
+    // Obtener el día actual en Argentina (0=Dom, 1=Lun, ..., 6=Sab)
+    const argDay = (() => {
+      try {
+        const d = new Date();
+        const argStr = new Intl.DateTimeFormat('en-US', { timeZone: 'America/Argentina/Buenos_Aires', weekday: 'short' }).format(d);
+        const map = { 'Sun': 0, 'Mon': 1, 'Tue': 2, 'Wed': 3, 'Thu': 4, 'Fri': 5, 'Sat': 6 };
+        return map[argStr] ?? d.getDay();
+      } catch (e) {
+        return new Date().getDay();
+      }
+    })();
+
+    return {
+      ...category,
+      items: category.items.filter(item => {
+        // Filtrar productos por día de la semana (Menú Rotativo)
+        if (item.availableDays && item.availableDays.length > 0) {
+          if (!item.availableDays.includes(argDay)) return false;
+        }
+        return true;
+      })
+    };
+  }).filter(category => category.items.length > 0);
 
   return (
     <div className='min-h-screen bg-gray-100 relative'>

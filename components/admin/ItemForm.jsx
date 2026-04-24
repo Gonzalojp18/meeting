@@ -13,7 +13,8 @@ const ItemForm = ({ item, locations, onSubmit, onCancel }) => {
     isAvailable: true,
     hasCustomizations: false,
     image: '',
-    customizationGroups: []
+    customizationGroups: [],
+    availableDays: [] // [] means all days
   });
 
   const [newOptions, setNewOptions] = useState({});
@@ -45,7 +46,8 @@ const ItemForm = ({ item, locations, onSubmit, onCancel }) => {
           minSelections: g.minSelections || 1,
           maxSelections: g.maxSelections || 1,
           options: g.options?.map(o => ({ name: o.name, isAvailable: o.isAvailable !== false })) || []
-        }))
+        })),
+        availableDays: item.availableDays || []
       });
       if (item.image) {
         setPreviewUrl(item.image);
@@ -64,7 +66,8 @@ const ItemForm = ({ item, locations, onSubmit, onCancel }) => {
         isAvailable: true,
         hasCustomizations: false,
         image: '',
-        customizationGroups: []
+        customizationGroups: [],
+        availableDays: []
       });
       setPreviewUrl('');
     }
@@ -213,7 +216,8 @@ const ItemForm = ({ item, locations, onSubmit, onCancel }) => {
                 isAvailable: o.isAvailable !== false
               }))
             }))
-        : []
+        : [],
+      availableDays: formData.availableDays
     };
 
     onSubmit(processedData);
@@ -372,7 +376,6 @@ const ItemForm = ({ item, locations, onSubmit, onCancel }) => {
                         })}
                         className="block w-full rounded-md border border-gray-300 pl-7 pr-3 py-2 focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
                         placeholder="0.00"
-                        required={formData.locations[location.nameId]?.enabled}
                       />
                     </div>
                   </div>
@@ -380,6 +383,41 @@ const ItemForm = ({ item, locations, onSubmit, onCancel }) => {
               </div>}
           </React.Fragment>
         ))}
+      </div>
+
+      {/* Selector de días de disponibilidad (Menú Rotativo) */}
+      <div className="space-y-3 pt-4 border-t">
+        <label className="block text-sm font-medium text-gray-700">Días de disponibilidad (Rotación)</label>
+        <p className="text-xs text-gray-500 mb-2">Si no seleccionas ninguno, el producto estará disponible todos los días.</p>
+        <div className="flex flex-wrap gap-3">
+          {[
+            { id: 1, label: 'Lun' },
+            { id: 2, label: 'Mar' },
+            { id: 3, label: 'Mié' },
+            { id: 4, label: 'Jue' },
+            { id: 5, label: 'Vie' },
+            { id: 6, label: 'Sáb' },
+            { id: 0, label: 'Dom' }
+          ].map(day => (
+            <label key={day.id} className={`flex items-center gap-2 px-3 py-2 border rounded-md cursor-pointer transition-colors text-sm ${formData.availableDays.includes(day.id) ? 'bg-indigo-50 border-indigo-500 text-indigo-700 font-medium' : 'bg-white border-gray-300 text-gray-600 hover:bg-gray-50'}`}>
+              <input
+                type="checkbox"
+                className="hidden"
+                checked={formData.availableDays.includes(day.id)}
+                onChange={(e) => {
+                  const checked = e.target.checked;
+                  setFormData(prev => ({
+                    ...prev,
+                    availableDays: checked 
+                      ? [...prev.availableDays, day.id] 
+                      : prev.availableDays.filter(d => d !== day.id)
+                  }));
+                }}
+              />
+              {day.label}
+            </label>
+          ))}
+        </div>
       </div>
 
       {/* Sección de Personalización / Guarniciones */}

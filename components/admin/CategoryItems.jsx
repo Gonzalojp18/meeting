@@ -190,6 +190,11 @@ const CategoryItems = ({
                         {item.customizations.length === 1 ? item.customizations[0].name : `${item.customizations.length} opciones`}
                       </span>
                     )}
+                    {item.availableDays?.length > 0 && (
+                      <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold bg-orange-100 text-orange-700 uppercase tracking-wide flex-shrink-0">
+                        {item.availableDays.map(d => ['Dom','Lun','Mar','Mié','Jue','Vie','Sáb'][d]).join(', ')}
+                      </span>
+                    )}
                   </div>
 
                   {/* Description */}
@@ -323,6 +328,11 @@ const CategoryItems = ({
                           {item.customizations?.length > 0 && (
                             <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold bg-indigo-100 text-indigo-700 uppercase tracking-wide">
                               {item.customizations.length === 1 ? item.customizations[0].name : `${item.customizations.length} opciones`}
+                            </span>
+                          )}
+                          {item.availableDays?.length > 0 && (
+                            <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold bg-orange-100 text-orange-700 uppercase tracking-wide">
+                              {item.availableDays.map(d => ['Dom','Lun','Mar','Mié','Jue','Vie','Sáb'][d]).join(', ')}
                             </span>
                           )}
                         </h4>

@@ -8,6 +8,7 @@ import UpsellingManager from './admin/UpsellingManager';
 import UserManagement from './admin/UserManagement';
 import MercadoPagoSettings from './admin/MercadoPagoSettings';
 import TakeawaySettings from './admin/TakeawaySettings';
+import GlobalDefaultsManager from './admin/GlobalDefaultsManager';
 import { LocationNav } from './navigation';
 import StatsGrid from './admin/StatsGrid';
 import TopItemsList from './admin/TopItemsList';
@@ -262,7 +263,12 @@ const AdminPanel = () => {
       );
       return { ...category, items: filteredItems };
     })
-    .filter(category => (category.items || []).length > 0);
+    .filter(category => {
+      // Si estamos buscando textualmente, ocultar las categorías que quedaron sin productos
+      if (searchTerm !== '') return (category.items || []).length > 0;
+      // Si no hay búsqueda de texto, mostrar todas las categorías, incluso las vacías
+      return true;
+    });
 
 
   // ========== CONFIGURACIÓN DE TABS DINÁMICA ==========
@@ -788,6 +794,14 @@ const AdminPanel = () => {
                 </div>
               </div>
             </div>
+
+            {/* Administrador de opciones globales (Inyección automática) */}
+            <GlobalDefaultsManager 
+              initialCustomizations={data?.defaultCustomizations || []}
+              menuType={currentMenuType}
+              token={token}
+              onUpdate={refetch}
+            />
 
             {/* Products list */}
             <div className="space-y-6">

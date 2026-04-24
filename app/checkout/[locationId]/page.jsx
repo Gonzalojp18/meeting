@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { useParams, useRouter } from 'next/navigation';
+import { useParams, useRouter, useSearchParams } from 'next/navigation';
 import useCartStore from '@/store/cartStore';
 import useActiveOrderStore from '@/store/activeOrderStore';
 import useCustomerPersistence from '@/hooks/useCustomerPersistence';

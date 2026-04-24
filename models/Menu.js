@@ -83,6 +83,11 @@ const itemSchema = new mongoose.Schema({
     type: Number,
     default: 15
   },
+  // NUEVO: Días en que el plato está disponible (0=Dom, 1=Lun, ..., 6=Sab). Vacío = todos los días.
+  availableDays: {
+    type: [Number],
+    default: []
+  },
   order: {
     type: Number,
     default: 0
@@ -194,6 +199,8 @@ const menuSchema = new mongoose.Schema(
     },
     categories: [categorySchema],
     locations: [locationSchema],
+    // NUEVO: Opciones que se aplican automáticamente a todos los platos del menú (vía Inyección API)
+    defaultCustomizations: [customizationGroupSchema]
   },
   {
     timestamps: true
