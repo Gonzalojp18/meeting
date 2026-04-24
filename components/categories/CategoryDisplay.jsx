@@ -95,7 +95,8 @@ const Category = ({ category, locationId, isTakeaway = false, displayOnly = fals
                         return (
                             <motion.div
                                 key={item._id}
-                                className={`bg-white rounded-xl border border-gray-200 overflow-hidden shadow-sm hover:shadow-md transition-shadow ${!isAvailable ? 'opacity-50' : ''}`}
+                                className={`bg-white rounded-xl border border-gray-200 overflow-hidden shadow-sm hover:shadow-md transition-shadow ${!isAvailable ? 'opacity-50' : ''} ${itemHasCustomizations ? 'cursor-pointer' : ''}`}
+                                onClick={() => itemHasCustomizations && setModalItem(item)}
                                 initial={{ opacity: 0, y: 20 }}
                                 animate={{ opacity: 1, y: 0 }}
                                 transition={{ duration: 0.3, delay: index * 0.05 }}
@@ -137,8 +138,10 @@ const Category = ({ category, locationId, isTakeaway = false, displayOnly = fals
                                             />
                                         )}
 
+                                    </div>
+
                                         {/* Precio y botón */}
-                                        <div className="flex items-center justify-between mt-2 pt-2">
+                                        <div className="flex items-center justify-between mt-2 pt-2 border-t border-gray-50">
                                             <span className="text-base md:text-lg font-bold text-gray-800">
                                                 {!displayOnly && itemPrice > 0 ? `$${itemPrice.toLocaleString()}` : ''}
                                             </span>
@@ -160,14 +163,14 @@ const Category = ({ category, locationId, isTakeaway = false, displayOnly = fals
                                                     {!itemHasCustomizations && quantity > 0 && (
                                                         <div className="flex items-center gap-2">
                                                             <button
-                                                                onClick={() => removeItem(item._id, locationId)}
+                                                                onClick={(e) => { e.stopPropagation(); removeItem(item._id, locationId); }}
                                                                 className="w-7 h-7 bg-orange-100 text-orange-600 rounded-full flex items-center justify-center hover:bg-orange-200 transition-colors"
                                                             >
                                                                 <MdRemove size={18} />
                                                             </button>
                                                             <span className="font-bold text-sm min-w-[20px] text-center">{quantity}</span>
                                                             <button
-                                                                onClick={() => addItem({ ...item, price: itemPrice }, locationId)}
+                                                                onClick={(e) => { e.stopPropagation(); addItem({ ...item, price: itemPrice }, locationId); }}
                                                                 className="w-7 h-7 bg-orange-100 text-orange-600 rounded-full flex items-center justify-center hover:bg-orange-200 transition-colors"
                                                             >
                                                                 <MdAdd size={18} />
@@ -181,7 +184,7 @@ const Category = ({ category, locationId, isTakeaway = false, displayOnly = fals
                                                             {quantity > 0 && (
                                                                 <>
                                                                     <button
-                                                                        onClick={() => removeItem(item._id, locationId)}
+                                                                        onClick={(e) => { e.stopPropagation(); removeItem(item._id, locationId); }}
                                                                         className="w-7 h-7 bg-orange-100 text-orange-600 rounded-full flex items-center justify-center hover:bg-orange-200 transition-colors"
                                                                     >
                                                                         <MdRemove size={18} />
@@ -190,7 +193,7 @@ const Category = ({ category, locationId, isTakeaway = false, displayOnly = fals
                                                                 </>
                                                             )}
                                                             <button
-                                                                onClick={() => setModalItem(item)}
+                                                                onClick={(e) => { e.stopPropagation(); setModalItem(item); }}
                                                                 className="w-9 h-9 bg-orange-100 text-orange-600 rounded-full flex items-center justify-center hover:bg-orange-200 transition-colors"
                                                             >
                                                                 <MdAdd size={22} />
@@ -204,7 +207,6 @@ const Category = ({ category, locationId, isTakeaway = false, displayOnly = fals
                                                 </span>
                                             ) : null}
                                         </div>
-                                    </div>
                                 </div>
                             </motion.div>
                         );

@@ -105,6 +105,12 @@ const MenuDisplay = ({ locationId, menuType = 'standard' }) => {
     return () => clearInterval(interval);
   }, [globalHours.open, globalHours.close, isTakeawayEnabledByAdmin]);
 
+  useEffect(() => {
+    if (menuType === 'executive' && menuMode === null) {
+      setMenuMode('takeaway');
+    }
+  }, [menuType, menuMode]);
+
   const isTakeaway = menuMode === 'takeaway';
 
   // location3 es solo para mostrar el menú, sin funcionalidad de compra
