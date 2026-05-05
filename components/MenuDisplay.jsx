@@ -318,12 +318,35 @@ const MenuDisplay = ({ locationId, menuType = 'standard' }) => {
               </div>
             </div>
             
-            <div className="text-center mt-4">
+            <div className="text-center mt-4 mb-6">
                <p className="text-xs text-gray-400 font-medium">
                   {selectedDay === argDayToday 
                     ? '🟢 Disponible para pedir ahora' 
                     : `📅 Vista previa del ${fullDayNames[selectedDay]}`}
                </p>
+            </div>
+
+            {/* Banner de Beneficios Executive */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-3 max-w-2xl mx-auto">
+              <div className="flex items-center gap-3 bg-white/60 backdrop-blur-sm p-3 rounded-2xl border border-gray-100 shadow-sm">
+                <div className="w-10 h-10 bg-orange-100 rounded-xl flex items-center justify-center flex-shrink-0">
+                  <span className="text-xl">🥤</span>
+                </div>
+                <div className="flex flex-col">
+                  <span className="text-xs font-black text-gray-900 uppercase tracking-tight">Menú Completo</span>
+                  <span className="text-[10px] text-gray-500 font-medium">Todos los platos incluyen bebida y café</span>
+                </div>
+              </div>
+
+              <div className="flex items-center gap-3 bg-white/60 backdrop-blur-sm p-3 rounded-2xl border border-gray-100 shadow-sm">
+                <div className="w-10 h-10 bg-blue-50 rounded-xl flex items-center justify-center flex-shrink-0">
+                  <span className="text-xl">📅</span>
+                </div>
+                <div className="flex flex-col">
+                  <span className="text-xs font-black text-gray-900 uppercase tracking-tight">Flexibilidad Horaria</span>
+                  <span className="text-[10px] text-gray-500 font-medium">Podés programar tu entrega en el checkout</span>
+                </div>
+              </div>
             </div>
           </div>
         )}
