@@ -20,7 +20,8 @@ const TakeawaySettings = () => {
   const fetchHours = async () => {
     try {
       const res = await fetch('/api/settings/takeaway-hours', {
-        cache: 'no-store' // Evitar cache para siempre obtener datos frescos
+        cache: 'no-store',
+        ...(token && { headers: { Authorization: `Bearer ${token}` } })
       });
       const data = await res.json();
       setHours({
