@@ -8,7 +8,8 @@ import useCustomerPersistence from '@/hooks/useCustomerPersistence';
 import UpsellingBanner from '@/components/upselling/UpsellingBanner';
 import API_URI from '@/utils/getApiUri';
 import axios from 'axios';
-import { MdArrowBack, MdPayment, MdAdd, MdRemove, MdDelete, MdShoppingBag, MdClose, MdStorefront } from 'react-icons/md';
+import { MdArrowBack, MdPayment, MdAdd, MdRemove, MdDelete, MdShoppingBag, MdClose, MdStorefront, MdSchedule } from 'react-icons/md';
+import SchedulePicker from '@/components/menu/SchedulePicker';
 
 // ===================== MODAL COMPONENT =====================
 const LegalModal = ({ isOpen, onClose, title, children }) => {
@@ -133,6 +134,21 @@ const CheckoutPage = () => {
     const [showPrivacyModal, setShowPrivacyModal] = useState(false);
     const { savedData, hasSavedData, isLoaded, saveCustomerData } = useCustomerPersistence();
 
+    const [scheduledOrdersConfig, setScheduledOrdersConfig] = useState(null);
+    const [scheduleOrder, setScheduleOrder] = useState(false);
+    const [scheduledPickupAt, setScheduledPickupAt] = useState(null);
+
+    useEffect(() => {
+        fetch(`${API_URI}/api/menu/${locationId}?type=${menuType}`)
+            .then(r => r.json())
+            .then(data => {
+                if (data.locations?.scheduledOrdersConfig?.enabled) {
+                    setScheduledOrdersConfig(data.locations.scheduledOrdersConfig);
+                }
+            })
+            .catch(() => setScheduledOrdersConfig(null));
+    }, [locationId, menuType]);
+
     // Prellenar formulario con datos guardados
     useEffect(() => {
         if (isLoaded && savedData) {
@@ -198,6 +214,10 @@ const CheckoutPage = () => {
 
     const handleSubmitOrder = async (e) => {
         e.preventDefault();
+        if (scheduleOrder && !scheduledPickupAt) {
+            setError('Seleccioná una fecha y hora para retirar');
+            return;
+        }
         setSubmitting(true);
         setError(null);
 
@@ -227,6 +247,10 @@ const CheckoutPage = () => {
                 total: finalTotal,
                 locationId,
                 menuType,
+                ...(scheduleOrder && scheduledPickupAt && {
+                    orderTiming: 'scheduled',
+                    scheduledPickupAt,
+                }),
                 ...(activeQrPromo && {
                     qrPromoDiscount: activeQrPromo.discountPercentage,
                     qrPromoSource: activeQrPromo.source,
@@ -434,6 +458,45 @@ const CheckoutPage = () => {
                     </div>
                 </div>
 
+                {/* Scheduled Order Selector */}
+                {scheduledOrdersConfig && (
+                    <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-4 mb-4">
+                        <h2 className="font-semibold text-gray-900 text-sm uppercase tracking-wide mb-3">¿Cuándo querés retirar?</h2>
+                        <div className="grid grid-cols-2 gap-2">
+                            <button
+                                type="button"
+                                onClick={() => { setScheduleOrder(false); setScheduledPickupAt(null); }}
+                                className={`p-3 rounded-xl border-2 text-left transition-all ${
+                                    !scheduleOrder ? 'border-gray-900 bg-gray-50' : 'border-gray-200 bg-white'
+                                }`}
+                            >
+                                <span className="text-sm font-bold">Ahora</span>
+                                <p className="text-[11px] text-gray-500">Se prepara al instante</p>
+                            </button>
+
+                            <button
+                                type="button"
+                                onClick={() => setScheduleOrder(true)}
+                                className={`p-3 rounded-xl border-2 text-left transition-all ${
+                                    scheduleOrder ? 'border-gray-900 bg-gray-50' : 'border-gray-200 bg-white'
+                                }`}
+                            >
+                                <span className="text-sm font-bold">Programar</span>
+                                <p className="text-[11px] text-gray-500">Elegí hora de retiro</p>
+                            </button>
+                        </div>
+
+                        {scheduleOrder && (
+                            <div className="mt-4">
+                                <SchedulePicker
+                                    locationId={locationId}
+                                    onSelect={(pickupAt) => setScheduledPickupAt(pickupAt)}
+                                />
+                            </div>
+                        )}
+                    </div>
+                )}
+
                 {/* Customer Form */}
                 <form onSubmit={handleSubmitOrder}>
                     <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-4 mb-4">
@@ -516,6 +579,11 @@ const CheckoutPage = () => {
                             <>
                                 <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
                                 Procesando...
+                            </>
+                        ) : scheduleOrder && scheduledPickupAt ? (
+                            <>
+                                <MdSchedule size={22} />
+                                Programar y pagar ${finalTotal.toLocaleString()}
                             </>
                         ) : (
                             <>

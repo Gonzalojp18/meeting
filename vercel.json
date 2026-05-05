@@ -1,0 +1,10 @@
+{
+       "crons": [
+         {
+           "path": "/api/cron/activate-scheduled-orders",
+           "schedule": "0 0 * * *"
+         }
+       ]
+     }
+
+     

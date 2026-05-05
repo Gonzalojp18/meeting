@@ -126,7 +126,7 @@ export async function POST(req) {
 
         const client = new MercadoPagoConfig({ accessToken: credentials.accessToken });
         const body = await req.json();
-        const { items, customerData, total: clientTotal, locationId, menuType, qrPromoDiscount, qrPromoSource, qrPromoDiscountAmount } = body;
+        const { items, customerData, total: clientTotal, locationId, menuType, qrPromoDiscount, qrPromoSource, qrPromoDiscountAmount, orderTiming, scheduledPickupAt } = body;
 
         // Validaciones básicas
         if (!items || items.length === 0) {
@@ -239,6 +239,12 @@ export async function POST(req) {
             createdAt: now,
             updatedAt: now,
         };
+
+        if (orderTiming === 'scheduled' && scheduledPickupAt) {
+            orderDoc.orderTiming = 'scheduled';
+            orderDoc.scheduledPickupAt = new Date(scheduledPickupAt);
+            orderDoc.scheduledStatus = 'pending_schedule';
+        }
 
         let insertedId;
         try {

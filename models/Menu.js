@@ -189,6 +189,33 @@ const qrPromoSchema = new mongoose.Schema({
   }
 });
 
+const scheduledOrdersConfigSchema = new mongoose.Schema({
+  enabled: {
+    type: Boolean,
+    default: false
+  },
+  maxAdvanceHours: {
+    type: Number,
+    default: 24
+  },
+  minAdvanceMinutes: {
+    type: Number,
+    default: 30
+  },
+  slotDurationMinutes: {
+    type: Number,
+    default: 15
+  },
+  maxOrdersPerSlot: {
+    type: Number,
+    default: 10
+  },
+  gracePeriodMinutes: {
+    type: Number,
+    default: 15
+  }
+});
+
 const locationSchema = new mongoose.Schema({
   name: {
     type: String,
@@ -215,6 +242,7 @@ const locationSchema = new mongoose.Schema({
     }
   },
   qrPromo: qrPromoSchema,
+  scheduledOrdersConfig: scheduledOrdersConfigSchema,
   metadata: {
     activatedAt: {
       type: Date

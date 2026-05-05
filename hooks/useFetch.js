@@ -6,7 +6,6 @@ export const useFetch = (url, token) => {
   const [error, setError] = useState(null)
 
   const fetchData = useCallback(async () => {
-      // No hacer fetch si la URL es null o undefined
       if (!url) {
         setLoading(false);
         return;
@@ -15,6 +14,7 @@ export const useFetch = (url, token) => {
       try {
         const options = {
           credentials: 'include',
+          cache: 'no-store',
           ...(token && { headers: { Authorization: `Bearer ${token}` } })
         };
 
@@ -44,9 +44,8 @@ export const useFetch = (url, token) => {
   }, [url, token, fetchData])
 
   const refetch = useCallback(async () => {
-    // Solo hacer refetch si hay una URL válida
     if (url) {
-      fetchData();
+      await fetchData();
     }
   }, [url, fetchData])
 

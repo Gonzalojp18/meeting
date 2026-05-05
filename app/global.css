@@ -847,6 +847,10 @@ body {
   }
 }
 
+.animate-slide-in-right {
+  animation: slideInFromRight 0.3s ease-out;
+}
+
 .toast-success {
   border-left: 4px solid #10b981;
 }

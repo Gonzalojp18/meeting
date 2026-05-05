@@ -9,6 +9,7 @@ import UserManagement from './admin/UserManagement';
 import MercadoPagoSettings from './admin/MercadoPagoSettings';
 import TakeawaySettings from './admin/TakeawaySettings';
 import QrPromoConfig from './admin/QrPromoConfig';
+import ScheduledOrdersConfig from './admin/ScheduledOrdersConfig';
 import GlobalDefaultsManager from './admin/GlobalDefaultsManager';
 import { LocationNav } from './navigation';
 import StatsGrid from './admin/StatsGrid';
@@ -53,6 +54,7 @@ import {
   MdHistory,
   MdSecurity,
   MdAutoGraph,
+  MdSchedule,
 } from 'react-icons/md';
 import CashierPanel from './cashier/CashierPanel';
 
@@ -283,6 +285,7 @@ const AdminPanel = () => {
     tabs.push({ id: 'categories', label: 'Categorias', icon: MdCategory });
     tabs.push({ id: 'upselling', label: 'Upselling', icon: MdAutoGraph });
     tabs.push({ id: 'marketing-qr', label: 'Marketing QR', icon: MdLocalOffer });
+    tabs.push({ id: 'scheduled-orders', label: 'Pedidos Programados', icon: MdSchedule });
     tabs.push({ id: 'users', label: 'Usuarios', icon: MdPeople });
     tabs.push({ id: 'reports', label: 'Reportes', icon: MdDescription });
     tabs.push({ id: 'refunds', label: 'Reembolsos', icon: MdAttachMoney });
@@ -308,7 +311,7 @@ const AdminPanel = () => {
   const navGroups = [
     { label: 'Principal', ids: ['dashboard', 'metricas'] },
     { label: 'Menu', ids: ['products', 'categories', 'upselling'] },
-    { label: 'Marketing', ids: ['marketing-qr'] },
+    { label: 'Marketing', ids: ['marketing-qr', 'scheduled-orders'] },
     { label: 'Operaciones', ids: ['caja', 'availability', 'printers', 'history'] },
     { label: 'Personal', ids: ['users'] },
     { label: 'Finanzas', ids: ['reports', 'refunds'] },
@@ -911,6 +914,26 @@ const AdminPanel = () => {
             </div>
             <div className="p-6 lg:p-8">
               <QrPromoConfig locations={locations} />
+            </div>
+          </div>
+        )}
+
+        {/* ========== SCHEDULED ORDERS TAB ========== */}
+        {activeTab === 'scheduled-orders' && (
+          <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
+            <div className="bg-gradient-to-r from-blue-50 to-indigo-50 border-b border-blue-200 p-6">
+              <div className="flex items-center justify-between">
+                <div>
+                  <h2 className="text-xl font-bold text-blue-900 mb-1">Pedidos Programados</h2>
+                  <p className="text-sm text-blue-700">Configura horarios y capacidad de pedidos programados por sede</p>
+                </div>
+                <div className="p-4 bg-blue-500 rounded-xl shadow-lg">
+                  <MdSchedule className="h-8 w-8 text-white" />
+                </div>
+              </div>
+            </div>
+            <div className="p-6 lg:p-8">
+              <ScheduledOrdersConfig locations={locations} token={token} onRefetch={refetch} menuType={currentMenuType} />
             </div>
           </div>
         )}

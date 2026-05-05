@@ -3,6 +3,10 @@
         {
             "path": "/api/cron/payments-reconcile",
             "schedule": "0 * * * *"
+        },
+        {
+            "path": "/api/cron/activate-scheduled-orders",
+            "schedule": "*/5 * * * *"
         }
     ]
 }

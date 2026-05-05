@@ -165,6 +165,22 @@ const orderSchema = new mongoose.Schema(
       min: 0,
     },
 
+    // Scheduled Orders
+    orderTiming: {
+      type: String,
+      enum: ['immediate', 'scheduled'],
+      default: 'immediate',
+    },
+    scheduledPickupAt: {
+      type: Date,
+      default: null,
+    },
+    scheduledStatus: {
+      type: String,
+      enum: ['pending_schedule', 'active', 'expired'],
+      default: null,
+    },
+
     // QR Marketing promo tracking
     qrPromoDiscount: {
       type: Number,
@@ -288,7 +304,8 @@ const orderSchema = new mongoose.Schema(
 orderSchema.index({ 'refund.status': 1, createdAt: -1 });
 orderSchema.index({ canBeCounted: 1, createdAt: -1 });
 orderSchema.index({ status: 1, 'location.locationId': 1 });
-orderSchema.index({ 'customer.phoneHash': 1, createdAt: -1 }); // Para métricas de recurrencia
+orderSchema.index({ 'customer.phoneHash': 1, createdAt: -1 });
+orderSchema.index({ 'location.locationId': 1, scheduledPickupAt: 1, scheduledStatus: 1 }); // Para métricas de recurrencia
 
 // ─── Hooks de cifrado PII ─────────────────────────────────────────────────────
 
