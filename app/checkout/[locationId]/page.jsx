@@ -93,7 +93,30 @@ const CheckoutPage = () => {
     const menuType = searchParams?.get('type') || 'standard';
 
     const locationItems = items.filter(i => i.locationId === locationId);
-    const total = getCartTotal(locationId);
+    const rawTotal = getCartTotal(locationId);
+
+    const [activeQrPromo, setActiveQrPromo] = useState(null);
+    const [discountAmount, setDiscountAmount] = useState(0);
+    const [finalTotal, setFinalTotal] = useState(rawTotal);
+
+    useEffect(() => {
+        const stored = sessionStorage.getItem('active-qr-promo');
+        if (stored) {
+            try {
+                const parsed = JSON.parse(stored);
+                if (parsed.locationId === locationId && parsed.discountPercentage > 0) {
+                    setActiveQrPromo(parsed);
+                    const discount = Math.round(rawTotal * parsed.discountPercentage / 100);
+                    setDiscountAmount(discount);
+                    setFinalTotal(rawTotal - discount);
+                }
+            } catch (e) {
+                console.error('Error parsing QR promo:', e);
+            }
+        } else {
+            setFinalTotal(rawTotal);
+        }
+    }, [locationId, rawTotal]);
 
     const [submitting, setSubmitting] = useState(false);
     const [error, setError] = useState(null);
@@ -201,9 +224,10 @@ const CheckoutPage = () => {
             const response = await axios.post(`${API_URI}/api/payments/create-preference`, {
                 items: orderItems,
                 customerData,
-                total,
+                total: finalTotal,
                 locationId,
-                menuType
+                menuType,
+                ...(activeQrPromo && { qrPromoDiscount: activeQrPromo.discountPercentage }),
             });
 
             if (response.data.init_point) {
@@ -222,7 +246,7 @@ const CheckoutPage = () => {
                         email: customerData.email
                     },
                     items: orderItems,
-                    total,
+                    total: finalTotal,
                     deliveryMethod: customerData.deliveryMethod,
                     notes: customerData.notes,
                     createdAt: new Date().toISOString()
@@ -348,9 +372,15 @@ const CheckoutPage = () => {
                             </div>
                         ))}
                     </div>
+                    {activeQrPromo && (
+                        <div className="p-4 bg-green-50 border-t border-green-100 flex justify-between items-center">
+                            <span className="font-semibold text-green-700">Descuento QR ({activeQrPromo.discountPercentage}%)</span>
+                            <span className="font-bold text-green-700">-${discountAmount.toLocaleString()}</span>
+                        </div>
+                    )}
                     <div className="p-4 bg-gray-50 flex justify-between items-center">
                         <span className="font-semibold text-gray-600">Total a pagar</span>
-                        <span className="text-xl font-bold text-gray-900">${total.toLocaleString()}</span>
+                        <span className="text-xl font-bold text-gray-900">${finalTotal.toLocaleString()}</span>
                     </div>
                 </div>
 
@@ -486,7 +516,7 @@ const CheckoutPage = () => {
                         ) : (
                             <>
                                 <MdPayment size={22} />
-                                Pagar ${total.toLocaleString()}
+                                Pagar ${finalTotal.toLocaleString()}
                             </>
                         )}
                     </button>

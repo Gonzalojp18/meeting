@@ -24,6 +24,7 @@ import ModeSelector from './menu/ModeSelector';
 import ModeToggle from './menu/ModeToggle';
 import ActiveOrderBanner from './order/ActiveOrderBanner';
 import UpsellingBanner from './upselling/UpsellingBanner';
+import QrPromoBanner from './menu/QrPromoBanner';
 import { DEFAULT_TAKEAWAY_HOURS, isWithinTakeawayHours } from '../utils/constants';
 
 // Obtener hora actual en formato HH:MM (hora local de Argentina)
@@ -50,6 +51,7 @@ const MenuDisplay = ({ locationId, menuType = 'standard' }) => {
   const router = useRouter();
   const searchParams = useSearchParams();
   const urlMode = searchParams.get('mode'); // 'local' | 'takeaway' | null
+  const urlSource = searchParams.get('source'); // 'qr-menu' | 'qr-table' | etc
   const [menuMode, setMenuMode] = useState(null); // 'local' | 'takeaway'
   const [isStoreOpen, setIsStoreOpen] = useState(true); // Default to true to avoid flash
 
@@ -276,6 +278,10 @@ const MenuDisplay = ({ locationId, menuType = 'standard' }) => {
         {(!isTakeaway || isStoreOpen || isDisplayOnly) && activeCategories.map((category) => (
           <CategoryDisplay key={category._id} category={category} locationId={locationId} isTakeaway={isTakeaway} displayOnly={isDisplayOnly} />
         ))}
+
+        {isTakeaway && urlSource && (
+          <QrPromoBanner locationId={locationId} source={urlSource} />
+        )}
 
         {/* 
           Upselling ahora se muestra de forma contextual dentro de cada card de producto

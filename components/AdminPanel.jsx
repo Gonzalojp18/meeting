@@ -8,6 +8,7 @@ import UpsellingManager from './admin/UpsellingManager';
 import UserManagement from './admin/UserManagement';
 import MercadoPagoSettings from './admin/MercadoPagoSettings';
 import TakeawaySettings from './admin/TakeawaySettings';
+import QrPromoConfig from './admin/QrPromoConfig';
 import GlobalDefaultsManager from './admin/GlobalDefaultsManager';
 import { LocationNav } from './navigation';
 import StatsGrid from './admin/StatsGrid';
@@ -277,10 +278,11 @@ const AdminPanel = () => {
   // Admin y Manager tienen acceso completo (excepto MP Settings para manager)
   if (hasFullAccess) {
     tabs.push({ id: 'dashboard', label: 'Dashboard', icon: MdDashboard });
-    tabs.push({ id: 'metricas', label: 'Métricas', icon: MdShowChart });
+    tabs.push({ id: 'metricas', label: 'Metricas', icon: MdShowChart });
     tabs.push({ id: 'products', label: 'Productos', icon: MdRestaurantMenu });
-    tabs.push({ id: 'categories', label: 'Categorías', icon: MdCategory });
+    tabs.push({ id: 'categories', label: 'Categorias', icon: MdCategory });
     tabs.push({ id: 'upselling', label: 'Upselling', icon: MdAutoGraph });
+    tabs.push({ id: 'marketing-qr', label: 'Marketing QR', icon: MdLocalOffer });
     tabs.push({ id: 'users', label: 'Usuarios', icon: MdPeople });
     tabs.push({ id: 'reports', label: 'Reportes', icon: MdDescription });
     tabs.push({ id: 'refunds', label: 'Reembolsos', icon: MdAttachMoney });
@@ -305,7 +307,8 @@ const AdminPanel = () => {
   // Grupos de navegación para el sidebar
   const navGroups = [
     { label: 'Principal', ids: ['dashboard', 'metricas'] },
-    { label: 'Menú', ids: ['products', 'categories', 'upselling'] },
+    { label: 'Menu', ids: ['products', 'categories', 'upselling'] },
+    { label: 'Marketing', ids: ['marketing-qr'] },
     { label: 'Operaciones', ids: ['caja', 'availability', 'printers', 'history'] },
     { label: 'Personal', ids: ['users'] },
     { label: 'Finanzas', ids: ['reports', 'refunds'] },
@@ -891,6 +894,26 @@ const AdminPanel = () => {
             </div>
           )
         }
+
+        {/* ========== MARKETING QR TAB ========== */}
+        {activeTab === 'marketing-qr' && (
+          <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
+            <div className="bg-gradient-to-r from-orange-50 to-amber-50 border-b border-orange-200 p-6">
+              <div className="flex items-center justify-between">
+                <div>
+                  <h2 className="text-xl font-bold text-orange-900 mb-1">Marketing QR</h2>
+                  <p className="text-sm text-orange-700">Configura promociones y banners para escaneos de QR por sede</p>
+                </div>
+                <div className="p-4 bg-orange-500 rounded-xl shadow-lg">
+                  <MdLocalOffer className="h-8 w-8 text-white" />
+                </div>
+              </div>
+            </div>
+            <div className="p-6 lg:p-8">
+              <QrPromoConfig locations={locations} />
+            </div>
+          </div>
+        )}
 
         {/* ========== USUARIOS TAB ========== */}
         {

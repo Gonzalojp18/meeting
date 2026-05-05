@@ -150,6 +150,45 @@ const categorySchema = new mongoose.Schema({
   }
 });
 
+const qrPromoSchema = new mongoose.Schema({
+  isEnabled: {
+    type: Boolean,
+    default: false
+  },
+  type: {
+    type: String,
+    enum: ['discount', 'info', 'loyalty'],
+    default: 'discount'
+  },
+  discountPercentage: {
+    type: Number,
+    default: 15,
+    min: 0,
+    max: 100
+  },
+  frequency: {
+    type: String,
+    enum: ['once', 'every_visit', 'daily'],
+    default: 'once'
+  },
+  title: {
+    type: String,
+    default: 'Primera vez por QR!'
+  },
+  subtitle: {
+    type: String,
+    default: 'Obten {discount}% OFF en tu primer pedido takeaway'
+  },
+  buttonText: {
+    type: String,
+    default: 'Ver menu'
+  },
+  termsText: {
+    type: String,
+    default: 'Valido solo para pedidos takeaway. No acumulable con otras promociones.'
+  }
+});
+
 const locationSchema = new mongoose.Schema({
   name: {
     type: String,
@@ -165,7 +204,6 @@ const locationSchema = new mongoose.Schema({
     type: Boolean,
     default: true
   },
-  // Control de features por locación (SuperAdmin)
   features: {
     takeawayEnabled: {
       type: Boolean,
@@ -176,7 +214,7 @@ const locationSchema = new mongoose.Schema({
       default: true
     }
   },
-  // Metadata para SuperAdmin
+  qrPromo: qrPromoSchema,
   metadata: {
     activatedAt: {
       type: Date
