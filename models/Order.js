@@ -165,6 +165,23 @@ const orderSchema = new mongoose.Schema(
       min: 0,
     },
 
+    // QR Marketing promo tracking
+    qrPromoDiscount: {
+      type: Number,
+      min: 0,
+      max: 100,
+    },
+    qrPromoSource: {
+      type: String,
+      trim: true,
+      default: '',
+    },
+    qrPromoDiscountAmount: {
+      type: Number,
+      default: 0,
+      min: 0,
+    },
+
     // Notas
     notes: {
       type: String,

@@ -18,13 +18,14 @@ export default function SuperAdminMarketingQr() {
     const [stylesSaving, setStylesSaving] = useState(false);
     const [stylesSaved, setStylesSaved] = useState(false);
     const [globalEnabled, setGlobalEnabled] = useState(false);
+    const [globalStats, setGlobalStats] = useState(null);
 
     useEffect(() => {
         fetchAll();
     }, []);
 
     const fetchAll = async () => {
-        await Promise.all([fetchLocations(), fetchStyles()]);
+        await Promise.all([fetchLocations(), fetchStyles(), fetchGlobalStats()]);
     };
 
     const fetchLocations = async () => {
@@ -41,6 +42,18 @@ export default function SuperAdminMarketingQr() {
             console.error('Error fetching locations:', error);
         } finally {
             setLoading(false);
+        }
+    };
+
+    const fetchGlobalStats = async () => {
+        try {
+            const res = await fetch(`${API_URI}/api/superadmin/qr-promo/stats`);
+            if (res.ok) {
+                const data = await res.json();
+                setGlobalStats(data);
+            }
+        } catch (error) {
+            console.error('Error fetching global stats:', error);
         }
     };
 
@@ -205,12 +218,13 @@ export default function SuperAdminMarketingQr() {
                             <MdQrCode />
                             Estado por Sede
                         </h3>
-                        <p className="text-sm text-orange-700 mt-1">Configuracion de QR promo en cada sede</p>
+                        <p className="text-sm text-orange-700 mt-1">Configuracion y estadisticas de QR promo</p>
                     </div>
                     <div className="p-6 space-y-3">
                         {locations.map(location => {
                             const promo = location.qrPromo || {};
                             const isEnabled = promo.isEnabled || false;
+                            const stats = location.stats || {};
                             const typeIcons = { discount: MdLocalOffer, info: MdInfo, loyalty: MdCheckCircle };
                             const TypeIcon = typeIcons[promo.type] || MdLocalOffer;
                             const freqLabels = { once: 'Una vez', daily: 'Diario', every_visit: 'Siempre' };
@@ -224,7 +238,7 @@ export default function SuperAdminMarketingQr() {
                                             : 'border-gray-100 bg-gray-50'
                                     }`}
                                 >
-                                    <div className="flex items-center justify-between">
+                                    <div className="flex items-center justify-between mb-2">
                                         <div className="flex items-center gap-3">
                                             <div className={`w-10 h-10 rounded-lg flex items-center justify-center ${
                                                 isEnabled ? 'bg-green-100' : 'bg-gray-200'
@@ -240,20 +254,33 @@ export default function SuperAdminMarketingQr() {
                                                 <p className="text-xs text-gray-500">{location.nameId}</p>
                                             </div>
                                         </div>
-                                        <div className="flex items-center gap-2">
-                                            {isEnabled ? (
-                                                <div className="flex items-center gap-2">
-                                                    <TypeIcon className="w-4 h-4 text-orange-600" />
-                                                    <span className="text-xs text-orange-700 font-medium">
-                                                        {promo.type === 'discount' ? `${promo.discountPercentage}% OFF` : promo.type}
-                                                    </span>
-                                                    <span className="text-xs text-gray-500">· {freqLabels[promo.frequency] || ''}</span>
-                                                </div>
-                                            ) : (
-                                                <span className="text-xs text-gray-400">Sin configurar</span>
+                                        {isEnabled ? (
+                                            <div className="flex items-center gap-2">
+                                                <TypeIcon className="w-4 h-4 text-orange-600" />
+                                                <span className="text-xs text-orange-700 font-medium">
+                                                    {promo.type === 'discount' ? `${promo.discountPercentage}% OFF` : promo.type}
+                                                </span>
+                                                <span className="text-xs text-gray-500">· {freqLabels[promo.frequency] || ''}</span>
+                                            </div>
+                                        ) : (
+                                            <span className="text-xs text-gray-400">Sin configurar</span>
+                                        )}
+                                    </div>
+                                    {stats.views > 0 && (
+                                        <div className="flex items-center gap-4 pt-2 border-t border-gray-200/50 mt-2">
+                                            <span className="text-xs text-gray-600">
+                                                <strong>{stats.views}</strong> visitas
+                                            </span>
+                                            <span className="text-xs text-green-600">
+                                                <strong>{stats.orders}</strong> pedidos
+                                            </span>
+                                            {stats.discountGiven > 0 && (
+                                                <span className="text-xs text-purple-600">
+                                                    ${stats.discountGiven.toLocaleString()} en descuentos
+                                                </span>
                                             )}
                                         </div>
-                                    </div>
+                                    )}
                                 </div>
                             );
                         })}
@@ -266,7 +293,23 @@ export default function SuperAdminMarketingQr() {
                         )}
 
                         {locations.length > 0 && (
-                            <div className="pt-3 border-t border-gray-200">
+                            <div className="pt-3 border-t border-gray-200 space-y-2">
+                                {globalStats?.global && (
+                                    <div className="grid grid-cols-3 gap-4 text-center">
+                                        <div>
+                                            <p className="text-xs text-gray-500">Visitas totales</p>
+                                            <p className="text-lg font-bold text-blue-600">{globalStats.global.totalViews}</p>
+                                        </div>
+                                        <div>
+                                            <p className="text-xs text-gray-500">Pedidos con QR</p>
+                                            <p className="text-lg font-bold text-green-600">{globalStats.global.totalOrders}</p>
+                                        </div>
+                                        <div>
+                                            <p className="text-xs text-gray-500">Descuento dado</p>
+                                            <p className="text-lg font-bold text-purple-600">${globalStats.global.totalDiscountGiven.toLocaleString()}</p>
+                                        </div>
+                                    </div>
+                                )}
                                 <div className="flex items-center justify-between text-sm">
                                     <span className="text-gray-600">Sedes con QR activo:</span>
                                     <span className="font-bold text-green-700">

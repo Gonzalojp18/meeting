@@ -62,6 +62,9 @@ const ResultContent = () => {
             return;
         }
 
+        // Clear QR promo after successful payment
+        sessionStorage.removeItem('active-qr-promo');
+
         // Guardar el paymentId en el store
         if (paymentId && activeOrder && !activeOrder.paymentId) {
             setPaymentId(paymentId);

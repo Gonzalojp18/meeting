@@ -126,7 +126,7 @@ export async function POST(req) {
 
         const client = new MercadoPagoConfig({ accessToken: credentials.accessToken });
         const body = await req.json();
-        const { items, customerData, total: clientTotal, locationId, menuType } = body;
+        const { items, customerData, total: clientTotal, locationId, menuType, qrPromoDiscount, qrPromoSource, qrPromoDiscountAmount } = body;
 
         // Validaciones básicas
         if (!items || items.length === 0) {
@@ -164,11 +164,17 @@ export async function POST(req) {
             return NextResponse.json({ error: validationError.message }, { status: 400 });
         }
 
-        // Verificar que el total coincida (tolerancia de $1 por redondeo)
-        const priceDifference = Math.abs(validated.total - clientTotal);
-        if (priceDifference > 1) {
+        const serverTotal = validated.total;
+
+        const hasQrPromo = qrPromoDiscount > 0 && qrPromoDiscount <= 50;
+        const expectedTotal = hasQrPromo
+            ? Math.round(serverTotal * (1 - qrPromoDiscount / 100))
+            : serverTotal;
+
+        const finalPriceDiff = Math.abs(expectedTotal - clientTotal);
+        if (finalPriceDiff > 1) {
             console.error('[SECURITY] Intento de manipulación de precio:', {
-                clientTotal, serverTotal: validated.total, difference: priceDifference,
+                clientTotal, serverTotal, expectedTotal, difference: finalPriceDiff,
             });
             return NextResponse.json(
                 { error: 'Los precios han cambiado. Por favor, recarga la página y vuelve a intentar.' },
@@ -176,27 +182,18 @@ export async function POST(req) {
             );
         }
 
-        const serverTotal = validated.total;
-
         // =====================================================
         // CREAR LA ORDEN EN DB ANTES DE IR A MERCADOPAGO
         // Usamos insertOne() para BYPASSEAR los hooks de Mongoose.
-        // El hook pre('save') usa encrypt() que falla en producción
-        // con código minificado ('a is not a function').
-        // Esta es la misma solución aplicada en test_print.
         // =====================================================
-
-        // Generar order number (igual que el resto del codebase)
         const orderCount = await Order.countDocuments();
         const timestamp = Date.now().toString(36).toUpperCase();
         const orderNumber = `ORD-${String(orderCount + 1).padStart(4, '0')}-${timestamp.slice(-4)}`;
 
-        // Buscar nombre de sede
         const menuDoc = await Menu.findOne().lean();
         const locationInfo = menuDoc?.locations?.find(l => l.nameId === locationId);
         const locationName = locationInfo?.name || locationId;
 
-        // Construir el documento sin pasar por Mongoose (bypasea todos los hooks)
         const now = new Date();
         const orderDoc = {
             orderNumber,
@@ -226,7 +223,12 @@ export async function POST(req) {
             deliveryAddress: customerData.deliveryAddress || '',
             notes: (customerData.notes || '').toString().trim().substring(0, 500),
             subtotal: serverTotal,
-            total: serverTotal,
+            total: expectedTotal,
+            ...(hasQrPromo && {
+                qrPromoDiscount,
+                qrPromoSource: qrPromoSource || '',
+                qrPromoDiscountAmount: qrPromoDiscountAmount || Math.round(serverTotal - expectedTotal),
+            }),
             paymentMethod: 'Mercado Pago',
             paymentStatus: 'pending',
             status: 'pending',
@@ -253,7 +255,6 @@ export async function POST(req) {
 
         // =====================================================
         // CREAR PREFERENCIA EN MERCADOPAGO
-        // Solo guardamos el orderId en metadata — pequeño y confiable.
         // =====================================================
         const mpItems = validated.items.map(item => ({
             title: item.name + (item.customizations.length > 0

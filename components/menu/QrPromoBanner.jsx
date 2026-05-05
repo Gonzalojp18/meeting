@@ -31,6 +31,7 @@ export default function QrPromoBanner({ locationId, source }) {
           sessionStorage.setItem('active-qr-promo', JSON.stringify({
             discountPercentage: data.promo.discountPercentage,
             locationId,
+            source,
           }));
         }
       }

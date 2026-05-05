@@ -227,7 +227,11 @@ const CheckoutPage = () => {
                 total: finalTotal,
                 locationId,
                 menuType,
-                ...(activeQrPromo && { qrPromoDiscount: activeQrPromo.discountPercentage }),
+                ...(activeQrPromo && {
+                    qrPromoDiscount: activeQrPromo.discountPercentage,
+                    qrPromoSource: activeQrPromo.source,
+                    qrPromoDiscountAmount: discountAmount,
+                }),
             });
 
             if (response.data.init_point) {
