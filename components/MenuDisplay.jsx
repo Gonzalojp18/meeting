@@ -18,7 +18,7 @@ import WeatherWidget from './Weather/WeatherWidget'
 import { motion } from 'framer-motion';
 
 import useCartStore from '../store/cartStore';
-import { MdShoppingCart, MdSchedule, MdStorefront } from 'react-icons/md';
+import { MdShoppingCart, MdSchedule, MdStorefront, MdBusinessCenter } from 'react-icons/md';
 import Link from 'next/link';
 import ModeSelector from './menu/ModeSelector';
 import ModeToggle from './menu/ModeToggle';
@@ -107,6 +107,7 @@ const MenuDisplay = ({ locationId, menuType = 'standard' }) => {
 
   // Calcular hora solo en el cliente para evitar hydration mismatch
   const isTakeawayEnabledByAdmin = data?.currentLocation?.features?.takeawayEnabled ?? true;
+  const isExecutiveEnabledByAdmin = data?.currentLocation?.features?.executiveEnabled ?? true;
 
   // Sincronizar menuMode con URL al montar el componente
   useEffect(() => {
@@ -118,10 +119,9 @@ const MenuDisplay = ({ locationId, menuType = 'standard' }) => {
 
   useEffect(() => {
     const checkStoreHours = () => {
-      // El menú ejecutivo (viandas corporativas) siempre está disponible,
-      // independientemente del horario de takeaway estándar o config del admin.
+      // El menú ejecutivo (viandas corporativas) depende de si está habilitado por el admin
       if (menuType === 'executive') {
-        setIsStoreOpen(true);
+        setIsStoreOpen(isExecutiveEnabledByAdmin);
         return;
       }
       const now = getCurrentTimeArgentina();
@@ -170,6 +170,24 @@ const MenuDisplay = ({ locationId, menuType = 'standard' }) => {
           Esta sucursal se encuentra temporalmente deshabilitada.
         </p>
         <Link href="/" className="px-6 py-2 bg-orange-600 text-white rounded-full hover:bg-orange-700 transition-colors">
+          Volver al Inicio
+        </Link>
+      </div>
+    );
+  }
+
+  // Verificar si el menú ejecutivo está habilitado para esta sede
+  if (menuType === 'executive' && !isExecutiveEnabledByAdmin) {
+    return (
+      <div className="min-h-screen flex flex-col items-center justify-center bg-gray-50 p-4">
+        <div className="w-20 h-20 bg-orange-100 rounded-3xl flex items-center justify-center mb-6">
+          <MdBusinessCenter className="w-10 h-10 text-orange-600" />
+        </div>
+        <h1 className="text-2xl font-black text-gray-900 mb-2 uppercase tracking-tight">Servicio No Disponible</h1>
+        <p className="text-gray-500 text-center mb-8 max-w-sm font-medium">
+          El Menú Ejecutivo B2B no está habilitado actualmente para la sede <b>{data?.currentLocation?.name}</b>.
+        </p>
+        <Link href="/" className="px-8 py-3 bg-gray-900 text-white rounded-2xl hover:bg-black transition-all shadow-lg font-bold text-sm uppercase tracking-wider">
           Volver al Inicio
         </Link>
       </div>

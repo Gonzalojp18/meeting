@@ -51,6 +51,9 @@ export async function PATCH(request, { params }) {
                 if ('localEnabled' in body.features) {
                     location.features.localEnabled = body.features.localEnabled;
                 }
+                if ('executiveEnabled' in body.features) {
+                    location.features.executiveEnabled = body.features.executiveEnabled;
+                }
             }
 
             if (body.notes) {

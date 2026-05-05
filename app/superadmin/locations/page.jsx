@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { MdToggleOn, MdToggleOff, MdLocationOn, MdDeliveryDining, MdRestaurant, MdSave } from 'react-icons/md';
+import { MdToggleOn, MdToggleOff, MdLocationOn, MdDeliveryDining, MdRestaurant, MdSave, MdBusinessCenter } from 'react-icons/md';
 
 export default function LocationsManager() {
     const [locations, setLocations] = useState([]);
@@ -71,7 +71,8 @@ export default function LocationsManager() {
         const newValue = !currentValue;
         const featureNames = {
             takeawayEnabled: 'Takeaway',
-            localEnabled: 'Consumo Local'
+            localEnabled: 'Consumo Local',
+            executiveEnabled: 'Menú Ejecutivo B2B'
         };
 
         if (confirm(`¿${newValue ? 'Habilitar' : 'Deshabilitar'} ${featureNames[feature]} en "${location.name}"?`)) {
@@ -125,6 +126,7 @@ function LocationCard({ location, onToggleActive, onToggleFeature, isSaving }) {
     const isActive = location.isActive ?? true;
     const takeawayEnabled = location.features?.takeawayEnabled ?? true;
     const localEnabled = location.features?.localEnabled ?? true;
+    const executiveEnabled = location.features?.executiveEnabled ?? true;
 
     return (
         <div className={`bg-white rounded-xl shadow-sm border-2 p-6 transition-all ${isActive ? 'border-green-200' : 'border-red-200 opacity-60'
@@ -187,6 +189,15 @@ function LocationCard({ location, onToggleActive, onToggleFeature, isSaving }) {
                     enabled={localEnabled}
                     disabled={!isActive || isSaving}
                     onClick={() => onToggleFeature('localEnabled')}
+                />
+
+                {/* Executive B2B */}
+                <FeatureToggle
+                    label="Menú Ejecutivo B2B"
+                    icon={MdBusinessCenter}
+                    enabled={executiveEnabled}
+                    disabled={!isActive || isSaving}
+                    onClick={() => onToggleFeature('executiveEnabled')}
                 />
             </div>
 

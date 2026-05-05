@@ -239,6 +239,10 @@ const locationSchema = new mongoose.Schema({
     localEnabled: {
       type: Boolean,
       default: true
+    },
+    executiveEnabled: {
+      type: Boolean,
+      default: true
     }
   },
   qrPromo: qrPromoSchema,
