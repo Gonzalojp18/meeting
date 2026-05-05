@@ -20,7 +20,9 @@ import {
     MdSearch,
     MdVerified,
     MdNotifications,
-    MdNotificationsOff
+    MdNotificationsOff,
+    MdSchedule,
+    MdCalendarToday
 } from 'react-icons/md';
 import HelpButton from '../help/HelpButton';
 
@@ -437,6 +439,12 @@ const CashierPanel = ({ standalone = true }) => {
                                                         B2B
                                                     </span>
                                                 )}
+                                                {order.orderTiming === 'scheduled' && order.scheduledPickupAt && (
+                                                    <span className="mr-2 px-2 py-0.5 bg-purple-600 text-white font-bold text-xs tracking-wider rounded-md shadow-sm flex items-center gap-1">
+                                                        <MdCalendarToday size={12} />
+                                                        {new Date(order.scheduledPickupAt).toLocaleTimeString('es-AR', { hour: '2-digit', minute: '2-digit' })}
+                                                    </span>
+                                                )}
                                                 {order.deliveryMethod === 'A domicilio' ? <MdLocalShipping /> : <MdRestaurant />}
                                                 {order.deliveryMethod}
                                             </span>
@@ -504,6 +512,16 @@ const CashierPanel = ({ standalone = true }) => {
                                                 {order.deliveryAddress && <p><strong>Dirección:</strong> {order.deliveryAddress}</p>}
                                                 {order.notes && <p><strong>Notas:</strong> {order.notes}</p>}
                                             </div>
+
+                                            {/* Badge de orden programada */}
+                                            {order.orderTiming === 'scheduled' && order.scheduledPickupAt && (
+                                                <div className="mb-4 flex items-center gap-2 bg-purple-50 text-purple-700 px-3 py-2 rounded-lg border border-purple-200">
+                                                    <MdSchedule size={18} />
+                                                    <span className="text-sm font-medium">
+                                                        Retiro programado: {new Date(order.scheduledPickupAt).toLocaleString('es-AR', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' })}
+                                                    </span>
+                                                </div>
+                                            )}
 
                                             {/* Badge de confirmación de retiro por cliente */}
                                             {order.customerPickupConfirmed && (

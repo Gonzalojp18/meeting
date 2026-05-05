@@ -27,7 +27,7 @@ const Toast = ({ message, type, onClose }) => {
   );
 };
 
-export default function ScheduledOrdersConfig({ locations, token, onRefetch, menuType }) {
+export default function ScheduledOrdersConfig({ locations, token, onRefetch }) {
   const [saving, setSaving] = useState(false);
   const [editingLocation, setEditingLocation] = useState(null);
   const [configs, setConfigs] = useState({});
@@ -58,7 +58,7 @@ export default function ScheduledOrdersConfig({ locations, token, onRefetch, men
       const loc = locations.find(l => l._id === locationId);
       await axios.put(
         `${API_URI}/api/admin/scheduled-orders-config`,
-        { locationId: loc.nameId, config: configs[locationId], menuType: menuType || 'standard' },
+        { locationId: loc.nameId, config: configs[locationId] },
         { headers: { Authorization: `Bearer ${token}` } }
       );
       setEditingLocation(null);

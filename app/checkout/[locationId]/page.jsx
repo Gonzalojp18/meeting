@@ -142,11 +142,22 @@ const CheckoutPage = () => {
         fetch(`${API_URI}/api/menu/${locationId}?type=${menuType}`)
             .then(r => r.json())
             .then(data => {
-                if (data.locations?.scheduledOrdersConfig?.enabled) {
-                    setScheduledOrdersConfig(data.locations.scheduledOrdersConfig);
+                const locConfig = data.locations?.scheduledOrdersConfig;
+                console.log('[Checkout] locationId:', locationId, 'menuType:', menuType);
+                console.log('[Checkout] data.locations:', JSON.stringify(data.locations, null, 2));
+                console.log('[Checkout] scheduledOrdersConfig:', JSON.stringify(locConfig, null, 2));
+                if (locConfig?.enabled) {
+                    setScheduledOrdersConfig(locConfig);
+                    console.log('[Checkout] ✅ Scheduled orders ENABLED');
+                } else {
+                    setScheduledOrdersConfig(null);
+                    console.log('[Checkout] ❌ Scheduled orders DISABLED or not found');
                 }
             })
-            .catch(() => setScheduledOrdersConfig(null));
+            .catch((err) => {
+                console.error('[Checkout] Fetch error:', err);
+                setScheduledOrdersConfig(null);
+            });
     }, [locationId, menuType]);
 
     // Prellenar formulario con datos guardados

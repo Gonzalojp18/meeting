@@ -933,7 +933,7 @@ const AdminPanel = () => {
               </div>
             </div>
             <div className="p-6 lg:p-8">
-              <ScheduledOrdersConfig locations={locations} token={token} onRefetch={refetch} menuType={currentMenuType} />
+              <ScheduledOrdersConfig locations={locations} token={token} onRefetch={refetch} />
             </div>
           </div>
         )}
