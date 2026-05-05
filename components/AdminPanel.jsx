@@ -10,6 +10,7 @@ import MercadoPagoSettings from './admin/MercadoPagoSettings';
 import TakeawaySettings from './admin/TakeawaySettings';
 import QrPromoConfig from './admin/QrPromoConfig';
 import ScheduledOrdersConfig from './admin/ScheduledOrdersConfig';
+import BulkPriceUpdate from './admin/BulkPriceUpdate';
 import GlobalDefaultsManager from './admin/GlobalDefaultsManager';
 import { LocationNav } from './navigation';
 import StatsGrid from './admin/StatsGrid';
@@ -55,6 +56,7 @@ import {
   MdSecurity,
   MdAutoGraph,
   MdSchedule,
+  MdPriceChange,
 } from 'react-icons/md';
 import CashierPanel from './cashier/CashierPanel';
 
@@ -283,6 +285,7 @@ const AdminPanel = () => {
     tabs.push({ id: 'metricas', label: 'Metricas', icon: MdShowChart });
     tabs.push({ id: 'products', label: 'Productos', icon: MdRestaurantMenu });
     tabs.push({ id: 'categories', label: 'Categorias', icon: MdCategory });
+    tabs.push({ id: 'bulk-prices', label: 'Precios Masivos', icon: MdPriceChange });
     tabs.push({ id: 'upselling', label: 'Upselling', icon: MdAutoGraph });
     tabs.push({ id: 'marketing-qr', label: 'Marketing QR', icon: MdLocalOffer });
     tabs.push({ id: 'scheduled-orders', label: 'Pedidos Programados', icon: MdSchedule });
@@ -310,7 +313,7 @@ const AdminPanel = () => {
   // Grupos de navegación para el sidebar
   const navGroups = [
     { label: 'Principal', ids: ['dashboard', 'metricas'] },
-    { label: 'Menu', ids: ['products', 'categories', 'upselling'] },
+    { label: 'Menu', ids: ['products', 'categories', 'bulk-prices', 'upselling'] },
     { label: 'Marketing', ids: ['marketing-qr', 'scheduled-orders'] },
     { label: 'Operaciones', ids: ['caja', 'availability', 'printers', 'history'] },
     { label: 'Personal', ids: ['users'] },
@@ -874,6 +877,35 @@ const AdminPanel = () => {
             </div>
           )
         }
+
+        {/* ========== PRECIOS MASIVOS TAB ========== */}
+        {
+          activeTab === 'bulk-prices' && (
+            <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-6 lg:p-8">
+              <div className="flex bg-gray-100 p-1 rounded-xl shrink-0 w-fit mb-6">
+                <button
+                  onClick={() => setCurrentMenuType('standard')}
+                  className={`px-4 py-2 rounded-lg text-sm font-bold transition-all ${currentMenuType === 'standard' ? 'bg-white text-orange-600 shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}
+                >
+                  Estándar
+                </button>
+                <button
+                  onClick={() => setCurrentMenuType('executive')}
+                  className={`px-4 py-2 rounded-lg text-sm font-bold transition-all ${currentMenuType === 'executive' ? 'bg-white text-blue-600 shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}
+                >
+                  B2B Ejecutivo
+                </button>
+              </div>
+              <BulkPriceUpdate
+                data={data}
+                menuType={currentMenuType}
+                locations={locations}
+                onRefetch={refetch}
+              />
+            </div>
+          )
+        }
+
         {/* ========== UPSELLING TAB ========== */}
         {
           activeTab === 'upselling' && (

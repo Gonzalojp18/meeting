@@ -96,6 +96,12 @@ const MenuDisplay = ({ locationId, menuType = 'standard' }) => {
 
   useEffect(() => {
     const checkStoreHours = () => {
+      // El menú ejecutivo (viandas corporativas) siempre está disponible,
+      // independientemente del horario de takeaway estándar o config del admin.
+      if (menuType === 'executive') {
+        setIsStoreOpen(true);
+        return;
+      }
       const now = getCurrentTimeArgentina();
       const isWithinHours = isTimeInRange(now, globalHours.open, globalHours.close);
       // Combinar horario Y configuración del admin
@@ -105,13 +111,14 @@ const MenuDisplay = ({ locationId, menuType = 'standard' }) => {
     // Actualizar cada minuto
     const interval = setInterval(checkStoreHours, 60000);
     return () => clearInterval(interval);
-  }, [globalHours.open, globalHours.close, isTakeawayEnabledByAdmin]);
+  }, [globalHours.open, globalHours.close, isTakeawayEnabledByAdmin, menuType]);
 
   useEffect(() => {
     if (menuType === 'executive' && menuMode === null) {
       setMenuMode('takeaway');
     }
   }, [menuType, menuMode]);
+
 
   const isTakeaway = menuMode === 'takeaway';
 
