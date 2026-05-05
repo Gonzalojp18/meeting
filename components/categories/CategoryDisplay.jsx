@@ -89,44 +89,61 @@ const Category = ({ category, locationId, isTakeaway = false, displayOnly = fals
                     {(category.items || []).map((item, index) => {
                         const quantity = getItemQuantity(item._id);
                         const itemHasCustomizations = hasCustomizations(item);
-                        const isAvailable = item.isAvailable !== false;
+                        const isAvailable = item.isAvailable !== false && item.isAvailableToday !== false;
+                        const isPreviewOnly = item.isAvailableToday === false && item.isAvailableInSelectedDay === true;
                         const itemPrice = item.prices?.[locationId] || item.prices || 0;
+                        const dayNames = ['Dom', 'Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb'];
 
                         return (
                             <motion.div
                                 key={item._id}
-                                className={`bg-white rounded-xl border border-gray-200 overflow-hidden shadow-sm hover:shadow-md transition-shadow ${!isAvailable ? 'opacity-50' : ''} ${itemHasCustomizations ? 'cursor-pointer' : ''}`}
-                                onClick={() => itemHasCustomizations && setModalItem(item)}
+                                className={`bg-white rounded-2xl border transition-all duration-300 overflow-hidden shadow-sm hover:shadow-lg ${
+                                    isPreviewOnly 
+                                        ? 'border-gray-100 grayscale-[0.3] opacity-80' 
+                                        : !isAvailable 
+                                            ? 'border-gray-100 opacity-50' 
+                                            : 'border-gray-200 hover:border-orange-200'
+                                }`}
+                                onClick={() => itemHasCustomizations && isAvailable && setModalItem(item)}
                                 initial={{ opacity: 0, y: 20 }}
                                 animate={{ opacity: 1, y: 0 }}
                                 transition={{ duration: 0.3, delay: index * 0.05 }}
                             >
-                                <div className="flex p-3 gap-3">
-                                    {/* Imagen del producto */}
-                                    <div className="flex-shrink-0">
+                                <div className="flex p-4 gap-4">
+                                    {/* Imagen del producto con Overlay si es Preview */}
+                                    <div className="flex-shrink-0 relative">
                                         {item.image ? (
                                             <img
                                                 src={item.image}
                                                 alt={item.name}
-                                                className="w-28 h-28 md:w-32 md:h-32 object-cover rounded-lg"
+                                                className="w-28 h-28 md:w-32 md:h-32 object-cover rounded-xl shadow-inner"
                                             />
                                         ) : (
-                                            <div className="w-28 h-28 md:w-32 md:h-32 bg-gradient-to-br from-gray-100 to-gray-200 rounded-lg flex items-center justify-center">
-                                                <span className="text-3xl text-gray-400">🍽️</span>
+                                            <div className="w-28 h-28 md:w-32 md:h-32 bg-gradient-to-br from-gray-50 to-gray-100 rounded-xl flex items-center justify-center border border-gray-100">
+                                                <span className="text-3xl grayscale">🍽️</span>
+                                            </div>
+                                        )}
+                                        {isPreviewOnly && (
+                                            <div className="absolute inset-0 bg-white/10 backdrop-blur-[1px] rounded-xl flex items-center justify-center">
+                                                <div className="bg-white/90 px-2 py-1 rounded-lg shadow-sm border border-gray-100">
+                                                    <span className="text-[10px] font-black text-gray-400 uppercase tracking-tighter">Próximamente</span>
+                                                </div>
                                             </div>
                                         )}
                                     </div>
 
                                     {/* Contenido */}
                                     <div className="flex-1 flex flex-col min-w-0">
-                                        <h3 className="text-sm md:text-base font-bold text-gray-900 uppercase tracking-wide leading-tight mb-1">
-                                            {item.name}
-                                        </h3>
-                                        <p className="text-xs md:text-sm text-gray-500 line-clamp-3 flex-1 leading-relaxed">
+                                        <div className="flex justify-between items-start mb-1">
+                                            <h3 className="text-sm md:text-base font-black text-gray-900 uppercase tracking-tight leading-tight">
+                                                {item.name}
+                                            </h3>
+                                        </div>
+                                        <p className="text-xs md:text-sm text-gray-400 line-clamp-3 flex-1 leading-relaxed font-medium">
                                             {item.description}
                                         </p>
 
-                                        {/* Micro-mensaje de upselling - Solo si está en carrito */}
+                                        {/* Micro-mensaje de upselling */}
                                         {!displayOnly && quantity > 0 && productUpsellings[item._id] && (
                                             <UpsellingMicroMessage
                                                 upselling={productUpsellings[item._id]}
@@ -138,75 +155,79 @@ const Category = ({ category, locationId, isTakeaway = false, displayOnly = fals
                                             />
                                         )}
 
-                                    </div>
+                                        {/* Footer de la Card: Precio y Botones */}
+                                        <div className="flex items-center justify-between mt-3 pt-3 border-t border-gray-50">
+                                            <div className="flex flex-col">
+                                                <span className="text-[10px] uppercase font-bold text-gray-300 tracking-widest leading-none mb-1">Precio</span>
+                                                <span className="text-base md:text-xl font-black text-gray-900">
+                                                    {!displayOnly && itemPrice > 0 ? `$${itemPrice.toLocaleString()}` : '—'}
+                                                </span>
+                                            </div>
 
-                                        {/* Precio y botón */}
-                                        <div className="flex items-center justify-between mt-2 pt-2 border-t border-gray-50">
-                                            <span className="text-base md:text-lg font-bold text-gray-800">
-                                                {!displayOnly && itemPrice > 0 ? `$${itemPrice.toLocaleString()}` : ''}
-                                            </span>
-
-                                            {/* Controles - Solo si no es displayOnly */}
+                                            {/* Controles de Acción */}
                                             {!displayOnly && isAvailable ? (
-                                                <>
-                                                    {/* Sin customizaciones y sin cantidad */}
+                                                <div className="flex items-center">
                                                     {!itemHasCustomizations && quantity === 0 && (
                                                         <button
                                                             onClick={() => addItem({ ...item, price: itemPrice }, locationId)}
-                                                            className="w-9 h-9 bg-orange-100 text-orange-600 rounded-full flex items-center justify-center hover:bg-orange-200 transition-colors"
+                                                            className="h-10 px-4 bg-orange-600 text-white rounded-xl flex items-center gap-2 hover:bg-orange-700 transition-all shadow-md shadow-orange-200 active:scale-95 font-bold text-sm"
                                                         >
-                                                            <MdAdd size={22} />
+                                                            <MdAdd size={18} />
+                                                            <span>Pedir</span>
                                                         </button>
                                                     )}
 
-                                                    {/* Sin customizaciones y con cantidad */}
                                                     {!itemHasCustomizations && quantity > 0 && (
-                                                        <div className="flex items-center gap-2">
+                                                        <div className="flex items-center bg-gray-100 p-1 rounded-xl border border-gray-200">
                                                             <button
                                                                 onClick={(e) => { e.stopPropagation(); removeItem(item._id, locationId); }}
-                                                                className="w-7 h-7 bg-orange-100 text-orange-600 rounded-full flex items-center justify-center hover:bg-orange-200 transition-colors"
+                                                                className="w-8 h-8 flex items-center justify-center text-gray-600 hover:text-orange-600 transition-colors"
                                                             >
                                                                 <MdRemove size={18} />
                                                             </button>
-                                                            <span className="font-bold text-sm min-w-[20px] text-center">{quantity}</span>
+                                                            <span className="font-black text-sm px-2 text-gray-900">{quantity}</span>
                                                             <button
                                                                 onClick={(e) => { e.stopPropagation(); addItem({ ...item, price: itemPrice }, locationId); }}
-                                                                className="w-7 h-7 bg-orange-100 text-orange-600 rounded-full flex items-center justify-center hover:bg-orange-200 transition-colors"
+                                                                className="w-8 h-8 flex items-center justify-center text-gray-600 hover:text-orange-600 transition-colors"
                                                             >
                                                                 <MdAdd size={18} />
                                                             </button>
                                                         </div>
                                                     )}
 
-                                                    {/* Con customizaciones */}
                                                     {itemHasCustomizations && (
                                                         <div className="flex items-center gap-2">
                                                             {quantity > 0 && (
-                                                                <>
-                                                                    <button
-                                                                        onClick={(e) => { e.stopPropagation(); removeItem(item._id, locationId); }}
-                                                                        className="w-7 h-7 bg-orange-100 text-orange-600 rounded-full flex items-center justify-center hover:bg-orange-200 transition-colors"
-                                                                    >
-                                                                        <MdRemove size={18} />
-                                                                    </button>
-                                                                    <span className="font-bold text-sm min-w-[20px] text-center">{quantity}</span>
-                                                                </>
+                                                                <span className="bg-orange-100 text-orange-600 w-8 h-8 rounded-lg flex items-center justify-center font-black text-xs border border-orange-200">
+                                                                    {quantity}
+                                                                </span>
                                                             )}
                                                             <button
                                                                 onClick={(e) => { e.stopPropagation(); setModalItem(item); }}
-                                                                className="w-9 h-9 bg-orange-100 text-orange-600 rounded-full flex items-center justify-center hover:bg-orange-200 transition-colors"
+                                                                className="h-10 px-4 bg-orange-600 text-white rounded-xl flex items-center gap-2 hover:bg-orange-700 transition-all shadow-md shadow-orange-200 active:scale-95 font-bold text-sm"
                                                             >
-                                                                <MdAdd size={22} />
+                                                                <MdAdd size={18} />
+                                                                <span>Personalizar</span>
                                                             </button>
                                                         </div>
                                                     )}
-                                                </>
-                                            ) : !displayOnly && !isAvailable ? (
-                                                <span className="text-xs font-medium text-red-500 bg-red-50 px-2 py-1 rounded-full">
-                                                    No disponible
+                                                </div>
+                                            ) : isPreviewOnly ? (
+                                                <div className="flex flex-col items-end">
+                                                   <div className="flex items-center gap-1.5 px-3 py-1.5 bg-gray-100 border border-gray-200 rounded-xl">
+                                                      <div className="w-1.5 h-1.5 bg-gray-400 rounded-full animate-pulse" />
+                                                      <span className="text-[10px] font-black text-gray-500 uppercase tracking-tighter">
+                                                         Vuelve el {dayNames[item.availableDays?.[0]]}
+                                                      </span>
+                                                   </div>
+                                                </div>
+                                            ) : !displayOnly ? (
+                                                <span className="text-[10px] font-black text-red-400 uppercase bg-red-50 px-3 py-1.5 rounded-xl border border-red-100">
+                                                    Sin Stock
                                                 </span>
                                             ) : null}
                                         </div>
+                                    </div>
                                 </div>
                             </motion.div>
                         );
@@ -253,7 +274,8 @@ const Category = ({ category, locationId, isTakeaway = false, displayOnly = fals
                 {(category.items || []).map((item) => {
                     const quantity = getItemQuantity(item._id);
                     const itemHasCustomizations = hasCustomizations(item);
-                    const isAvailable = item.isAvailable !== false;
+                    const isAvailable = item.isAvailable !== false && item.isAvailableToday !== false;
+                    const dayNames = ['Dom', 'Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb'];
 
                     return (
                         <div key={item._id} className={`${style.item} relative group ${!isAvailable && isTakeaway ? 'opacity-50' : ''}`}>
@@ -266,8 +288,8 @@ const Category = ({ category, locationId, isTakeaway = false, displayOnly = fals
 
                                     {/* Etiqueta no disponible */}
                                     {isTakeaway && !isAvailable && (
-                                        <span className="inline-flex items-center mt-2 px-2.5 py-1 rounded-full text-xs font-bold bg-red-100 text-red-600">
-                                            No disponible
+                                        <span className="inline-flex items-center mt-2 px-2.5 py-1 rounded-full text-xs font-bold bg-orange-100 text-orange-700">
+                                            {item.isAvailableToday === false ? `Disponible: ${item.availableDays.map(d => dayNames[d]).join(', ')}` : 'No disponible'}
                                         </span>
                                     )}
 

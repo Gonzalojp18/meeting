@@ -61,6 +61,28 @@ const MenuDisplay = ({ locationId, menuType = 'standard' }) => {
   const cartCount = getCartCount(locationId);
   const cartTotal = getCartTotal(locationId);
 
+  const [selectedDay, setSelectedDay] = useState(null);
+
+  // Obtener el día actual en Argentina (0=Dom, 1=Lun, ..., 6=Sab)
+  const argDayToday = React.useMemo(() => {
+    try {
+      const d = new Date();
+      const argStr = new Intl.DateTimeFormat('en-US', { timeZone: 'America/Argentina/Buenos_Aires', weekday: 'short' }).format(d);
+      const map = { 'Sun': 0, 'Mon': 1, 'Tue': 2, 'Wed': 3, 'Thu': 4, 'Fri': 5, 'Sat': 6 };
+      return map[argStr] ?? d.getDay();
+    } catch (e) {
+      return new Date().getDay();
+    }
+  }, []);
+
+  // Inicializar selectedDay con el día de hoy (o Lunes si es fin de semana)
+  useEffect(() => {
+    if (selectedDay === null) {
+      const defaultDay = (argDayToday === 0 || argDayToday === 6) ? 1 : argDayToday;
+      setSelectedDay(defaultDay);
+    }
+  }, [argDayToday, selectedDay]);
+
   const handleModeSelect = useCallback((mode) => {
     setMenuMode(mode);
     localStorage.setItem(`menuMode_${locationId}`, mode);
@@ -188,32 +210,31 @@ const MenuDisplay = ({ locationId, menuType = 'standard' }) => {
 
     return true;
   }).map(category => {
-    // Obtener el día actual en Argentina (0=Dom, 1=Lun, ..., 6=Sab)
-    const argDay = (() => {
-      try {
-        const d = new Date();
-        const argStr = new Intl.DateTimeFormat('en-US', { timeZone: 'America/Argentina/Buenos_Aires', weekday: 'short' }).format(d);
-        const map = { 'Sun': 0, 'Mon': 1, 'Tue': 2, 'Wed': 3, 'Thu': 4, 'Fri': 5, 'Sat': 6 };
-        return map[argStr] ?? d.getDay();
-      } catch (e) {
-        return new Date().getDay();
-      }
-    })();
-
     return {
       ...category,
-      items: category.items.filter(item => {
-        // Filtrar productos por día de la semana (Menú Rotativo)
-        if (item.availableDays && item.availableDays.length > 0) {
-          if (!item.availableDays.includes(argDay)) return false;
-        }
-        return true;
-      })
+      items: category.items.map(item => {
+        // Determinar disponibilidad según el día SELECCIONADO en la UI
+        const isAvailableInSelectedDay = item.availableDays && item.availableDays.length > 0
+          ? item.availableDays.includes(selectedDay)
+          : true;
+
+        // Determinar si el día seleccionado es REALMENTE hoy para permitir compra
+        const isActuallyToday = selectedDay === argDayToday;
+
+        return {
+          ...item,
+          isAvailableInSelectedDay,
+          isAvailableToday: isActuallyToday && isAvailableInSelectedDay
+        };
+      }).filter(item => item.isAvailableInSelectedDay) // Solo mostramos los del día seleccionado
     };
   }).filter(category => category.items.length > 0);
 
+  const dayNames = ['Dom', 'Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb'];
+  const fullDayNames = ['Domingo', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado'];
+
   return (
-    <div className='min-h-screen bg-gray-100 relative'>
+    <div className='min-h-screen bg-gray-50 relative'>
       {/* Modal selector de modo */}
       <ModeSelector locationId={locationId} onModeSelect={handleModeSelect} takeawayHours={globalHours} locationFeatures={data?.currentLocation?.features} isDisplayOnly={isDisplayOnly} urlMode={urlMode} />
 
@@ -245,6 +266,50 @@ const MenuDisplay = ({ locationId, menuType = 'standard' }) => {
       )}
 
       <main className={`max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pb-32 ${isTakeaway ? 'mt-48 md:mt-64' : 'mt-4'}`}>
+        
+        {/* Selector Semanal para Menú Ejecutivo */}
+        {menuType === 'executive' && (
+          <div className="mb-8 mt-4">
+            <div className="flex flex-col items-center mb-6">
+               <span className="text-[10px] uppercase tracking-[0.2em] text-orange-500 font-bold mb-2">Cartelera Semanal</span>
+               <h2 className="text-2xl font-black text-gray-900">Menú Ejecutivo</h2>
+            </div>
+            
+            <div className="flex justify-center">
+              <div className="inline-flex p-1 bg-gray-200/50 backdrop-blur-sm rounded-2xl border border-gray-200">
+                {[1, 2, 3, 4, 5].map((day) => {
+                  const isToday = day === argDayToday;
+                  const isSelected = day === selectedDay;
+                  return (
+                    <button
+                      key={day}
+                      onClick={() => setSelectedDay(day)}
+                      className={`relative px-5 py-2.5 rounded-xl text-sm font-bold transition-all duration-300 ${
+                        isSelected 
+                          ? 'bg-white text-orange-600 shadow-sm scale-105 z-10' 
+                          : 'text-gray-500 hover:text-gray-700 hover:bg-white/40'
+                      }`}
+                    >
+                      <div className="flex flex-col items-center">
+                        <span>{dayNames[day]}</span>
+                        {isToday && <div className="absolute -bottom-1 w-1 h-1 bg-orange-500 rounded-full" />}
+                      </div>
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+            
+            <div className="text-center mt-4">
+               <p className="text-xs text-gray-400 font-medium">
+                  {selectedDay === argDayToday 
+                    ? '🟢 Disponible para pedir ahora' 
+                    : `📅 Vista previa del ${fullDayNames[selectedDay]}`}
+               </p>
+            </div>
+          </div>
+        )}
+
         {/* Header con logo y slogan - diferente para takeaway vs local */}
         {isTakeaway ? (
           <motion.div
