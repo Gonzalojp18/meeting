@@ -6,7 +6,7 @@ import { CategoryNav } from './navigation';
 import TakeawayNav from './navigation/TakeawayNav';
 import BrandsSection from './brands/BrandsSection';
 import Image from 'next/image';
-import { useSearchParams } from 'next/navigation';
+import { useSearchParams, usePathname } from 'next/navigation';
 
 // import Promotion from './promo/Promotions' // TODO: Comentado temporalmente para takeaway
 import { FullScreenError } from './Error'
@@ -326,8 +326,7 @@ const MenuDisplay = ({ locationId, menuType = 'standard' }) => {
                </p>
             </div>
 
-            {/* Banner de Beneficios Executive - visible solo para B2B */}
-            {menuMode !== 'takeaway' && menuMode !== 'local' && (
+            {/* Banner de Beneficios Executive */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-3 max-w-2xl mx-auto">
               <div className="flex items-center gap-3 bg-white/60 backdrop-blur-sm p-3 rounded-2xl border border-gray-100 shadow-sm">
                 <div className="w-10 h-10 bg-orange-100 rounded-xl flex items-center justify-center flex-shrink-0">
@@ -335,7 +334,6 @@ const MenuDisplay = ({ locationId, menuType = 'standard' }) => {
                 </div>
                 <div className="flex flex-col">
                   <span className="text-xs font-black text-gray-900 uppercase tracking-tight">Menú Completo</span>
-                  <span className="text-[10px] text-gray-500 font-medium">Todos los platos incluyen bebida y café</span>
                 </div>
               </div>
 
@@ -349,7 +347,6 @@ const MenuDisplay = ({ locationId, menuType = 'standard' }) => {
                 </div>
               </div>
             </div>
-          )}
           </div>
         )}
 
@@ -391,7 +388,7 @@ const MenuDisplay = ({ locationId, menuType = 'standard' }) => {
           </div>
         )}
         {(!isTakeaway || isStoreOpen || isDisplayOnly) && activeCategories.map((category) => (
-          <CategoryDisplay key={category._id} category={category} locationId={locationId} isTakeaway={isTakeaway} displayOnly={isDisplayOnly} />
+          <CategoryDisplay key={category._id} category={category} locationId={locationId} isTakeaway={isTakeaway} displayOnly={isDisplayOnly} menuType={menuType} />
         ))}
 
         {isTakeaway && urlSource && (

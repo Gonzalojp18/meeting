@@ -13,7 +13,7 @@ const styles = {
     featured: featuredStyles,
 };
 
-const Category = ({ category, locationId, isTakeaway = false, displayOnly = false }) => {
+const Category = ({ category, locationId, isTakeaway = false, displayOnly = false, menuType = 'standard' }) => {
     const { items: cartItems, addItem, removeItem, replaceItem } = useCartStore();
     const style = styles[category.style || 'default'];
     const [modalItem, setModalItem] = useState(null);
@@ -139,11 +139,13 @@ const Category = ({ category, locationId, isTakeaway = false, displayOnly = fals
                                                 {item.name}
                                             </h3>
                                         </div>
-                                        <div className="mb-2">
-                                            <span className="text-[10px] font-black text-orange-600 bg-orange-50 px-2 py-0.5 rounded-md border border-orange-100 uppercase tracking-tighter">
-                                                ✨ Incluye Bebida y Café
-                                            </span>
-                                        </div>
+                                        {menuType === 'executive' && (
+                                            <div className="mb-2">
+                                                <span className="text-[10px] font-black text-orange-600 bg-orange-50 px-2 py-0.5 rounded-md border border-orange-100 uppercase tracking-tighter">
+                                                    ✨ Incluye Bebida y Café
+                                                </span>
+                                            </div>
+                                        )}
                                         <p className="text-xs md:text-sm text-gray-400 line-clamp-2 flex-1 leading-relaxed font-medium">
                                             {item.description}
                                         </p>
