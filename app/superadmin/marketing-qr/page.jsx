@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { MdQrCode, MdToggleOn, MdToggleOff, MdPalette, MdSave, MdWarning, MdPercent, MdInfo, MdLocalOffer, MdCheckCircle } from 'react-icons/md';
+import { MdQrCode, MdToggleOn, MdToggleOff, MdPalette, MdSave, MdWarning, MdPercent, MdInfo, MdLocalOffer, MdCheckCircle, MdBusiness } from 'react-icons/md';
 import API_URI from '@/utils/getApiUri';
 
 export default function SuperAdminMarketingQr() {
@@ -225,7 +225,7 @@ export default function SuperAdminMarketingQr() {
                             const promo = location.qrPromo || {};
                             const isEnabled = promo.isEnabled || false;
                             const stats = location.stats || {};
-                            const typeIcons = { discount: MdLocalOffer, info: MdInfo, loyalty: MdCheckCircle };
+                            const typeIcons = { discount: MdLocalOffer, info: MdInfo, loyalty: MdCheckCircle, affiliate_club: MdBusiness };
                             const TypeIcon = typeIcons[promo.type] || MdLocalOffer;
                             const freqLabels = { once: 'Una vez', daily: 'Diario', every_visit: 'Siempre' };
 

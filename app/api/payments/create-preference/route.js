@@ -126,7 +126,7 @@ export async function POST(req) {
 
         const client = new MercadoPagoConfig({ accessToken: credentials.accessToken });
         const body = await req.json();
-        const { items, customerData, total: clientTotal, locationId, menuType, qrPromoDiscount, qrPromoSource, qrPromoDiscountAmount, orderTiming, scheduledPickupAt } = body;
+        const { items, customerData, total: clientTotal, locationId, menuType, qrPromoDiscount, qrPromoSource, qrPromoDiscountAmount, orderTiming, scheduledPickupAt, affiliateDiscount, affiliateDiscountCode, affiliateProspectName, affiliateCompany } = body;
 
         // Validaciones básicas
         if (!items || items.length === 0) {
@@ -229,6 +229,12 @@ export async function POST(req) {
                 qrPromoSource: qrPromoSource || '',
                 qrPromoDiscountAmount: qrPromoDiscountAmount || Math.round(serverTotal - expectedTotal),
             }),
+            ...(affiliateDiscount > 0 && {
+                affiliateDiscount,
+                affiliateDiscountCode: affiliateDiscountCode || '',
+                affiliateProspectName: affiliateProspectName || '',
+                affiliateCompany: affiliateCompany || '',
+            }),
             paymentMethod: 'Mercado Pago',
             paymentStatus: 'pending',
             status: 'pending',
@@ -251,6 +257,24 @@ export async function POST(req) {
             const result = await Order.collection.insertOne(orderDoc);
             insertedId = result.insertedId;
             console.log(`[CREATE PREFERENCE] ✅ Orden guardada: ${orderNumber} (${insertedId})`);
+
+            // Marcar código de afiliado como usado si aplica
+            if (affiliateDiscountCode) {
+                try {
+                    const AffiliateProspect = (await import('@/models/AffiliateProspect')).default;
+                    await AffiliateProspect.findOneAndUpdate(
+                        { discountCode: affiliateDiscountCode },
+                        {
+                            discountUsed: true,
+                            discountUsedAt: new Date(),
+                            status: 'converted'
+                        }
+                    );
+                    console.log(`[CREATE PREFERENCE] ✅ Código afiliado marcado como usado: ${affiliateDiscountCode}`);
+                } catch (affErr) {
+                    console.error('[CREATE PREFERENCE] ❌ Error actualizando prospecto:', affErr.message);
+                }
+            }
         } catch (saveErr) {
             console.error('[CREATE PREFERENCE] ❌ Error insertando orden:', saveErr.message);
             return NextResponse.json(
@@ -262,14 +286,24 @@ export async function POST(req) {
         // =====================================================
         // CREAR PREFERENCIA EN MERCADOPAGO
         // =====================================================
-        const mpItems = validated.items.map(item => ({
-            title: item.name + (item.customizations.length > 0
-                ? ` (${item.customizations.map(c => (c.selections || []).join('+')).join(', ')})`
-                : ''),
-            quantity: item.quantity,
-            unit_price: Number(item.unitPrice),
-            currency_id: 'ARS',
-        }));
+        const mpItems = validated.items.map(item => {
+            let title = item.name;
+            if (item.customizations && item.customizations.length > 0) {
+                const parts = item.customizations.map(c => {
+                    const selections = c.selections || [];
+                    return Array.isArray(selections) ? selections.join('+') : '';
+                }).filter(Boolean);
+                if (parts.length > 0) {
+                    title += ` (${parts.join(', ')})`;
+                }
+            }
+            return {
+                title,
+                quantity: item.quantity,
+                unit_price: Math.max(0, Number(item.unitPrice) || 0),
+                currency_id: 'ARS',
+            };
+        });
 
         const host = req.headers.get('host');
         const protocol = host?.includes('localhost') ? 'http' : 'https';

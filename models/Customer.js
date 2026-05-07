@@ -28,8 +28,8 @@ const customerSchema = new mongoose.Schema(
         lastname: { type: String },
 
         // Hashes determinísticos para búsquedas exactas (HMAC-SHA256)
-        phoneHash: { type: String, required: true, unique: true, index: true },
-        emailHash: { type: String, sparse: true, unique: true, index: true },
+        phoneHash: { type: String, required: true, unique: true },
+        emailHash: { type: String, sparse: true, unique: true },
 
         firstOrderDate: { type: Date, required: true, default: Date.now },
         lastOrderDate: { type: Date, required: true, default: Date.now },
@@ -47,13 +47,7 @@ const customerSchema = new mongoose.Schema(
     { timestamps: true }
 );
 
-// ─── Índices de búsqueda (sobre hashes, no over campos cifrados) ──────────────
-customerSchema.index({ phoneHash: 1 }, { unique: true });
-customerSchema.index({ emailHash: 1 }, { sparse: true });
-customerSchema.index({ firstOrderDate: -1 });
-customerSchema.index({ lastOrderDate: -1 });
-customerSchema.index({ totalOrders: -1 });
-customerSchema.index({ totalSpent: -1 });
+// Índices removidos - ya definidos inline con unique: true e index: true
 
 // ─── Pre-save: cifrar PII y generar hashes ────────────────────────────────────
 customerSchema.pre('save', function (next) {

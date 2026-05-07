@@ -8,7 +8,7 @@ import useCustomerPersistence from '@/hooks/useCustomerPersistence';
 import UpsellingBanner from '@/components/upselling/UpsellingBanner';
 import API_URI from '@/utils/getApiUri';
 import axios from 'axios';
-import { MdArrowBack, MdPayment, MdAdd, MdRemove, MdDelete, MdShoppingBag, MdClose, MdStorefront, MdSchedule } from 'react-icons/md';
+import { MdArrowBack, MdPayment, MdAdd, MdRemove, MdDelete, MdShoppingBag, MdClose, MdStorefront, MdSchedule, MdCheckCircle } from 'react-icons/md';
 import SchedulePicker from '@/components/menu/SchedulePicker';
 
 // ===================== MODAL COMPONENT =====================
@@ -99,6 +99,10 @@ const CheckoutPage = () => {
     const [activeQrPromo, setActiveQrPromo] = useState(null);
     const [discountAmount, setDiscountAmount] = useState(0);
     const [finalTotal, setFinalTotal] = useState(rawTotal);
+    const [affiliateDiscount, setAffiliateDiscount] = useState(null);
+    const [discountCode, setDiscountCode] = useState('');
+    const [validatingCode, setValidatingCode] = useState(false);
+    const [discountError, setDiscountError] = useState('');
 
     useEffect(() => {
         const stored = sessionStorage.getItem('active-qr-promo');
@@ -118,6 +122,37 @@ const CheckoutPage = () => {
             setFinalTotal(rawTotal);
         }
     }, [locationId, rawTotal]);
+
+    const validateDiscountCode = async () => {
+        if (!discountCode.trim()) {
+            setDiscountError('Ingresá un código');
+            return;
+        }
+        setValidatingCode(true);
+        setDiscountError('');
+        try {
+            const res = await fetch(`${API_URI}/api/executive/validate-discount`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ discountCode: discountCode.trim(), locationId })
+            });
+            const data = await res.json();
+            if (data.success) {
+                setAffiliateDiscount(data);
+                const discount = Math.round(rawTotal * data.discountPercentage / 100);
+                const totalDiscount = discountAmount + discount;
+                setDiscountAmount(totalDiscount);
+                setFinalTotal(rawTotal - totalDiscount);
+                setDiscountError('');
+            } else {
+                setDiscountError(data.error || 'Código inválido');
+            }
+        } catch (err) {
+            setDiscountError('Error validando código');
+        } finally {
+            setValidatingCode(false);
+        }
+    };
 
     const [submitting, setSubmitting] = useState(false);
     const [error, setError] = useState(null);
@@ -252,22 +287,29 @@ const CheckoutPage = () => {
                 notes: formData.notes
             };
 
-            const response = await axios.post(`${API_URI}/api/payments/create-preference`, {
+            const paymentData = {
                 items: orderItems,
                 customerData,
                 total: finalTotal,
                 locationId,
                 menuType,
-                ...(scheduleOrder && scheduledPickupAt && {
-                    orderTiming: 'scheduled',
-                    scheduledPickupAt,
-                }),
-                ...(activeQrPromo && {
-                    qrPromoDiscount: activeQrPromo.discountPercentage,
-                    qrPromoSource: activeQrPromo.source,
-                    qrPromoDiscountAmount: discountAmount,
-                }),
-            });
+            };
+            if (scheduleOrder && scheduledPickupAt) {
+                paymentData.orderTiming = 'scheduled';
+                paymentData.scheduledPickupAt = scheduledPickupAt;
+            }
+            if (activeQrPromo) {
+                paymentData.qrPromoDiscount = activeQrPromo.discountPercentage;
+                paymentData.qrPromoSource = activeQrPromo.source;
+                paymentData.qrPromoDiscountAmount = discountAmount;
+            }
+            if (affiliateDiscount) {
+                paymentData.affiliateDiscount = affiliateDiscount.discountPercentage;
+                paymentData.affiliateDiscountCode = discountCode;
+                paymentData.affiliateProspectName = affiliateDiscount.name;
+                paymentData.affiliateCompany = affiliateDiscount.company;
+            }
+            const response = await axios.post(`${API_URI}/api/payments/create-preference`, paymentData);
 
             if (response.data.init_point) {
                 setActiveOrder({
@@ -469,6 +511,41 @@ const CheckoutPage = () => {
                     </div>
                 </div>
 
+                {/* Affiliate Discount Code */}
+                {menuType === 'executive' && (
+                    <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-4 mb-4">
+                        <h2 className="font-semibold text-gray-900 text-sm uppercase tracking-wide mb-3">Código de Descuento</h2>
+                        <div className="flex gap-2">
+                            <input
+                                type="text"
+                                placeholder="Ingresá tu código (ej: B2B-XXXX)"
+                                value={discountCode}
+                                onChange={(e) => setDiscountCode(e.target.value)}
+                                className="flex-1 px-4 py-2 bg-gray-50 border border-gray-200 rounded-xl text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all"
+                            />
+                            <button
+                                type="button"
+                                onClick={validateDiscountCode}
+                                disabled={validatingCode}
+                                className="px-4 py-2 bg-purple-600 text-white rounded-xl hover:bg-purple-700 transition-colors disabled:opacity-50 font-medium"
+                            >
+                                {validatingCode ? 'Validando...' : 'Aplicar'}
+                            </button>
+                        </div>
+                        {affiliateDiscount && (
+                            <div className="mt-3 bg-green-50 border border-green-100 rounded-lg p-3 flex items-center gap-2">
+                                <MdCheckCircle className="text-green-600" size={18} />
+                                <p className="text-sm text-green-700">
+                                    Descuento aplicado: {affiliateDiscount.discountPercentage}% para {affiliateDiscount.company}
+                                </p>
+                            </div>
+                        )}
+                        {discountError && (
+                            <p className="mt-2 text-sm text-red-600">{discountError}</p>
+                        )}
+                    </div>
+                )}
+
                 {/* Scheduled Order Selector */}
                 {scheduledOrdersConfig && (
                     <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-4 mb-4">
@@ -477,9 +554,8 @@ const CheckoutPage = () => {
                             <button
                                 type="button"
                                 onClick={() => { setScheduleOrder(false); setScheduledPickupAt(null); }}
-                                className={`p-3 rounded-xl border-2 text-left transition-all ${
-                                    !scheduleOrder ? 'border-gray-900 bg-gray-50' : 'border-gray-200 bg-white'
-                                }`}
+                                className={`p-3 rounded-xl border-2 text-left transition-all ${!scheduleOrder ? 'border-gray-900 bg-gray-50' : 'border-gray-200 bg-white'
+                                    }`}
                             >
                                 <span className="text-sm font-bold">Ahora</span>
                                 <p className="text-[11px] text-gray-500">Se prepara al instante</p>
@@ -488,9 +564,8 @@ const CheckoutPage = () => {
                             <button
                                 type="button"
                                 onClick={() => setScheduleOrder(true)}
-                                className={`p-3 rounded-xl border-2 text-left transition-all ${
-                                    scheduleOrder ? 'border-gray-900 bg-gray-50' : 'border-gray-200 bg-white'
-                                }`}
+                                className={`p-3 rounded-xl border-2 text-left transition-all ${scheduleOrder ? 'border-gray-900 bg-gray-50' : 'border-gray-200 bg-white'
+                                    }`}
                             >
                                 <span className="text-sm font-bold">Programar</span>
                                 <p className="text-[11px] text-gray-500">Elegí hora de retiro</p>

@@ -18,7 +18,7 @@ export async function trackCustomer(orderData) {
     try {
         await dbConnect();
 
-        const { phone, email, name, lastname, total, locationId } = orderData;
+        const { phone, email, name, lastname, total, locationId, orderId, isExecutive, affiliateDiscountCode } = orderData;
 
         if (!phone) {
             console.error('[trackCustomer] Phone is required');

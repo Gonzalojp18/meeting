@@ -157,7 +157,7 @@ const qrPromoSchema = new mongoose.Schema({
   },
   type: {
     type: String,
-    enum: ['discount', 'info', 'loyalty'],
+    enum: ['discount', 'info', 'loyalty', 'affiliate_club'],
     default: 'discount'
   },
   discountPercentage: {
@@ -186,6 +186,19 @@ const qrPromoSchema = new mongoose.Schema({
   termsText: {
     type: String,
     default: 'Valido solo para pedidos takeaway. No acumulable con otras promociones.'
+  }
+});
+
+const affiliateClubSchema = new mongoose.Schema({
+  isEnabled: {
+    type: Boolean,
+    default: false
+  },
+  discountPercentage: {
+    type: Number,
+    default: 10,
+    min: 0,
+    max: 100
   }
 });
 
@@ -246,6 +259,7 @@ const locationSchema = new mongoose.Schema({
     }
   },
   qrPromo: qrPromoSchema,
+  affiliateClub: affiliateClubSchema,
   scheduledOrdersConfig: scheduledOrdersConfigSchema,
   metadata: {
     activatedAt: {

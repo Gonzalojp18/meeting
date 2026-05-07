@@ -32,19 +32,23 @@ export async function GET(req, { params }) {
       return NextResponse.json({ error: 'Location not found' }, { status: 404 });
     }
 
-    return NextResponse.json({
-      qrPromo: location.qrPromo || {
-        isEnabled: false,
-        type: 'discount',
-        discountPercentage: 15,
-        frequency: 'once',
-        title: 'Primera vez por QR!',
-        subtitle: 'Obten {discount}% OFF en tu primer pedido takeaway',
-        buttonText: 'Ver menu',
-        termsText: 'Valido solo para pedidos takeaway. No acumulable con otras promociones.',
-      },
-      locations: menu.locations.map(loc => ({ nameId: loc.nameId, name: loc.name })),
-    });
+        return NextResponse.json({
+            qrPromo: location.qrPromo || {
+                isEnabled: false,
+                type: 'discount',
+                discountPercentage: 15,
+                frequency: 'once',
+                title: 'Primera vez por QR!',
+                subtitle: 'Obten {discount}% OFF en tu primer pedido takeaway',
+                buttonText: 'Ver menu',
+                termsText: 'Valido solo para pedidos takeaway. No acumulable con otras promociones.',
+            },
+            affiliateClub: location.affiliateClub || {
+                isEnabled: false,
+                discountPercentage: 10,
+            },
+            locations: menu.locations.map(loc => ({ nameId: loc.nameId, name: loc.name })),
+        });
   } catch (error) {
     console.error('Admin QR Promo GET error:', error);
     return NextResponse.json({ error: String(error) }, { status: 500 });
@@ -74,8 +78,14 @@ export async function PUT(req, { params }) {
       return NextResponse.json({ error: 'Location not found' }, { status: 404 });
     }
 
-    menu.locations[locationIndex].qrPromo = body;
-    await menu.save();
+        // Handle both qrPromo and affiliateClub fields
+        if (body.qrPromo) {
+            menu.locations[locationIndex].qrPromo = body.qrPromo;
+        }
+        if (body.affiliateClub) {
+            menu.locations[locationIndex].affiliateClub = body.affiliateClub;
+        }
+        await menu.save();
 
     return NextResponse.json({ success: true, qrPromo: menu.locations[locationIndex].qrPromo });
   } catch (error) {

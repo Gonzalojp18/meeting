@@ -57,6 +57,7 @@ import {
   MdAutoGraph,
   MdSchedule,
   MdPriceChange,
+  MdBusiness,
 } from 'react-icons/md';
 import CashierPanel from './cashier/CashierPanel';
 
@@ -289,6 +290,7 @@ const AdminPanel = () => {
     tabs.push({ id: 'upselling', label: 'Upselling', icon: MdAutoGraph });
     tabs.push({ id: 'marketing-qr', label: 'Marketing QR', icon: MdLocalOffer });
     tabs.push({ id: 'scheduled-orders', label: 'Pedidos Programados', icon: MdSchedule });
+    tabs.push({ id: 'affiliate-club', label: 'Club Afiliados', icon: MdBusiness });
     tabs.push({ id: 'users', label: 'Usuarios', icon: MdPeople });
     tabs.push({ id: 'reports', label: 'Reportes', icon: MdDescription });
     tabs.push({ id: 'refunds', label: 'Reembolsos', icon: MdAttachMoney });
@@ -314,7 +316,7 @@ const AdminPanel = () => {
   const navGroups = [
     { label: 'Principal', ids: ['dashboard', 'metricas'] },
     { label: 'Menu', ids: ['products', 'categories', 'bulk-prices', 'upselling'] },
-    { label: 'Marketing', ids: ['marketing-qr', 'scheduled-orders'] },
+    { label: 'Marketing', ids: ['marketing-qr', 'scheduled-orders', 'affiliate-club'] },
     { label: 'Operaciones', ids: ['caja', 'availability', 'printers', 'history'] },
     { label: 'Personal', ids: ['users'] },
     { label: 'Finanzas', ids: ['reports', 'refunds'] },

@@ -1,7 +1,7 @@
 import { auth } from '@/auth';
 import { redirect } from 'next/navigation';
 import Link from 'next/link';
-import { MdDashboard, MdLocationOn, MdPeople, MdBarChart, MdLogout, MdInsights, MdReceipt, MdQrCode, MdLocalOffer } from 'react-icons/md';
+import { MdDashboard, MdLocationOn, MdPeople, MdBarChart, MdLogout, MdInsights, MdReceipt, MdQrCode, MdLocalOffer, MdBusiness } from 'react-icons/md';
 import { isSuperAdmin } from '@/middleware/superadmin';
 import PoweredByTakeasy from '@/components/footer/PoweredByTakeasy';
 import SuperAdminHelpButton from '@/components/help/SuperAdminHelpButton';
@@ -70,6 +70,9 @@ export default async function SuperAdminLayout({ children }) {
                         </NavLink>
                         <NavLink href="/superadmin/marketing-qr" icon={MdLocalOffer}>
                             Marketing QR
+                        </NavLink>
+                        <NavLink href="/superadmin/affiliate-club" icon={MdBusiness}>
+                            Club Afiliados
                         </NavLink>
                     </div>
                 </div>

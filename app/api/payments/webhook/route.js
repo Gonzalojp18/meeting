@@ -238,6 +238,9 @@ export async function POST(req) {
                     lastname: updatedOrder.customer?.lastname,
                     total: updatedOrder.total,
                     locationId: updatedOrder.location?.locationId,
+                    orderId: updatedOrder._id,
+                    isExecutive: updatedOrder.orderMode === 'executive',
+                    affiliateDiscountCode: updatedOrder.affiliateDiscountCode || null,
                 }).catch(err => console.error('[WEBHOOK] trackCustomer error:', err));
                 return NextResponse.json({ received: true, order: updatedOrder.orderNumber });
             } else {

@@ -1,11 +1,11 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { MdSave, MdPercent, MdToggleOn, MdToggleOff, MdInfo, MdQrCode, MdLocalOffer, MdWarning, MdArrowForward, MdContentCopy, MdDownload, MdVisibility, MdShoppingCart, MdTrendingUp, MdRefresh } from 'react-icons/md';
+import { MdSave, MdPercent, MdToggleOn, MdToggleOff, MdInfo, MdQrCode, MdLocalOffer, MdWarning, MdArrowForward, MdContentCopy, MdDownload, MdVisibility, MdShoppingCart, MdTrendingUp, MdRefresh, MdBusiness } from 'react-icons/md';
 import { QRCodeCanvas } from 'qrcode.react';
 import API_URI from '@/utils/getApiUri';
 
-const defaultConfig = {
+  const defaultConfig = {
   isEnabled: false,
   type: 'discount',
   discountPercentage: 15,
@@ -16,16 +16,23 @@ const defaultConfig = {
   termsText: 'Valido solo para pedidos takeaway. No acumulable con otras promociones.',
 };
 
+const defaultAffiliateConfig = {
+  isEnabled: false,
+  discountPercentage: 10,
+};
+
 const QR_SOURCES = [
   { id: 'qr-promo', label: 'QR Publicitario', desc: 'Flyers, posters, tarjetas' },
   { id: 'qr-table', label: 'QR de Mesa', desc: 'Cada mesa del local' },
   { id: 'qr-window', label: 'QR Vidriera', desc: 'Ventana / entrada del local' },
   { id: 'qr-instagram', label: 'QR Instagram', desc: 'Link en bio o stories' },
   { id: 'qr-whatsapp', label: 'QR WhatsApp', desc: 'Mensaje con link' },
+  { id: 'qr-affiliate', label: 'QR Club Afiliados', desc: 'Captación de prospectos B2B' },
 ];
 
 export default function QrPromoConfig({ locationId, locations }) {
   const [config, setConfig] = useState(defaultConfig);
+  const [affiliateConfig, setAffiliateConfig] = useState(defaultAffiliateConfig);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
@@ -60,6 +67,7 @@ export default function QrPromoConfig({ locationId, locations }) {
       if (!res.ok) throw new Error('No se pudo cargar la configuracion');
       const data = await res.json();
       if (data.qrPromo) setConfig(data.qrPromo);
+      if (data.affiliateClub) setAffiliateConfig(data.affiliateClub);
     } catch (e) {
       console.error('Error fetching config:', e);
       setError(e.message);
@@ -95,7 +103,10 @@ export default function QrPromoConfig({ locationId, locations }) {
       const res = await fetch(`${API_URI}/api/admin/qr-promo/${locId}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(config),
+        body: JSON.stringify({
+          qrPromo: config,
+          affiliateClub: affiliateConfig,
+        }),
       });
 
       if (!res.ok) {
@@ -116,10 +127,17 @@ export default function QrPromoConfig({ locationId, locations }) {
     setConfig(prev => ({ ...prev, [key]: value }));
   };
 
+  const updateAffiliateConfig = (key, value) => {
+    setAffiliateConfig(prev => ({ ...prev, [key]: value }));
+  };
+
   const locId = selectedLocation || locationId;
   const baseUrl = typeof window !== 'undefined' ? window.location.origin : '';
   const menuRoute = qrMenuType === 'executive' ? 'executive' : 'menu';
-  const qrUrl = `${baseUrl}/${menuRoute}/${locId}?source=${qrSource}`;
+  const isAffiliate = qrSource === 'qr-affiliate';
+  const qrUrl = isAffiliate
+    ? `${baseUrl}/affiliate-club/register?locationId=${locId}&discount=${config.affiliateClub?.discountPercentage || 10}`
+    : `${baseUrl}/${menuRoute}/${locId}?source=${qrSource}`;
 
   const handleCopyUrl = () => {
     navigator.clipboard.writeText(qrUrl);
@@ -219,6 +237,7 @@ export default function QrPromoConfig({ locationId, locations }) {
                     { value: 'discount', label: 'Promocional', icon: MdLocalOffer },
                     { value: 'info', label: 'Informativo', icon: MdInfo },
                     { value: 'loyalty', label: 'Captacion Club', icon: MdQrCode },
+                    { value: 'affiliate_club', label: 'Club Afiliados', icon: MdBusiness },
                   ].map(option => {
                     const Icon = option.icon;
                     return (
@@ -239,7 +258,7 @@ export default function QrPromoConfig({ locationId, locations }) {
                 </div>
               </div>
 
-              {config.type === 'discount' && (
+                  {config.type === 'discount' && (
                 <div>
                   <label className="text-sm font-medium mb-2 block">Descuento</label>
                   <div className="flex items-center gap-4">
@@ -259,6 +278,49 @@ export default function QrPromoConfig({ locationId, locations }) {
                   </div>
                 </div>
               )}
+
+              {/* Affiliate Club Config */}
+              <div className="bg-purple-50 border border-purple-200 rounded-xl p-6 space-y-4">
+                <div className="flex items-center justify-between">
+                  <h3 className="text-lg font-bold text-purple-900 flex items-center gap-2">
+                    <MdBusiness className="text-purple-600" />
+                    Club de Afiliados
+                  </h3>
+                  <button
+                    onClick={() => updateAffiliateConfig('isEnabled', !affiliateConfig.isEnabled)}
+                    className={`flex items-center gap-2 px-4 py-2 rounded-lg font-medium transition-colors ${
+                      affiliateConfig.isEnabled ? 'bg-purple-100 text-purple-700' : 'bg-gray-100 text-gray-500'
+                    }`}
+                  >
+                    {affiliateConfig.isEnabled ? <MdToggleOn size={20} /> : <MdToggleOff size={20} />}
+                    {affiliateConfig.isEnabled ? 'Activado' : 'Desactivado'}
+                  </button>
+                </div>
+
+                {affiliateConfig.isEnabled && (
+                  <div>
+                    <label className="text-sm font-medium mb-2 block text-purple-900">Descuento para Afiliados</label>
+                    <div className="flex items-center gap-4">
+                      <input
+                        type="range"
+                        min="5"
+                        max="30"
+                        step="5"
+                        value={affiliateConfig.discountPercentage}
+                        onChange={(e) => updateAffiliateConfig('discountPercentage', parseInt(e.target.value))}
+                        className="flex-1 accent-purple-500"
+                      />
+                      <div className="flex items-center gap-1 bg-purple-100 px-3 py-2 rounded-lg">
+                        <MdPercent className="text-purple-600" />
+                        <span className="font-bold text-purple-700">{affiliateConfig.discountPercentage}%</span>
+                      </div>
+                    </div>
+                    <p className="text-xs text-purple-700 mt-2">
+                      Este descuento se aplicará cuando el prospecto use su código en el checkout ejecutivo.
+                    </p>
+                  </div>
+                )}
+              </div>
 
               <div>
                 <label className="text-sm font-medium mb-2 block">Frecuencia</label>
