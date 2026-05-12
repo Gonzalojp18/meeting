@@ -416,7 +416,7 @@ const AdminPanel = () => {
                     >
                       <Icon className={`h-4 w-4 flex-shrink-0 ${isActive ? 'text-orange-500' : ''}`} />
                       <span>{tab.label}</span>
-                      {tab.id === 'affiliate-club' && (
+                      {tab.id === 'affiliate-club' && unreadLeadsCount > 0 && (
                         <span className="ml-2 bg-red-500 text-white text-[10px] font-bold px-1.5 py-0.5 rounded-full min-w-[20px] text-center flex-shrink-0">
                           {unreadLeadsCount}
                         </span>
@@ -579,7 +579,7 @@ const AdminPanel = () => {
                     >
                       <Icon className="h-5 w-5 flex-shrink-0" />
                       <span>{tab.label}</span>
-                      {tab.id === 'affiliate-club' && (
+                      {tab.id === 'affiliate-club' && unreadLeadsCount > 0 && (
                         <span className="ml-auto bg-red-500 text-white text-[10px] font-bold px-1.5 py-0.5 rounded-full min-w-[20px] text-center flex-shrink-0">
                           {unreadLeadsCount}
                         </span>
@@ -613,7 +613,7 @@ const AdminPanel = () => {
                   ${isActive ? 'bg-orange-100' : 'bg-transparent'}
                 `}>
                   <Icon className={`h-5 w-5 ${isActive ? 'scale-110' : 'scale-100'}`} />
-                  {tab.id === 'affiliate-club' && (
+                  {tab.id === 'affiliate-club' && unreadLeadsCount > 0 && (
                     <span className="absolute -top-1 -right-1 bg-red-500 text-white text-[8px] font-bold h-4 w-4 flex items-center justify-center rounded-full shadow-sm">
                       {unreadLeadsCount}
                     </span>
