@@ -153,9 +153,12 @@ const AdminPanel = () => {
         });
         if (res.ok) {
           const data = await res.json();
+          console.log('[POLLING] leads data:', data);
           const currentCount = data.leads?.length || 0;
+          console.log('[POLLING] current count:', currentCount, 'previous:', previousCountRef.current);
           
           if (currentCount > previousCountRef.current) {
+            console.log('[POLLING] New lead detected! Playing sound...');
             // New lead assigned! Play sound
             if (audioRef.current) {
               audioRef.current.play().catch(e => console.warn('Autoplay blocked:', e));
@@ -164,6 +167,8 @@ const AdminPanel = () => {
           
           previousCountRef.current = currentCount;
           setUnreadLeadsCount(currentCount);
+        } else {
+          console.log('[POLLING] res.ok was false', res.status);
         }
       } catch (err) {
         console.error('Error polling leads:', err);
@@ -411,7 +416,7 @@ const AdminPanel = () => {
                     >
                       <Icon className={`h-4 w-4 flex-shrink-0 ${isActive ? 'text-orange-500' : ''}`} />
                       <span>{tab.label}</span>
-                      {tab.id === 'affiliate-club' && unreadLeadsCount > 0 && (
+                      {tab.id === 'affiliate-club' && (
                         <span className="ml-2 bg-red-500 text-white text-[10px] font-bold px-1.5 py-0.5 rounded-full min-w-[20px] text-center flex-shrink-0">
                           {unreadLeadsCount}
                         </span>
@@ -574,7 +579,7 @@ const AdminPanel = () => {
                     >
                       <Icon className="h-5 w-5 flex-shrink-0" />
                       <span>{tab.label}</span>
-                      {tab.id === 'affiliate-club' && unreadLeadsCount > 0 && (
+                      {tab.id === 'affiliate-club' && (
                         <span className="ml-auto bg-red-500 text-white text-[10px] font-bold px-1.5 py-0.5 rounded-full min-w-[20px] text-center flex-shrink-0">
                           {unreadLeadsCount}
                         </span>
@@ -608,7 +613,7 @@ const AdminPanel = () => {
                   ${isActive ? 'bg-orange-100' : 'bg-transparent'}
                 `}>
                   <Icon className={`h-5 w-5 ${isActive ? 'scale-110' : 'scale-100'}`} />
-                  {tab.id === 'affiliate-club' && unreadLeadsCount > 0 && (
+                  {tab.id === 'affiliate-club' && (
                     <span className="absolute -top-1 -right-1 bg-red-500 text-white text-[8px] font-bold h-4 w-4 flex items-center justify-center rounded-full shadow-sm">
                       {unreadLeadsCount}
                     </span>
