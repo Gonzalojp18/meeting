@@ -63,10 +63,11 @@ export default function SuperAdminAffiliateClub() {
 
     const fetchAdmins = async () => {
         try {
-            const res = await fetch(`${API_URI}/api/superadmin/users?role=admin`);
+            const res = await fetch(`${API_URI}/api/admin/users`);
             if (res.ok) {
                 const data = await res.json();
-                setAdmins(data.users || []);
+                const adminsList = Array.isArray(data) ? data.filter(u => u.role === 'admin') : [];
+                setAdmins(adminsList);
             }
         } catch (error) {
             console.error('Error fetching admins:', error);

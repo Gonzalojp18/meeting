@@ -20,6 +20,7 @@ export default function AffiliateClubRegister() {
     const [loading, setLoading] = useState(false);
     const [result, setResult] = useState(null);
     const [error, setError] = useState('');
+    const [copied, setCopied] = useState(false);
 
     useEffect(() => {
         setMounted(true);
@@ -70,7 +71,8 @@ export default function AffiliateClubRegister() {
     const copyCode = () => {
         if (result?.discountCode) {
             navigator.clipboard.writeText(result.discountCode);
-            alert('Código copiado!');
+            setCopied(true);
+            setTimeout(() => setCopied(false), 2000);
         }
     };
 
@@ -96,10 +98,21 @@ export default function AffiliateClubRegister() {
                                 <span className="text-3xl font-bold text-purple-900">{result.discountCode}</span>
                                 <button
                                     onClick={copyCode}
-                                    className="p-2 hover:bg-purple-100 rounded-lg transition-colors"
+                                    className={`p-2 rounded-lg transition-all duration-300 flex items-center gap-1 ${
+                                        copied 
+                                            ? 'bg-green-100 text-green-700' 
+                                            : 'hover:bg-purple-100 text-purple-600'
+                                    }`}
                                     title="Copiar código"
                                 >
-                                    <MdContentCopy className="w-5 h-5 text-purple-600" />
+                                    {copied ? (
+                                        <>
+                                            <span className="text-xs font-semibold">Copiado!</span>
+                                            <MdCheckCircle className="w-5 h-5" />
+                                        </>
+                                    ) : (
+                                        <MdContentCopy className="w-5 h-5" />
+                                    )}
                                 </button>
                             </div>
                             <p className="text-sm text-purple-700 mt-2">
