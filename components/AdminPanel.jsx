@@ -75,6 +75,9 @@ const AdminPanel = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [categoryFilter, setCategoryFilter] = useState('');
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [unreadLeadsCount, setUnreadLeadsCount] = useState(0);
+  const audioRef = React.useRef(null);
+  const previousCountRef = React.useRef(0);
 
   // Stats Dashboard State
   const [dashboardLocation, setDashboardLocation] = useState('');
@@ -132,6 +135,46 @@ const AdminPanel = () => {
       fetchDashboardStats();
     }
   }, [activeTab, token, dashboardLocation, session]);
+
+  // Polling for new affiliate leads (Admin only)
+  useEffect(() => {
+    if (typeof window !== 'undefined' && !audioRef.current) {
+      audioRef.current = new Audio('/camera.mp3');
+    }
+  }, []);
+
+  useEffect(() => {
+    if (!isAdmin || !token) return;
+
+    const checkNewLeads = async () => {
+      try {
+        const res = await fetch(`${API_URI}/api/admin/affiliate-club/leads?status=new`, {
+          headers: { Authorization: `Bearer ${token}` }
+        });
+        if (res.ok) {
+          const data = await res.json();
+          const currentCount = data.leads?.length || 0;
+          
+          if (currentCount > previousCountRef.current) {
+            // New lead assigned! Play sound
+            if (audioRef.current) {
+              audioRef.current.play().catch(e => console.warn('Autoplay blocked:', e));
+            }
+          }
+          
+          previousCountRef.current = currentCount;
+          setUnreadLeadsCount(currentCount);
+        }
+      } catch (err) {
+        console.error('Error polling leads:', err);
+      }
+    };
+
+    // Check immediately, then every 30 seconds
+    checkNewLeads();
+    const interval = setInterval(checkNewLeads, 30000);
+    return () => clearInterval(interval);
+  }, [isAdmin, token]);
 
   // ========== MÉTRICAS DEL DASHBOARD (CALCULADAS) ==========
   const dashboardMetrics = useMemo(() => {
@@ -368,6 +411,11 @@ const AdminPanel = () => {
                     >
                       <Icon className={`h-4 w-4 flex-shrink-0 ${isActive ? 'text-orange-500' : ''}`} />
                       <span>{tab.label}</span>
+                      {tab.id === 'affiliate-club' && unreadLeadsCount > 0 && (
+                        <span className="ml-2 bg-red-500 text-white text-[10px] font-bold px-1.5 py-0.5 rounded-full min-w-[20px] text-center flex-shrink-0">
+                          {unreadLeadsCount}
+                        </span>
+                      )}
                       {isActive && <div className="ml-auto w-1.5 h-1.5 rounded-full bg-orange-500 flex-shrink-0" />}
                     </button>
                   );
@@ -526,6 +574,11 @@ const AdminPanel = () => {
                     >
                       <Icon className="h-5 w-5 flex-shrink-0" />
                       <span>{tab.label}</span>
+                      {tab.id === 'affiliate-club' && unreadLeadsCount > 0 && (
+                        <span className="ml-auto bg-red-500 text-white text-[10px] font-bold px-1.5 py-0.5 rounded-full min-w-[20px] text-center flex-shrink-0">
+                          {unreadLeadsCount}
+                        </span>
+                      )}
                     </button>
                   );
                 })}
@@ -551,10 +604,15 @@ const AdminPanel = () => {
                 `}
               >
                 <div className={`
-                  p-1.5 rounded-lg transition-all
+                  p-1.5 rounded-lg transition-all relative
                   ${isActive ? 'bg-orange-100' : 'bg-transparent'}
                 `}>
                   <Icon className={`h-5 w-5 ${isActive ? 'scale-110' : 'scale-100'}`} />
+                  {tab.id === 'affiliate-club' && unreadLeadsCount > 0 && (
+                    <span className="absolute -top-1 -right-1 bg-red-500 text-white text-[8px] font-bold h-4 w-4 flex items-center justify-center rounded-full shadow-sm">
+                      {unreadLeadsCount}
+                    </span>
+                  )}
                 </div>
                 <span className="text-[10px] font-medium leading-none">
                   {tab.label.split(' ')[0]}
