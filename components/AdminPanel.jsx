@@ -23,6 +23,7 @@ import StaffAvailability from './admin/StaffAvailability';
 import AuditLogViewer from './admin/AuditLogViewer';
 import RefundManagement from './admin/RefundManagement';
 import AdminOperationsKpi from './admin/AdminOperationsKpi';
+import AdminAffiliateClub from './admin/AdminAffiliateClub';
 import HelpButton from './help/HelpButton';
 import { useFetch } from '../hooks/useFetch';
 import axios from 'axios';
@@ -969,6 +970,13 @@ const AdminPanel = () => {
             <div className="p-6 lg:p-8">
               <ScheduledOrdersConfig locations={locations} token={token} onRefetch={refetch} />
             </div>
+          </div>
+        )}
+
+        {/* ========== CLUB AFILIADOS TAB ========== */}
+        {activeTab === 'affiliate-club' && (
+          <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-6 lg:p-8">
+            <AdminAffiliateClub />
           </div>
         )}
 
