@@ -166,18 +166,57 @@ export async function POST(req) {
 
         const serverTotal = validated.total;
 
-        const hasQrPromo = qrPromoDiscount > 0 && qrPromoDiscount <= 50;
-        const expectedTotal = hasQrPromo
-            ? Math.round(serverTotal * (1 - qrPromoDiscount / 100))
-            : serverTotal;
+        // =====================================================
+        // SEGURIDAD: Validar descuentos (QR Promo y Afiliados)
+        // =====================================================
+        let validatedDiscountPercentage = 0;
+
+        // 1. Validar descuento de QR Marketing (Standard)
+        if (qrPromoDiscount > 0 && qrPromoDiscount <= 50) {
+            validatedDiscountPercentage = qrPromoDiscount;
+        }
+
+        // 2. Validar descuento de Club de Afiliados (B2B)
+        // CRÍTICO: No confiar en el total/descuento enviado por el cliente
+        let verifiedAffiliateDiscount = 0;
+        if (affiliateDiscountCode) {
+            try {
+                const AffiliateProspect = (await import('@/models/AffiliateProspect')).default;
+                const prospect = await AffiliateProspect.findOne({ 
+                    discountCode: affiliateDiscountCode,
+                    locationId: locationId,
+                    discountUsed: false 
+                });
+
+                if (!prospect) {
+                    throw new Error('Código de afiliado inválido, ya usado o no pertenece a esta sede');
+                }
+
+                // El descuento real es el que está en la base de datos
+                verifiedAffiliateDiscount = prospect.discountPercentage;
+                
+                // Si el cliente intentó mandar un descuento mayor al que tiene asignado, abortamos
+                if (affiliateDiscount > verifiedAffiliateDiscount) {
+                    throw new Error('Manipulación de descuento detectada');
+                }
+                
+                validatedDiscountPercentage = verifiedAffiliateDiscount;
+            } catch (err) {
+                console.error('[SECURITY] Error validando afiliado:', err.message);
+                return NextResponse.json({ error: err.message }, { status: 400 });
+            }
+        }
+
+        const expectedTotal = Math.round(serverTotal * (1 - validatedDiscountPercentage / 100));
 
         const finalPriceDiff = Math.abs(expectedTotal - clientTotal);
         if (finalPriceDiff > 1) {
             console.error('[SECURITY] Intento de manipulación de precio:', {
                 clientTotal, serverTotal, expectedTotal, difference: finalPriceDiff,
+                qrPromoDiscount, affiliateDiscount, verifiedAffiliateDiscount
             });
             return NextResponse.json(
-                { error: 'Los precios han cambiado. Por favor, recarga la página y vuelve a intentar.' },
+                { error: 'Los precios o descuentos han cambiado. Por favor, recarga la página.' },
                 { status: 400 }
             );
         }

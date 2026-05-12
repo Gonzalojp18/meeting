@@ -18,7 +18,7 @@ import API_URI from '@/utils/getApiUri';
 
 const defaultAffiliateConfig = {
   isEnabled: false,
-  discountPercentage: 10,
+  discountPercentage: 20,
 };
 
 const QR_SOURCES = [
@@ -136,7 +136,7 @@ export default function QrPromoConfig({ locationId, locations }) {
   const menuRoute = qrMenuType === 'executive' ? 'executive' : 'menu';
   const isAffiliate = qrSource === 'qr-affiliate';
   const qrUrl = isAffiliate
-    ? `${baseUrl}/affiliate-club/register?locationId=${locId}&discount=${config.affiliateClub?.discountPercentage || 10}`
+    ? `${baseUrl}/affiliate-club/register?locationId=${locId}&discount=${affiliateConfig?.discountPercentage || 10}`
     : `${baseUrl}/${menuRoute}/${locId}?source=${qrSource}`;
 
   const handleCopyUrl = () => {

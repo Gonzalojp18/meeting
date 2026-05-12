@@ -3,7 +3,20 @@ import dbConnect from '@/utils/dbConnect';
 import AffiliateProspect from '@/models/AffiliateProspect';
 import Menu from '@/models/Menu';
 import { hashForSearch, encrypt } from '@/utils/encryption';
+import { Ratelimit } from '@upstash/ratelimit';
+import { Redis } from '@upstash/redis';
 
+
+// 🔒 Rate limiting distribuido con Upstash Redis
+// 3 registros cada 10 minutos por IP para evitar spam/bots
+const ratelimit = new Ratelimit({
+  redis: new Redis({
+    url: process.env.UPSTASH_REDIS_REST_URL || '',
+    token: process.env.UPSTASH_REDIS_REST_TOKEN || '',
+  }),
+  limiter: Ratelimit.slidingWindow(3, '10 m'),
+  analytics: true,
+});
 
 const standardQuery = {
   $or: [
@@ -15,6 +28,23 @@ const standardQuery = {
 
 export async function POST(req) {
   try {
+    // 🔒 Rate Limiting Check
+    if (process.env.UPSTASH_REDIS_REST_URL && process.env.UPSTASH_REDIS_REST_TOKEN) {
+      const ip = req.headers.get('x-forwarded-for') ||
+        req.headers.get('x-real-ip') ||
+        '127.0.0.1';
+
+      const identifier = `affiliate_register_${ip}`;
+      const { success } = await ratelimit.limit(identifier);
+
+      if (!success) {
+        return NextResponse.json(
+          { success: false, error: 'Demasiadas peticiones. Por favor, espera unos minutos.' },
+          { status: 429 }
+        );
+      }
+    }
+
     const body = await req.json();
     const { name, email, phone, company, position, locationId, discount } = body;
 
@@ -41,7 +71,14 @@ export async function POST(req) {
 
     const phoneHash = hashForSearch(phone);
     const existingByPhone = await AffiliateProspect.findOne({ phoneHash });
+    
     if (existingByPhone) {
+      // Si ya existe, actualizamos el % de descuento por si es una promo nueva/mejor
+      if (existingByPhone.discountPercentage !== discountPercentage) {
+        existingByPhone.discountPercentage = discountPercentage;
+        await existingByPhone.save();
+      }
+      
       return NextResponse.json({
         success: true,
         alreadyRegistered: true,

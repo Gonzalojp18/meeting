@@ -30,8 +30,9 @@ export async function GET(req) {
 
         const matchQuery = {
             createdAt: { $gte: start, $lte: end },
-            canBeCounted: true, // ⬅️ Solo pedidos válidos (excluye cancelados/reembolsados)
-            status: { $nin: ['cancelled'] } // Seguridad adicional
+            canBeCounted: true,
+            paymentStatus: 'approved', // ⬅️ Solo contar pedidos pagados
+            status: { $nin: ['cancelled'] }
         };
 
         if (locationId) {

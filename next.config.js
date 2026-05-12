@@ -75,7 +75,7 @@ const nextConfig = {
               "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
               "font-src 'self' https://fonts.gstatic.com data:",
               "img-src 'self' data: blob: https://res.cloudinary.com https://openweathermap.org https://http2.mlstatic.com https://*.mercadolibre.com",
-              "connect-src 'self' https://api.mercadopago.com https://*.mercadopago.com https://api.openweathermap.org",
+              "connect-src 'self' https://api.mercadopago.com https://*.mercadopago.com https://api.openweathermap.org https://*.sentry.io",
               "frame-src https://www.mercadopago.com.ar https://www.mercadopago.com https://sdk.mercadopago.com",
               "form-action 'self' https://www.mercadopago.com.ar https://www.mercadopago.com",
               "base-uri 'self'",
@@ -89,4 +89,27 @@ const nextConfig = {
   },
 };
 
-module.exports = withPWA(nextConfig);
+const { withSentryConfig } = require("@sentry/nextjs");
+
+module.exports = withSentryConfig(
+  withPWA(nextConfig),
+  {
+    // For all available options, see:
+    // https://github.com/getsentry/sentry-webpack-plugin#options
+
+    org: "takeasygo",
+    project: "takeasygo-prod",
+    
+    // Only print logs for uploading source maps in CI
+    silent: !process.env.CI,
+
+    // For all available options, see:
+    // https://docs.sentry.io/platforms/javascript/guides/nextjs/manual-setup/
+
+    // Upload a larger set of source maps for prettier stack traces (increases build time)
+    widenClientFileUpload: true,
+
+    // Hides source maps from generated client bundles
+    hideSourceMaps: true,
+  }
+);
