@@ -1,15 +1,19 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { MdAssignmentInd, MdFilterList, MdCheckCircle, MdClose, MdPerson } from 'react-icons/md';
+import { MdAssignmentInd, MdFilterList, MdCheckCircle, MdClose, MdPerson, MdBusiness } from 'react-icons/md';
 import API_URI from '@/utils/getApiUri';
 
-export default function AdminAffiliateClub() {
+export default function AdminAffiliateClub({ selectedLocation, locations }) {
     const [leads, setLeads] = useState([]);
     const [loading, setLoading] = useState(true);
     const [filters, setFilters] = useState({ status: '' });
     const [selectedLead, setSelectedLead] = useState(null);
     const [notes, setNotes] = useState('');
+
+    // Verificar si la funcionalidad está habilitada por el superadmin
+    const currentLocation = locations?.find(loc => loc.nameId === selectedLocation);
+    const isFeatureEnabled = currentLocation?.features?.affiliateClubEnabled ?? false;
 
     useEffect(() => {
         fetchLeads();
@@ -80,6 +84,25 @@ export default function AdminAffiliateClub() {
         return (
             <div className="flex items-center justify-center h-64">
                 <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-purple-500"></div>
+            </div>
+        );
+    }
+
+    if (!isFeatureEnabled) {
+        return (
+            <div className="flex flex-col items-center justify-center py-16 text-center">
+                <div className="w-20 h-20 bg-purple-100 rounded-3xl flex items-center justify-center mb-6">
+                    <MdBusiness className="w-10 h-10 text-purple-600" />
+                </div>
+                <h3 className="text-2xl font-bold text-gray-900 mb-2">Funcionalidad Premium</h3>
+                <p className="text-gray-600 mb-6 max-w-md">
+                    El Club de Afiliados no está habilitado para esta sede. Contacta al SuperAdmin para activar esta funcionalidad.
+                </p>
+                <div className="bg-purple-50 border border-purple-200 rounded-xl p-4 max-w-sm">
+                    <p className="text-xs text-purple-700 font-medium">
+                        Esta funcionalidad requiere activación por parte del SuperAdmin en el panel de gestión de sedes.
+                    </p>
+                </div>
             </div>
         );
     }

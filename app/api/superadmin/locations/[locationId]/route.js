@@ -54,6 +54,16 @@ export async function PATCH(request, { params }) {
                 if ('executiveEnabled' in body.features) {
                     location.features.executiveEnabled = body.features.executiveEnabled;
                 }
+                // Features Premium
+                if ('qrMarketingEnabled' in body.features) {
+                    location.features.qrMarketingEnabled = body.features.qrMarketingEnabled;
+                }
+                if ('affiliateClubEnabled' in body.features) {
+                    location.features.affiliateClubEnabled = body.features.affiliateClubEnabled;
+                }
+                if ('scheduledOrdersEnabled' in body.features) {
+                    location.features.scheduledOrdersEnabled = body.features.scheduledOrdersEnabled;
+                }
             }
 
             if (body.notes) {

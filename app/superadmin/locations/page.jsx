@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { MdToggleOn, MdToggleOff, MdLocationOn, MdDeliveryDining, MdRestaurant, MdSave, MdBusinessCenter } from 'react-icons/md';
+import { MdToggleOn, MdToggleOff, MdLocationOn, MdDeliveryDining, MdRestaurant, MdSave, MdBusinessCenter, MdQrCode, MdAssignmentInd, MdSchedule } from 'react-icons/md';
 
 export default function LocationsManager() {
     const [locations, setLocations] = useState([]);
@@ -72,7 +72,10 @@ export default function LocationsManager() {
         const featureNames = {
             takeawayEnabled: 'Takeaway',
             localEnabled: 'Consumo Local',
-            executiveEnabled: 'Menú Ejecutivo B2B'
+            executiveEnabled: 'Menú Ejecutivo B2B',
+            qrMarketingEnabled: 'Marketing QR (Premium)',
+            affiliateClubEnabled: 'Club de Afiliados (Premium)',
+            scheduledOrdersEnabled: 'Pedidos Programados (Premium)'
         };
 
         if (confirm(`¿${newValue ? 'Habilitar' : 'Deshabilitar'} ${featureNames[feature]} en "${location.name}"?`)) {
@@ -127,6 +130,9 @@ function LocationCard({ location, onToggleActive, onToggleFeature, isSaving }) {
     const takeawayEnabled = location.features?.takeawayEnabled ?? true;
     const localEnabled = location.features?.localEnabled ?? true;
     const executiveEnabled = location.features?.executiveEnabled ?? true;
+    const qrMarketingEnabled = location.features?.qrMarketingEnabled ?? false;
+    const affiliateClubEnabled = location.features?.affiliateClubEnabled ?? false;
+    const scheduledOrdersEnabled = location.features?.scheduledOrdersEnabled ?? false;
 
     return (
         <div className={`bg-white rounded-xl shadow-sm border-2 p-6 transition-all ${isActive ? 'border-green-200' : 'border-red-200 opacity-60'
@@ -199,6 +205,44 @@ function LocationCard({ location, onToggleActive, onToggleFeature, isSaving }) {
                     disabled={!isActive || isSaving}
                     onClick={() => onToggleFeature('executiveEnabled')}
                 />
+
+                {/* Premium Features Divider */}
+                <div className="pt-4 border-t border-gray-200">
+                    <p className="text-xs font-semibold text-purple-700 mb-3 flex items-center gap-1">
+                        <span className="w-2 h-2 bg-purple-500 rounded-full" />
+                        Funcionalidades Premium
+                    </p>
+                </div>
+
+                {/* Marketing QR */}
+                <FeatureToggle
+                    label="Marketing QR"
+                    icon={MdQrCode}
+                    enabled={qrMarketingEnabled}
+                    disabled={!isActive || isSaving}
+                    onClick={() => onToggleFeature('qrMarketingEnabled')}
+                    isPremium
+                />
+
+                {/* Club de Afiliados */}
+                <FeatureToggle
+                    label="Club de Afiliados"
+                    icon={MdAssignmentInd}
+                    enabled={affiliateClubEnabled}
+                    disabled={!isActive || isSaving}
+                    onClick={() => onToggleFeature('affiliateClubEnabled')}
+                    isPremium
+                />
+
+                {/* Pedidos Programados */}
+                <FeatureToggle
+                    label="Pedidos Programados"
+                    icon={MdSchedule}
+                    enabled={scheduledOrdersEnabled}
+                    disabled={!isActive || isSaving}
+                    onClick={() => onToggleFeature('scheduledOrdersEnabled')}
+                    isPremium
+                />
             </div>
 
             {/* Metadata */}
@@ -233,27 +277,36 @@ function StatusBadge({ isActive }) {
     );
 }
 
-function FeatureToggle({ label, icon: Icon, enabled, disabled, onClick }) {
+function FeatureToggle({ label, icon: Icon, enabled, disabled, onClick, isPremium = false }) {
     return (
         <button
             onClick={onClick}
             disabled={disabled}
             className={`w-full flex items-center justify-between p-3 rounded-lg transition-all ${disabled
                     ? 'bg-gray-50 cursor-not-allowed opacity-50'
-                    : enabled
-                        ? 'bg-blue-50 hover:bg-blue-100'
-                        : 'bg-gray-50 hover:bg-gray-100'
+                    : isPremium
+                        ? enabled
+                            ? 'bg-purple-50 hover:bg-purple-100'
+                            : 'bg-gray-50 hover:bg-gray-100'
+                        : enabled
+                            ? 'bg-blue-50 hover:bg-blue-100'
+                            : 'bg-gray-50 hover:bg-gray-100'
                 }`}
         >
             <div className="flex items-center gap-2">
-                <Icon className={`w-5 h-5 ${enabled ? 'text-blue-600' : 'text-gray-400'}`} />
+                <Icon className={`w-5 h-5 ${enabled ? (isPremium ? 'text-purple-600' : 'text-blue-600') : 'text-gray-400'}`} />
                 <span className={`text-sm font-medium ${enabled ? 'text-gray-900' : 'text-gray-500'
                     }`}>
                     {label}
                 </span>
+                {isPremium && (
+                    <span className="text-[10px] font-bold text-purple-600 bg-purple-100 px-1.5 py-0.5 rounded">
+                        PREMIUM
+                    </span>
+                )}
             </div>
             {enabled ? (
-                <MdToggleOn className="w-7 h-7 text-blue-600" />
+                <MdToggleOn className={`w-7 h-7 ${isPremium ? 'text-purple-600' : 'text-blue-600'}`} />
             ) : (
                 <MdToggleOff className="w-7 h-7 text-gray-400" />
             )}

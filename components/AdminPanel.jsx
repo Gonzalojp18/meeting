@@ -76,8 +76,16 @@ const AdminPanel = () => {
   const [categoryFilter, setCategoryFilter] = useState('');
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [unreadLeadsCount, setUnreadLeadsCount] = useState(0);
+  const [selectedLocation, setSelectedLocation] = useState('');
   const audioRef = React.useRef(null);
   const previousCountRef = React.useRef(0);
+
+  // Inicializar selectedLocation con la primera sede disponible
+  useEffect(() => {
+    if (locations && locations.length > 0 && !selectedLocation) {
+      setSelectedLocation(locations[0].nameId);
+    }
+  }, [locations, selectedLocation]);
 
   // Stats Dashboard State
   const [dashboardLocation, setDashboardLocation] = useState('');
@@ -1031,7 +1039,7 @@ const AdminPanel = () => {
               </div>
             </div>
             <div className="p-6 lg:p-8">
-              <ScheduledOrdersConfig locations={locations} token={token} onRefetch={refetch} />
+              <ScheduledOrdersConfig locations={locations} token={token} onRefetch={refetch} selectedLocation={selectedLocation} />
             </div>
           </div>
         )}
@@ -1039,7 +1047,7 @@ const AdminPanel = () => {
         {/* ========== CLUB AFILIADOS TAB ========== */}
         {activeTab === 'affiliate-club' && (
           <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-6 lg:p-8">
-            <AdminAffiliateClub />
+            <AdminAffiliateClub selectedLocation={selectedLocation} locations={locations} />
           </div>
         )}
 

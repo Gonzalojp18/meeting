@@ -45,11 +45,13 @@ export default function QrPromoConfig({ locationId, locations }) {
   const [statsLoading, setStatsLoading] = useState(false);
 
   useEffect(() => {
-    if (locations && locations.length > 0 && !selectedLocation) {
+    if (propSelectedLocation) {
+      setSelectedLocation(propSelectedLocation);
+    } else if (locations && locations.length > 0 && !selectedLocation) {
       const firstLoc = locations[0].nameId;
       setSelectedLocation(firstLoc);
     }
-  }, [locations, selectedLocation]);
+  }, [propSelectedLocation, locations, selectedLocation]);
 
   useEffect(() => {
     const loc = selectedLocation || locationId;
@@ -162,11 +164,34 @@ export default function QrPromoConfig({ locationId, locations }) {
     { id: 'stats', label: 'Estadisticas', icon: MdTrendingUp },
   ];
 
+  // Verificar si la funcionalidad está habilitada por el superadmin
+  const currentLocation = locations?.find(loc => loc.nameId === selectedLocation);
+  const isFeatureEnabled = currentLocation?.features?.qrMarketingEnabled ?? false;
+
   if (loading && !config) {
     return (
       <div className="flex flex-col items-center justify-center py-12 text-gray-500">
         <div className="animate-spin rounded-full h-10 w-10 border-t-2 border-b-2 border-orange-500 mb-3"></div>
         <p className="text-sm">Cargando configuracion...</p>
+      </div>
+    );
+  }
+
+  if (!isFeatureEnabled) {
+    return (
+      <div className="flex flex-col items-center justify-center py-16 text-center">
+        <div className="w-20 h-20 bg-purple-100 rounded-3xl flex items-center justify-center mb-6">
+          <MdLocalOffer className="w-10 h-10 text-purple-600" />
+        </div>
+        <h3 className="text-2xl font-bold text-gray-900 mb-2">Funcionalidad Premium</h3>
+        <p className="text-gray-600 mb-6 max-w-md">
+          El Marketing QR no está habilitado para esta sede. Contacta al SuperAdmin para activar esta funcionalidad.
+        </p>
+        <div className="bg-purple-50 border border-purple-200 rounded-xl p-4 max-w-sm">
+          <p className="text-xs text-purple-700 font-medium">
+            Esta funcionalidad requiere activación por parte del SuperAdmin en el panel de gestión de sedes.
+          </p>
+        </div>
       </div>
     );
   }

@@ -256,6 +256,19 @@ const locationSchema = new mongoose.Schema({
     executiveEnabled: {
       type: Boolean,
       default: true
+    },
+    // Features Premium - Controladas por SuperAdmin
+    qrMarketingEnabled: {
+      type: Boolean,
+      default: false
+    },
+    affiliateClubEnabled: {
+      type: Boolean,
+      default: false
+    },
+    scheduledOrdersEnabled: {
+      type: Boolean,
+      default: false
     }
   },
   qrPromo: qrPromoSchema,
