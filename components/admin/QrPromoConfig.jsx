@@ -30,7 +30,7 @@ const QR_SOURCES = [
   { id: 'qr-affiliate', label: 'QR Club Afiliados', desc: 'Captación de prospectos B2B' },
 ];
 
-export default function QrPromoConfig({ locationId, locations }) {
+export default function QrPromoConfig({ locationId, locations, propSelectedLocation }) {
   const [config, setConfig] = useState(defaultConfig);
   const [affiliateConfig, setAffiliateConfig] = useState(defaultAffiliateConfig);
   const [loading, setLoading] = useState(true);

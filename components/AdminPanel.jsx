@@ -1019,7 +1019,7 @@ const AdminPanel = () => {
               </div>
             </div>
             <div className="p-6 lg:p-8">
-              <QrPromoConfig locations={locations} />
+              <QrPromoConfig locations={locations} propSelectedLocation={selectedLocation} />
             </div>
           </div>
         )}
