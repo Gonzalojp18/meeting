@@ -77,6 +77,13 @@ const AdminPanel = () => {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [unreadLeadsCount, setUnreadLeadsCount] = useState(0);
   const [selectedLocation, setSelectedLocation] = useState('');
+
+  // Selector de tipo de menú y data de menú (declarados antes de efectos que los usan)
+  const [currentMenuType, setCurrentMenuType] = useState('standard');
+  const token = session?.user?.token;
+  const { data, loading, error, refetch } = useFetch(token ? `${API_URI}/api/menu?type=${currentMenuType}` : null, token)
+  const locations = data?.locations || [];
+
   const audioRef = React.useRef(null);
   const previousCountRef = React.useRef(0);
 
@@ -91,12 +98,6 @@ const AdminPanel = () => {
   const [dashboardLocation, setDashboardLocation] = useState('');
   const [statsData, setStatsData] = useState(null);
   const [statsLoading, setStatsLoading] = useState(false);
-
-  // Selector de tipo de menú
-  const [currentMenuType, setCurrentMenuType] = useState('standard');
-
-  const token = session?.user?.token;
-  const { data, loading, error, refetch } = useFetch(token ? `${API_URI}/api/menu?type=${currentMenuType}` : null, token)
 
   useEffect(() => {
     if (status === 'unauthenticated' || error) {
@@ -219,7 +220,6 @@ const AdminPanel = () => {
 
   const authHeaders = useMemo(() => ({ headers: { Authorization: `Bearer ${token}` } }), [token]);
   const categories = data?.categories || [];
-  const locations = data?.locations || [];
 
   if (status === 'loading' || loading) {
     return (
