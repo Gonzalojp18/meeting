@@ -210,9 +210,9 @@ const CategoryItems = ({
                   {/* Prices per location */}
                   {activeLocations.map(location => (
                     <div key={location._id} className="text-right">
-                      {item.prices[location.nameId] !== undefined ? (
+                      {item.prices?.[location.nameId] !== undefined ? (
                         <span className="text-base font-bold text-gray-900">
-                          ${item.prices[location.nameId].toLocaleString('es-AR')}
+                          ${item.prices?.[location.nameId].toLocaleString('es-AR')}
                         </span>
                       ) : (
                         <span className="text-sm text-gray-300 font-medium">N/A</span>
@@ -396,7 +396,7 @@ const CategoryItems = ({
                   {/* Precios en GRID */}
                   <div className="grid grid-cols-2 gap-3 mt-4 pt-3 border-t border-gray-100">
                     {activeLocations.map(location => (
-                      item.prices[location.nameId] !== undefined ? (
+                      item.prices?.[location.nameId] !== undefined ? (
                         <div
                           key={location._id}
                           className="bg-gradient-to-br from-gray-50 to-gray-100 rounded-lg p-3 border border-gray-200"
@@ -408,13 +408,13 @@ const CategoryItems = ({
                             </span>
                           </div>
                           <span className="text-lg font-bold text-gray-900 block">
-                            ${item.prices[location.nameId].toLocaleString('es-AR')}
+                            ${item.prices?.[location.nameId].toLocaleString('es-AR')}
                           </span>
                         </div>
                       ) : null
                     ))}
 
-                    {activeLocations.every(loc => item.prices[loc.nameId] === undefined) && (
+                    {activeLocations.every(loc => item.prices?.[loc.nameId] === undefined) && (
                       <div className="col-span-2 text-center py-3 text-sm text-gray-400 italic">
                         Sin precios configurados
                       </div>
@@ -424,7 +424,7 @@ const CategoryItems = ({
                   {/* Footer */}
                   <div className="flex items-center justify-between mt-3 pt-3 border-t border-gray-100">
                     <span className="text-xs text-gray-500 font-medium">
-                      {Object.keys(item.prices).length} {Object.keys(item.prices).length === 1 ? 'precio' : 'precios'} configurado{Object.keys(item.prices).length === 1 ? '' : 's'}
+                      {Object.keys(item.prices || {}).length} {Object.keys(item.prices || {}).length === 1 ? 'precio' : 'precios'} configurado{Object.keys(item.prices || {}).length === 1 ? '' : 's'}
                     </span>
                     <div className="flex items-center gap-1">
                       <button

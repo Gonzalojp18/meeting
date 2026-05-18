@@ -59,7 +59,8 @@ export async function GET(req) {
         order: category.order || 0,
         items: (category.items || []).map(item => ({
           ...item,
-          order: item.order || 0
+          order: item.order || 0,
+          prices: item.prices || {}
         })).sort((a, b) => a.order - b.order)
       })).sort((a, b) => a.order - b.order)
     };
