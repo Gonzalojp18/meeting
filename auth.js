@@ -1,25 +1,7 @@
 import NextAuth from 'next-auth'
 import CredentialsProvider from 'next-auth/providers/credentials'
-import dbConnect from './utils/dbConnect'
-import User from './models/User'
-import bcrypt from 'bcryptjs'
-import { Ratelimit } from '@upstash/ratelimit'
-import { Redis } from '@upstash/redis'
 
 const isProduction = process.env.NODE_ENV === 'production'
-
-let emailRatelimit = null
-if (process.env.UPSTASH_REDIS_REST_URL && process.env.UPSTASH_REDIS_REST_TOKEN) {
-  const redis = new Redis({
-    url: process.env.UPSTASH_REDIS_REST_URL,
-    token: process.env.UPSTASH_REDIS_REST_TOKEN,
-  })
-  emailRatelimit = new Ratelimit({
-    redis,
-    limiter: Ratelimit.slidingWindow(5, '15 m'),
-    prefix: 'rl:auth:email',
-  })
-}
 
 const loginAttempts = new Map()
 const MAX_ATTEMPTS = 5
@@ -38,13 +20,24 @@ function checkRateLimitMemory(identifier) {
 }
 
 async function checkRateLimit(identifier) {
-  if (emailRatelimit) {
-    try {
-      const { success } = await emailRatelimit.limit(identifier)
+  try {
+    const { Ratelimit } = await import('@upstash/ratelimit')
+    const { Redis } = await import('@upstash/redis')
+    if (process.env.UPSTASH_REDIS_REST_URL && process.env.UPSTASH_REDIS_REST_TOKEN) {
+      const redis = new Redis({
+        url: process.env.UPSTASH_REDIS_REST_URL,
+        token: process.env.UPSTASH_REDIS_REST_TOKEN,
+      })
+      const rl = new Ratelimit({
+        redis,
+        limiter: Ratelimit.slidingWindow(5, '15 m'),
+        prefix: 'rl:auth:email',
+      })
+      const { success } = await rl.limit(identifier)
       if (!success) return { blocked: true }
       return { blocked: false }
-    } catch (_) { }
-  }
+    }
+  } catch (_) { }
   return checkRateLimitMemory(identifier)
 }
 
@@ -64,6 +57,10 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
           if (rl.blocked) {
             throw new Error('Demasiados intentos. Intenta de nuevo en 15 minutos.')
           }
+
+          const { default: dbConnect } = await import('./utils/dbConnect')
+          const { default: User } = await import('./models/User')
+          const { default: bcrypt } = await import('bcryptjs')
 
           await dbConnect()
           const user = await User.findOne({ email })
