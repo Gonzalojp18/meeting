@@ -27,15 +27,11 @@ const Toast = ({ message, type, onClose }) => {
   );
 };
 
-export default function ScheduledOrdersConfig({ locations, token, onRefetch, selectedLocation }) {
+export default function ScheduledOrdersConfig({ locations, token, onRefetch }) {
   const [saving, setSaving] = useState(false);
   const [editingLocation, setEditingLocation] = useState(null);
   const [configs, setConfigs] = useState({});
   const [toast, setToast] = useState(null);
-
-  // Verificar si la funcionalidad está habilitada por el superadmin para la sede seleccionada
-  const currentLocation = locations?.find(loc => loc.nameId === selectedLocation);
-  const isFeatureEnabled = currentLocation?.features?.scheduledOrdersEnabled ?? false;
 
   const syncConfigsFromLocations = useCallback(() => {
     const initialConfigs = {};
@@ -92,25 +88,6 @@ export default function ScheduledOrdersConfig({ locations, token, onRefetch, sel
 
   if (!locations?.length) {
     return <div className="text-center py-8 text-gray-500">No hay sedes configuradas</div>;
-  }
-
-  if (!isFeatureEnabled) {
-    return (
-      <div className="flex flex-col items-center justify-center py-16 text-center">
-        <div className="w-20 h-20 bg-blue-100 rounded-3xl flex items-center justify-center mb-6">
-          <MdSchedule className="w-10 h-10 text-blue-600" />
-        </div>
-        <h3 className="text-2xl font-bold text-gray-900 mb-2">Funcionalidad Premium</h3>
-        <p className="text-gray-600 mb-6 max-w-md">
-          Los Pedidos Programados no están habilitados para esta sede. Contacta al SuperAdmin para activar esta funcionalidad.
-        </p>
-        <div className="bg-blue-50 border border-blue-200 rounded-xl p-4 max-w-sm">
-          <p className="text-xs text-blue-700 font-medium">
-            Esta funcionalidad requiere activación por parte del SuperAdmin en el panel de gestión de sedes.
-          </p>
-        </div>
-      </div>
-    );
   }
 
   return (

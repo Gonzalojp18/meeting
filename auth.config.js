@@ -1,8 +1,5 @@
 const isProduction = process.env.NODE_ENV === 'production'
 
-// Determine cookie domain for production (allows www and non-www)
-const cookieDomain = isProduction ? '.meetingrestobar.com' : undefined
-
 export const authConfig = {
   providers: [], // Empty to avoid importing non-Edge compatible adapters/providers
   session: {
@@ -16,7 +13,6 @@ export const authConfig = {
         sameSite: 'lax',
         path: '/',
         secure: isProduction,
-        domain: cookieDomain
       }
     },
     callbackUrl: {
@@ -25,7 +21,6 @@ export const authConfig = {
         sameSite: 'lax',
         path: '/',
         secure: isProduction,
-        domain: cookieDomain
       }
     },
     csrfToken: {

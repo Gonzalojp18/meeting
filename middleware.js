@@ -49,17 +49,6 @@ export default auth(async function middleware(request) {
     const session = request.auth;
     const { pathname } = request.nextUrl;
 
-    // DEBUG: Log para rutas de menú
-    if (pathname.startsWith('/api/menu')) {
-      console.log('[Middleware DEBUG]', {
-        pathname,
-        method: request.method,
-        hasSession: !!session,
-        sessionEmail: session?.user?.email,
-        sessionRole: session?.user?.role
-      });
-    }
-
     // Ignorar archivos estáticos y assets
     if (
         pathname.startsWith('/_next') ||
