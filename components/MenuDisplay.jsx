@@ -78,10 +78,10 @@ const MenuDisplay = ({ locationId, menuType = 'standard' }) => {
   // Inicializar selectedDay con el día de hoy (o Lunes si es fin de semana)
   useEffect(() => {
     if (selectedDay === null) {
-      const defaultDay = (argDayToday === 0 || argDayToday === 6) ? 1 : argDayToday;
+        const defaultDay = (menuType === 'executive' && (argDayToday === 0 || argDayToday === 6)) ? 1 : argDayToday;
       setSelectedDay(defaultDay);
     }
-  }, [argDayToday, selectedDay]);
+    }, [argDayToday, selectedDay, menuType]);
 
   const handleModeSelect = useCallback((mode) => {
     setMenuMode(mode);

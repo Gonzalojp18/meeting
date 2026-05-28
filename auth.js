@@ -1,10 +1,13 @@
 import NextAuth from 'next-auth'
 import CredentialsProvider from 'next-auth/providers/credentials'
+import dbConnect from '@/utils/dbConnect'
+import User from '@/models/User'
+import bcrypt from 'bcryptjs'
+import jwt from 'jsonwebtoken'
 
 const isProduction = process.env.NODE_ENV === 'production'
 
-const AUTH_API_URL = process.env.NEXTAUTH_URL ||
-  (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : 'http://localhost:3000')
+const JWT_EXPIRES_IN = '8h'
 
 export const { handlers, signIn, signOut, auth } = NextAuth({
   providers: [
@@ -16,30 +19,41 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
       },
       async authorize(credentials) {
         try {
-          const res = await fetch(`${AUTH_API_URL}/api/auth/login`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              email: credentials.email,
-              password: credentials.password
-            })
-          })
+          const { email, password } = credentials
 
-          if (!res.ok) {
-            const data = await res.json().catch(() => ({}))
-            throw new Error(data.error?.message || 'Error de autenticación')
+          if (!email || !password) {
+            throw new Error('Por favor complete todos los campos')
           }
 
-          const data = await res.json()
+          await dbConnect()
 
-          if (data.token) {
-            return {
-              ...data.user,
-              token: data.token
-            }
+          const normalizedEmail = email.toLowerCase().trim()
+          const user = await User.findOne({ email: normalizedEmail })
+
+          if (!user || !(await bcrypt.compare(password, user.password))) {
+            throw new Error('Credenciales inválidas')
           }
-          return null
+
+          if (user.isActive === false) {
+            throw new Error('Cuenta desactivada. Contacta al administrador.')
+          }
+
+          const token = jwt.sign(
+            { userId: user._id, role: user.role, assignedLocations: user.assignedLocations },
+            process.env.JWT_SECRET,
+            { expiresIn: JWT_EXPIRES_IN }
+          )
+
+          return {
+            _id: user._id.toString(),
+            name: user.name,
+            email: user.email,
+            role: user.role,
+            assignedLocations: user.assignedLocations,
+            token
+          }
         } catch (error) {
+          console.error('[authorize] Error:', error.message)
           throw new Error(error.message || 'Error de autenticación')
         }
       }

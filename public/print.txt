@@ -1,0 +1,215 @@
+# Instalación del Agente de Impresión - TakeasyGO
+
+Guía para instalar/configurar el agente de impresión en restaurantes clientes.
+
+---
+
+## Requisitos del equipo
+
+| Requisito | Detalle |
+|-----------|---------|
+| **Sistema operativo** | Windows 10/11 (64 bits) |
+| **Node.js** | v18 o superior ([descargar](https://nodejs.org/)) |
+| **Internet** | Conexión saliente al servidor de TakeasyGO |
+| **Impresora térmica** | Instalada como impresora predeterminada o configurada por nombre |
+| **Permisos** | Ejecutar como Administrador para instalación como servicio |
+
+> ⚠️ Verificar que Node.js esté instalado antes de continuar.
+
+---
+
+## Instalación desde cero (primera vez)
+
+### 1. Abrir PowerShell como Administrador
+
+Click derecho en el menú Inicio → "Windows PowerShell (Administrador)" o "Terminal (Administrador)".
+
+### 2. Navegar a la carpeta del agente
+
+```powershell
+cd "C:\ruta\donde\extrajo\takeasygo\printer-agent"
+```
+
+### 3. Verificar que pnpm esté disponible
+
+```powershell
+pnpm --version
+```
+
+Si no está instalado, instalarlo automáticamente:
+
+```powershell
+npm install -g pnpm
+```
+
+### 4. Instalar dependencias
+
+```powershell
+pnpm install
+```
+
+> Las dependencias se instalan con `ignore-scripts` por seguridad. Ningún script malicioso se ejecuta.
+
+### 5. Configurar el archivo `.env`
+
+Editar `printer-agent\.env` con los datos del restaurante:
+
+```env
+API_URL=https://takeasygo.com/api/[slug-del-tenant]
+API_KEY=token_de_acceso_del_restaurante
+PRINTER_NAME=Nombre de la impresora en Windows
+POLL_INTERVAL=5000
+```
+
+| Variable | Descripción |
+|----------|-------------|
+| `API_URL` | URL base de la API del tenant (ej: `https://takeasygo.com/api/miresto`) |
+| `API_KEY` | API Key generada desde el panel admin → Configuración → API Keys |
+| `PRINTER_NAME` | Nombre exacto de la impresora en "Dispositivos e Impresoras" de Windows |
+| `POLL_INTERVAL` | Milisegundos entre cada consulta al servidor (default: 5000 = 5 seg) |
+
+### 6. Probar el agente
+
+```powershell
+node agent.js
+```
+
+Si todo funciona, se ve algo como:
+```
+[AGENTE] Conectado correctamente a takeasygo.com/api/miresto
+[AGENTE] Escuchando órdenes...
+
+```
+
+Presionar `CTRL + C` para detener.
+
+### 7. Instalar como servicio de Windows
+
+```powershell
+.\INSTALAR_SERVICIO.bat
+```
+
+Esto:
+1. Registra el agente como un servicio de Windows llamado `TakeasyGO Printer Agent`
+2. Se inicia automáticamente al encender la PC
+3. Se reinicia automáticamente si falla
+
+> Al ejecutar el `.bat`, Windows pedirá permisos de administrador — aceptar.
+
+---
+
+## Actualización del agente (cuando haya una nueva versión)
+
+### Método rápido: reemplazar y reinstalar
+
+```powershell
+# 1. Detener el servicio (como Administrador)
+net stop "TakeasyGO Printer Agent"
+sc delete "TakeasyGO Printer Agent"
+
+# 2. Reemplazar los archivos en printer-agent/
+#    (copiar la nueva versión encima)
+
+# 3. Reinstalar desde CERO
+cd printer-agent
+pnpm install
+```
+```powershell
+# 4. Editar .env con los mismos datos de antes
+
+# 5. Instalar servicio nuevamente
+.\INSTALAR_SERVICIO.bat
+```
+
+---
+
+## Comandos útiles
+
+### Iniciar/detener el servicio manualmente
+
+```powershell
+net start "TakeasyGO Printer Agent"    # Iniciar
+net stop "TakeasyGO Printer Agent"     # Detener
+```
+
+### Ver logs del servicio
+
+Los logs se guardan en:
+```
+C:\Windows\System32\config\systemprofile\AppData\Local\takeasygo-printer-agent\logs\
+```
+
+### Ejecutar en primer plano (para pruebas)
+
+```powershell
+node agent.js
+```
+
+### Forzar impresión de prueba
+
+Si el agente está corriendo en primer plano, se puede enviar una orden de prueba desde el panel admin del restaurante.
+
+---
+
+## Solución de problemas
+
+### Error: "pnpm no se reconoce"
+
+```powershell
+npm install -g pnpm
+```
+
+### Error: "node no se reconoce"
+
+Node.js no está instalado. Descargar desde [https://nodejs.org/](https://nodejs.org/) (versión LTS, 18 o superior).
+
+### Error: "No se pudo registrar el servicio"
+
+Ejecutar PowerShell o el `.bat` **como Administrador**.
+
+### La impresora no imprime
+
+1. Verificar que el nombre en `.env` coincida exactamente con el nombre en "Dispositivos e Impresoras"
+2. Probar impresión manual desde Windows para descartar problemas de driver
+3. Ejecutar `node agent.js` en primer plano para ver errores en tiempo real
+
+### Error de conexión con el servidor
+
+1. Verificar que `API_URL` sea correcta (debe terminar en el slug del tenant, sin barra al final)
+2. Verificar que `API_KEY` sea válida (generar una nueva desde el admin si es necesario)
+3. Probar con `curl` o desde el navegador: `https://takeasygo.com/api/[slug]`
+
+### Quiero desinstalar completamente
+
+```powershell
+# Como Administrador
+net stop "TakeasyGO Printer Agent"
+sc delete "TakeasyGO Printer Agent"
+
+# Borrar la carpeta printer-agent/ completa
+```
+
+---
+
+## Arquitectura
+
+```
+┌─────────────────────────────────────────────────────┐
+│                   Servidor TakeasyGO                  │
+│  API REST ──── encola órdenes de impresión          │
+└────────────────────┬────────────────────────────────┘
+                     │ HTTPS (polling cada 5s)
+                     ▼
+┌─────────────────────────────────────────────────────┐
+│              PC del Restaurante (Windows)             │
+│                                                       │
+│  ┌─────────────────────────────────────────────┐     │
+│  │  printer-agent/ (servicio Windows)           │     │
+│  │                                              │     │
+│  │  agent.js  ←── hace polling a la API         │     │
+│  │      │                                        │     │
+│  │      ▼                                        │     │
+│  │  Impresora Térmica (USB / Red)                │     │
+│  └─────────────────────────────────────────────┘     │
+└─────────────────────────────────────────────────────┘
+```
