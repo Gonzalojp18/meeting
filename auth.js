@@ -1,13 +1,7 @@
 import NextAuth from 'next-auth'
 import CredentialsProvider from 'next-auth/providers/credentials'
-import dbConnect from '@/utils/dbConnect'
-import User from '@/models/User'
-import bcrypt from 'bcryptjs'
-import jwt from 'jsonwebtoken'
 
 const isProduction = process.env.NODE_ENV === 'production'
-
-const JWT_EXPIRES_IN = '8h'
 
 export const { handlers, signIn, signOut, auth } = NextAuth({
   providers: [
@@ -19,39 +13,8 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
       },
       async authorize(credentials) {
         try {
-          const { email, password } = credentials
-
-          if (!email || !password) {
-            throw new Error('Por favor complete todos los campos')
-          }
-
-          await dbConnect()
-
-          const normalizedEmail = email.toLowerCase().trim()
-          const user = await User.findOne({ email: normalizedEmail })
-
-          if (!user || !(await bcrypt.compare(password, user.password))) {
-            throw new Error('Credenciales inválidas')
-          }
-
-          if (user.isActive === false) {
-            throw new Error('Cuenta desactivada. Contacta al administrador.')
-          }
-
-          const token = jwt.sign(
-            { userId: user._id, role: user.role, assignedLocations: user.assignedLocations },
-            process.env.JWT_SECRET,
-            { expiresIn: JWT_EXPIRES_IN }
-          )
-
-          return {
-            _id: user._id.toString(),
-            name: user.name,
-            email: user.email,
-            role: user.role,
-            assignedLocations: user.assignedLocations,
-            token
-          }
+          const { validateCredentials } = await import('@/utils/authLogin')
+          return await validateCredentials(credentials)
         } catch (error) {
           console.error('[authorize] Error:', error.message)
           throw new Error(error.message || 'Error de autenticación')
