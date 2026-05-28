@@ -62,6 +62,11 @@ export default auth(async function middleware(request) {
         return NextResponse.next();
     }
 
+    // Usuario autenticado no debe quedarse en /login
+    if (pathname === '/login' && session?.user?.role) {
+        return NextResponse.redirect(new URL('/', request.url));
+    }
+
     // Verificar si es una ruta pública
     const isPublicRoute = PUBLIC_ROUTES.some(route => pathname.startsWith(route));
     const isPublicApiRoute = PUBLIC_API_ROUTES.some(route => pathname.startsWith(route));
@@ -146,11 +151,6 @@ export default auth(async function middleware(request) {
     // Ruta raíz
     if (pathname === '/') {
         return NextResponse.next();
-    }
-
-    // Redirigir /login si ya está autenticado
-    if (pathname === '/login' && session) {
-        return NextResponse.redirect(new URL('/', request.url));
     }
 
     return NextResponse.next();

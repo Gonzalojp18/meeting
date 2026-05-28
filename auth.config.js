@@ -38,19 +38,24 @@ export const authConfig = {
       if (user) {
         token.id = user._id
         token.email = user.email
-        token.token = user.token
         token.role = user.role
         token.assignedLocations = user.assignedLocations
+        // Evitar colisión con el objeto `token` de Auth.js; compat con sesiones viejas en token.token
+        token.apiAccessToken = user.token
+        token.token = user.token
       }
       return token
     },
     async session({ session, token }) {
-      if (token.token) {
+      const apiAccessToken = token.apiAccessToken || token.token
+      if (token?.role || token?.id) {
         session.user.id = token.id
         session.user.email = token.email
-        session.user.token = token.token
         session.user.role = token.role
         session.user.assignedLocations = token.assignedLocations
+        if (apiAccessToken) {
+          session.user.token = apiAccessToken
+        }
       }
       return session
     }

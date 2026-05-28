@@ -4,6 +4,7 @@ import { authConfig } from './auth.config'
 
 export const { handlers, signIn, signOut, auth } = NextAuth({
   ...authConfig,
+  debug: process.env.NODE_ENV === 'development',
   providers: [
     CredentialsProvider({
       name: 'credentials',
@@ -13,8 +14,11 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
       },
       async authorize(credentials) {
         try {
+          console.log('[authorize] Attempting login with:', credentials.email)
           const { validateCredentials } = await import('@/utils/authLogin')
-          return await validateCredentials(credentials)
+          const user = await validateCredentials(credentials)
+          console.log('[authorize] Login successful for:', user.email, 'role:', user.role)
+          return user
         } catch (error) {
           console.error('[authorize] Error:', error.message)
           throw new Error(error.message || 'Error de autenticación')

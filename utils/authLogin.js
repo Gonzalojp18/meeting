@@ -25,6 +25,10 @@ export async function validateCredentials(credentials) {
     throw new Error('Cuenta desactivada. Contacta al administrador.')
   }
 
+  if (!process.env.JWT_SECRET) {
+    throw new Error('JWT_SECRET no está configurado en las variables de entorno')
+  }
+
   const token = jwt.sign(
     { userId: user._id, role: user.role, assignedLocations: user.assignedLocations },
     process.env.JWT_SECRET,
