@@ -1,6 +1,11 @@
 const isProduction = process.env.NODE_ENV === 'production'
 const authSecret = process.env.AUTH_SECRET || process.env.NEXTAUTH_SECRET
 
+console.log('[authConfig] NODE_ENV:', process.env.NODE_ENV)
+console.log('[authConfig] isProduction:', isProduction)
+console.log('[authConfig] NEXTAUTH_URL:', process.env.NEXTAUTH_URL)
+console.log('[authConfig] AUTH_SECRET exists:', !!authSecret)
+
 if (isProduction && !authSecret) {
   console.error(
     '[auth] AUTH_SECRET o NEXTAUTH_SECRET es obligatorio en producción. Login fallará con error=Configuration.'
@@ -42,6 +47,7 @@ export const authConfig = {
   },
   callbacks: {
     async jwt({ token, user }) {
+      console.log('[jwt callback] token:', token, 'user:', user)
       if (user) {
         token.id = user._id
         token.email = user.email
@@ -54,6 +60,7 @@ export const authConfig = {
       return token
     },
     async session({ session, token }) {
+      console.log('[session callback] session:', session, 'token:', token)
       const apiAccessToken = token.apiAccessToken || token.token
       if (token?.role || token?.id) {
         session.user.id = token.id

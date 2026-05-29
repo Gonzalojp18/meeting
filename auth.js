@@ -15,7 +15,7 @@ function isServerConfigError(message = '') {
 
 export const { handlers, signIn, signOut, auth } = NextAuth({
   ...authConfig,
-  debug: process.env.NODE_ENV === 'development',
+  debug: true,
   providers: [
     CredentialsProvider({
       name: 'credentials',
@@ -25,6 +25,9 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
       },
       async authorize(credentials) {
         try {
+          console.log('[authorize] Attempting login with:', credentials.email)
+          console.log('[authorize] NODE_ENV:', process.env.NODE_ENV)
+          console.log('[authorize] NEXTAUTH_URL:', process.env.NEXTAUTH_URL)
           const { validateCredentials } = await import('@/utils/authLogin')
           const user = await validateCredentials(credentials)
           console.log('[authorize] OK:', user.email, 'role:', user.role)
