@@ -38,7 +38,13 @@ const Login = () => {
       if (result.ok) {
         router.push('/');
       } else {
-        setError(result.error || 'Credenciales incorrectas');
+        const msg =
+          result.error === 'Configuration'
+            ? 'Error de configuración del servidor. Revisa AUTH_SECRET, JWT_SECRET y MONGODB_URI en Vercel.'
+            : result.error === 'CredentialsSignin'
+              ? 'Credenciales incorrectas'
+              : result.error || 'Credenciales incorrectas';
+        setError(msg);
       }
     } catch (error) {
       setError('Error de conexión');

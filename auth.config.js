@@ -1,4 +1,11 @@
 const isProduction = process.env.NODE_ENV === 'production'
+const authSecret = process.env.AUTH_SECRET || process.env.NEXTAUTH_SECRET
+
+if (isProduction && !authSecret) {
+  console.error(
+    '[auth] AUTH_SECRET o NEXTAUTH_SECRET es obligatorio en producción. Login fallará con error=Configuration.'
+  )
+}
 
 export const authConfig = {
   providers: [], // Empty to avoid importing non-Edge compatible adapters/providers
@@ -64,5 +71,5 @@ export const authConfig = {
     signIn: '/login'
   },
   trustHost: true,
-  secret: process.env.AUTH_SECRET || process.env.NEXTAUTH_SECRET
+  secret: authSecret
 }
