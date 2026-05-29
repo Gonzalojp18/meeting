@@ -52,7 +52,8 @@ export const authConfig = {
         token.id = user._id
         token.email = user.email
         token.role = user.role
-        token.assignedLocations = user.assignedLocations
+        // Convertir array a string para evitar DataCloneError
+        token.assignedLocations = JSON.stringify(user.assignedLocations || [])
         // Evitar colisión con el objeto `token` de Auth.js; compat con sesiones viejas en token.token
         token.apiAccessToken = user.token
         token.token = user.token
@@ -66,7 +67,8 @@ export const authConfig = {
         session.user.id = token.id
         session.user.email = token.email
         session.user.role = token.role
-        session.user.assignedLocations = token.assignedLocations
+        // Convertir string de vuelta a array
+        session.user.assignedLocations = token.assignedLocations ? JSON.parse(token.assignedLocations) : []
         if (apiAccessToken) {
           session.user.token = apiAccessToken
         }
