@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { Suspense, useState, useEffect } from 'react';
 import { useParams, useRouter, useSearchParams } from 'next/navigation';
 import useCartStore from '@/store/cartStore';
 import useActiveOrderStore from '@/store/activeOrderStore';
@@ -84,7 +84,7 @@ const FloatingInput = ({ label, id, type = 'text', required = false, value, onCh
 };
 
 // ===================== MAIN COMPONENT =====================
-const CheckoutPage = () => {
+const CheckoutForm = () => {
     const { locationId } = useParams();
     const router = useRouter();
     const { items, getCartTotal, clearCart, addItem, removeItem, deleteItem, replaceItem } = useCartStore();
@@ -758,4 +758,10 @@ const CheckoutPage = () => {
     );
 };
 
-export default CheckoutPage;
+export default function CheckoutPage() {
+    return (
+        <Suspense fallback={<div className="min-h-dvh bg-gray-50 flex items-center justify-center"><div className="w-8 h-8 border-2 border-orange-500 border-t-transparent rounded-full animate-spin" /></div>}>
+            <CheckoutForm />
+        </Suspense>
+    );
+}

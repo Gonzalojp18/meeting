@@ -8,6 +8,7 @@ import Menu from '@/models/Menu';
 import Order from '@/models/Order';
 import { DEFAULT_TAKEAWAY_HOURS, isWithinTakeawayHours } from '@/utils/constants';
 import { encrypt, hashForSearch } from '@/utils/encryption';
+import { checkRateLimit } from '@/lib/rateLimit';
 
 /**
  * SEGURIDAD: Valida los precios de los items contra la base de datos
@@ -115,6 +116,12 @@ async function validateAndGetRealPrices(items, locationId, menuType) {
 
 export async function POST(req) {
     try {
+        const ip = req.headers.get('x-forwarded-for') || req.headers.get('x-real-ip') || 'unknown'
+        const { success } = await checkRateLimit(`create-pref:${ip}`)
+        if (!success) {
+            return NextResponse.json({ error: 'Too many requests. Intenta de nuevo en unos segundos.' }, { status: 429 })
+        }
+
         // Obtener credenciales dinámicas desde la DB
         const credentials = await getMPCredentials();
         if (!credentials) {

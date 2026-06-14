@@ -3,6 +3,7 @@ import dbConnect from '@/utils/dbConnect';
 import Settings from '@/models/Settings';
 import jwt from 'jsonwebtoken';
 import { DEFAULT_UPSELLING_CONFIG } from '@/utils/constants';
+import { cacheHeaders } from '@/lib/cacheHeaders';
 
 // @desc Obtener configuración de upselling
 // @route GET /api/settings/upselling
@@ -13,10 +14,10 @@ export async function GET() {
 
         const config = await Settings.getValue('upselling_config');
 
-        return NextResponse.json(config || DEFAULT_UPSELLING_CONFIG);
+        return NextResponse.json(config || DEFAULT_UPSELLING_CONFIG, { headers: cacheHeaders(300) });
     } catch (error) {
         console.error('GET /api/settings/upselling error:', error);
-        return NextResponse.json(DEFAULT_UPSELLING_CONFIG);
+        return NextResponse.json(DEFAULT_UPSELLING_CONFIG, { headers: cacheHeaders(300) });
     }
 }
 

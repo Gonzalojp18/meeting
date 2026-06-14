@@ -1,4 +1,7 @@
+import { Suspense } from 'react'
 import MenuDisplay from '../../../components/MenuDisplay'
+
+export const revalidate = 300
 
 // Meta tags para evitar indexación pública del Menú Ejecutivo
 export const metadata = {
@@ -20,5 +23,9 @@ export const metadata = {
 
 export default async function ExecutiveMenuPage({ params }) {
   const { locationId } = await params
-  return <MenuDisplay locationId={locationId} menuType="executive" />
+  return (
+    <Suspense fallback={<div className="min-h-screen flex items-center justify-center"><div className="w-8 h-8 border-2 border-orange-500 border-t-transparent rounded-full animate-spin" /></div>}>
+      <MenuDisplay locationId={locationId} menuType="executive" />
+    </Suspense>
+  )
 }

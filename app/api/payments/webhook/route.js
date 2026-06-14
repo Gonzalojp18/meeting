@@ -9,6 +9,7 @@ import { trackCustomer } from '@/utils/customerTracking';
 import Settings from '@/models/Settings';
 import AuditLog from '@/models/AuditLog';
 import { decrypt } from '@/utils/encryption';
+import { checkRateLimit } from '@/lib/rateLimit';
 
 // 🔒 SECURITY: Validate MercadoPago webhook signature (VULN-002)
 function validateMPSignature(req, secret, dataId) {
@@ -72,6 +73,12 @@ function validateMPSignature(req, secret, dataId) {
 
 export async function POST(req) {
     try {
+        const ip = req.headers.get('x-forwarded-for') || req.headers.get('x-real-ip') || 'unknown'
+        const { success } = await checkRateLimit(`webhook:${ip}`)
+        if (!success) {
+            return NextResponse.json({ error: 'Too many requests' }, { status: 429 })
+        }
+
         const url = new URL(req.url);
         const queryId = url.searchParams.get('id');
         const queryTopic = url.searchParams.get('topic');

@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import dbConnect from '@/utils/dbConnect';
+import { cacheHeaders } from '@/lib/cacheHeaders';
 
 export async function GET() {
     const start = Date.now();
@@ -15,5 +16,5 @@ export async function GET() {
 
     status.latencyMs = Date.now() - start;
 
-    return NextResponse.json(status, { status: status.ok ? 200 : 503 });
+    return NextResponse.json(status, { status: status.ok ? 200 : 503, headers: cacheHeaders(3600) });
 }

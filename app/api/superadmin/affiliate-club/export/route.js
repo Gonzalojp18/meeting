@@ -1,7 +1,6 @@
 import { NextResponse } from 'next/server';
 import dbConnect from '@/utils/dbConnect';
 import AffiliateProspect from '@/models/AffiliateProspect';
-import ExcelJS from 'exceljs';
 import { requireSuperAdmin } from '@/middleware/superadmin';
 
 export async function GET(req) {
@@ -21,6 +20,7 @@ export async function GET(req) {
 
     const prospects = await AffiliateProspect.find(filter).sort({ createdAt: -1 }).lean();
 
+    const ExcelJS = await import('exceljs');
     const workbook = new ExcelJS.Workbook();
     const worksheet = workbook.addWorksheet('Prospectos');
 

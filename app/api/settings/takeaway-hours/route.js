@@ -3,6 +3,7 @@ import dbConnect from '@/utils/dbConnect';
 import Settings from '@/models/Settings';
 import jwt from 'jsonwebtoken';
 import { DEFAULT_TAKEAWAY_HOURS } from '@/utils/constants';
+import { cacheHeaders } from '@/lib/cacheHeaders';
 
 // @desc Obtener horarios de takeaway
 // @route GET /api/settings/takeaway-hours
@@ -13,10 +14,10 @@ export async function GET() {
 
     const hours = await Settings.getValue('takeawayHours');
 
-    return NextResponse.json(hours || DEFAULT_TAKEAWAY_HOURS);
+    return NextResponse.json(hours || DEFAULT_TAKEAWAY_HOURS, { headers: cacheHeaders(300) });
   } catch (error) {
     console.error('GET /api/settings/takeaway-hours error:', error);
-    return NextResponse.json(DEFAULT_TAKEAWAY_HOURS);
+    return NextResponse.json(DEFAULT_TAKEAWAY_HOURS, { headers: cacheHeaders(300) });
   }
 }
 

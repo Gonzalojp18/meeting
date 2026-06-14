@@ -1,10 +1,10 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { Suspense, useEffect, useState } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { MdBusiness, MdPhone, MdEmail, MdPerson, MdWork, MdCheckCircle, MdContentCopy, MdShield } from 'react-icons/md';
 
-export default function AffiliateClubRegister() {
+function RegisterForm() {
     const [mounted, setMounted] = useState(false);
     const searchParams = useSearchParams();
     const locationId = searchParams.get('locationId') || '';
@@ -272,5 +272,13 @@ export default function AffiliateClubRegister() {
                 </div>
             </div>
         </div>
+    );
+}
+
+export default function AffiliateClubRegister() {
+    return (
+        <Suspense fallback={<div className="min-h-screen bg-gray-50 flex items-center justify-center p-4"><div className="w-8 h-8 border-2 border-purple-500 border-t-transparent rounded-full animate-spin" /></div>}>
+            <RegisterForm />
+        </Suspense>
     );
 }

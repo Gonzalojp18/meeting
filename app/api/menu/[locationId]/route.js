@@ -3,6 +3,7 @@ import dbConnect from '@/utils/dbConnect';
 import Menu from '@/models/Menu';
 import Settings from '@/models/Settings';
 import { DEFAULT_TAKEAWAY_HOURS } from '@/utils/constants';
+import { cacheHeaders } from '@/lib/cacheHeaders';
 
 // @desc Get Menu by Location
 // @route GET /api/menu/:locationId
@@ -107,7 +108,7 @@ export async function GET(req, { params }) {
       }
     };
 
-    return NextResponse.json(filteredMenu);
+    return NextResponse.json(filteredMenu, { headers: cacheHeaders(300) });
   } catch (error) {
     console.error('GET /api/menu/[locationId] error:', error);
     return NextResponse.json({ error: 'Server error' }, { status: 500 });
